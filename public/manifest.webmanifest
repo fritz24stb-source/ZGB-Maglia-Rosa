@@ -1,0 +1,18 @@
+{
+  "name": "ZGB Strava Rangliste",
+  "short_name": "ZGB Wertung",
+  "description": "Vereinsinterne Rennrad-Wertung auf Basis von Strava-Aktivitaeten.",
+  "start_url": "/leaderboard",
+  "display": "standalone",
+  "background_color": "#f6f7f8",
+  "theme_color": "#f6f7f8",
+  "lang": "de",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
