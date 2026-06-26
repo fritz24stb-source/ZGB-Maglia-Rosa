@@ -1,9 +1,9 @@
-type PublicEnv = {
+export type PublicEnv = {
   supabaseUrl: string;
   supabaseAnonKey: string;
 };
 
-type ServerEnv = PublicEnv & {
+export type ServerEnv = PublicEnv & {
   supabaseServiceRoleKey: string;
   stravaClientId: string;
   stravaClientSecret: string;
@@ -40,7 +40,10 @@ export function getServerEnv(): ServerEnv {
       "SUPABASE_SERVICE_ROLE_KEY",
       process.env.SUPABASE_SERVICE_ROLE_KEY,
     ),
-    stravaClientId: requireEnv("STRAVA_CLIENT_ID", process.env.STRAVA_CLIENT_ID),
+    stravaClientId: requireEnv(
+      "STRAVA_CLIENT_ID",
+      process.env.STRAVA_CLIENT_ID,
+    ),
     stravaClientSecret: requireEnv(
       "STRAVA_CLIENT_SECRET",
       process.env.STRAVA_CLIENT_SECRET,

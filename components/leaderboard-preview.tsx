@@ -100,7 +100,9 @@ export function LeaderboardPreview() {
             </div>
             {row.special > 0 ? (
               <div className="mt-3">
-                <StatusBadge tone="info">Sonderevent: {row.special}</StatusBadge>
+                <StatusBadge tone="info">
+                  Sonderevent: {row.special}
+                </StatusBadge>
               </div>
             ) : null}
           </article>

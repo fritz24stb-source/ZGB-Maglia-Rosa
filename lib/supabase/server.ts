@@ -2,8 +2,16 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { getPublicEnv, getServerEnv } from "@/lib/env";
+import type { CookieOptions } from "@supabase/ssr";
 import type { Database } from "@/types/database";
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+};
 
 export async function createSupabaseServerClient() {
   const env = getPublicEnv();
@@ -14,7 +22,7 @@ export async function createSupabaseServerClient() {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: CookieToSet[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
@@ -30,18 +38,11 @@ export async function createSupabaseServerClient() {
 export function createSupabaseServiceRoleClient() {
   const env = getServerEnv();
 
-  return createServerClient<Database>(
-    env.supabaseUrl,
-    env.supabaseServiceRoleKey,
-    {
-      cookies: {
-        getAll() {
-          return [];
-        },
-        setAll() {
-          return undefined;
-        },
-      },
+  return createClient<Database>(env.supabaseUrl, env.supabaseServiceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false,
     },
-  );
+  });
 }

@@ -4,7 +4,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ZGB Strava Rangliste",
-  description: "Vereinsinterne Rennrad-Wertung auf Basis von Strava-Aktivitäten.",
+  description:
+    "Vereinsinterne Rennrad-Wertung auf Basis von Strava-Aktivitäten.",
   applicationName: "ZGB Rangliste",
   manifest: "/manifest.webmanifest",
 };

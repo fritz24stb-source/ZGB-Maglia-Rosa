@@ -13,7 +13,10 @@ export default function ManualEntryPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <ClipboardCheck aria-hidden className="h-5 w-5 text-signal-blue" />
+              <ClipboardCheck
+                aria-hidden
+                className="h-5 w-5 text-signal-blue"
+              />
               <h2 className="text-base font-semibold text-asphalt-900">
                 Aktuelles Eingabefenster
               </h2>

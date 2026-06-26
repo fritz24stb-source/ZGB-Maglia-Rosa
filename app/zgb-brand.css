@@ -1,0 +1,237 @@
+/*
+ * ZGB design extraction from https://zgb-cycling.club/
+ *
+ * Source stylesheets reviewed:
+ * - /wp-content/uploads/betheme/css/static.css
+ * - /wp-content/uploads/betheme/css/post-35.css
+ * - /wp-content/uploads/betheme/fonts/mfn-local-fonts.css
+ *
+ * Purpose:
+ * Reusable brand tokens and base component styles for the Strava ranking app.
+ * This is intentionally not a verbatim WordPress theme copy.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Brand palette */
+  --zgb-color-canvas: #ecdeca;
+  --zgb-color-surface: #ffffff;
+  --zgb-color-surface-muted: #f2f2f2;
+  --zgb-color-text: #3b3634;
+  --zgb-color-text-soft: #564e4c;
+  --zgb-color-muted: #756856;
+  --zgb-color-border: #c7b79f;
+  --zgb-color-accent: #a63d11;
+  --zgb-color-accent-hover: #3b3634;
+  --zgb-color-success: #3a8b5b;
+  --zgb-color-warning: #8a5b20;
+  --zgb-color-danger: #962317;
+
+  /* Typography found on the club website */
+  --zgb-font-body:
+    "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --zgb-font-display:
+    "Unbounded", "Poppins", ui-sans-serif, system-ui, sans-serif;
+
+  --zgb-text-xs: 0.75rem;
+  --zgb-text-sm: 0.875rem;
+  --zgb-text-base: 1rem;
+  --zgb-text-lg: 1.125rem;
+  --zgb-text-xl: 1.5rem;
+  --zgb-text-2xl: 2rem;
+  --zgb-text-3xl: 3rem;
+
+  --zgb-line-tight: 1.1;
+  --zgb-line-normal: 1.55;
+
+  /* Layout and components */
+  --zgb-radius-sm: 0.25rem;
+  --zgb-radius-md: 0.5rem;
+  --zgb-radius-pill: 999px;
+  --zgb-shadow-subtle: 0 1px 0 rgba(59, 54, 52, 0.08);
+  --zgb-shadow-panel: 0 16px 40px rgba(59, 54, 52, 0.12);
+
+  --zgb-space-1: 0.25rem;
+  --zgb-space-2: 0.5rem;
+  --zgb-space-3: 0.75rem;
+  --zgb-space-4: 1rem;
+  --zgb-space-5: 1.25rem;
+  --zgb-space-6: 1.5rem;
+  --zgb-space-8: 2rem;
+  --zgb-space-10: 2.5rem;
+  --zgb-space-12: 3rem;
+}
+
+.zgb-theme {
+  min-height: 100%;
+  background: var(--zgb-color-canvas);
+  color: var(--zgb-color-text);
+  font-family: var(--zgb-font-body);
+  line-height: var(--zgb-line-normal);
+}
+
+.zgb-heading,
+.zgb-theme h1,
+.zgb-theme h2,
+.zgb-theme h3 {
+  margin: 0;
+  color: var(--zgb-color-text);
+  font-family: var(--zgb-font-display);
+  font-weight: 700;
+  line-height: var(--zgb-line-tight);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.zgb-theme h1 {
+  font-size: clamp(2.5rem, 8vw, 5.625rem);
+}
+
+.zgb-theme h2 {
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.zgb-theme h3 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.zgb-eyebrow {
+  color: var(--zgb-color-accent);
+  font-size: var(--zgb-text-sm);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.zgb-text-muted {
+  color: var(--zgb-color-muted);
+}
+
+.zgb-link {
+  color: var(--zgb-color-accent);
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.zgb-link:hover {
+  color: var(--zgb-color-accent-hover);
+}
+
+.zgb-button {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: var(--zgb-space-2);
+  border: 0;
+  border-radius: var(--zgb-radius-pill);
+  background: var(--zgb-color-text);
+  color: var(--zgb-color-canvas);
+  cursor: pointer;
+  font-family: var(--zgb-font-body);
+  font-size: var(--zgb-text-sm);
+  font-weight: 700;
+  line-height: 1;
+  padding: 1rem 1.5rem;
+  text-decoration: none;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.zgb-button:hover {
+  background: var(--zgb-color-accent);
+  color: var(--zgb-color-canvas);
+  transform: translateY(-1px);
+}
+
+.zgb-button:focus-visible,
+.zgb-link:focus-visible {
+  outline: 2px solid var(--zgb-color-accent);
+  outline-offset: 3px;
+}
+
+.zgb-button--accent {
+  background: var(--zgb-color-accent);
+  color: var(--zgb-color-canvas);
+}
+
+.zgb-button--accent:hover {
+  background: var(--zgb-color-text);
+}
+
+.zgb-panel {
+  border: 1px solid rgba(199, 183, 159, 0.7);
+  border-radius: var(--zgb-radius-md);
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: var(--zgb-shadow-subtle);
+}
+
+.zgb-card {
+  border: 1px solid rgba(199, 183, 159, 0.75);
+  border-radius: var(--zgb-radius-md);
+  background: var(--zgb-color-surface);
+  box-shadow: var(--zgb-shadow-panel);
+}
+
+.zgb-nav {
+  border-bottom: 1px solid rgba(199, 183, 159, 0.8);
+  background: rgba(236, 222, 202, 0.96);
+  color: var(--zgb-color-text);
+}
+
+.zgb-nav-link {
+  border-radius: var(--zgb-radius-pill);
+  color: var(--zgb-color-text);
+  font-size: var(--zgb-text-sm);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.zgb-nav-link:hover,
+.zgb-nav-link[aria-current="page"] {
+  background: var(--zgb-color-text);
+  color: var(--zgb-color-canvas);
+}
+
+.zgb-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--zgb-color-surface);
+  color: var(--zgb-color-text);
+  font-size: var(--zgb-text-sm);
+}
+
+.zgb-table th,
+.zgb-table td {
+  border-bottom: 1px solid rgba(199, 183, 159, 0.7);
+  padding: 0.875rem 1rem;
+  text-align: left;
+}
+
+.zgb-table th {
+  color: var(--zgb-color-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.zgb-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--zgb-radius-pill);
+  background: rgba(166, 61, 17, 0.1);
+  color: var(--zgb-color-accent);
+  font-size: var(--zgb-text-xs);
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.375rem 0.625rem;
+  text-transform: uppercase;
+}

@@ -1,0 +1,89 @@
+import { NextResponse } from "next/server";
+import { getServerEnv } from "@/lib/env";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server";
+import { revokeStravaToken } from "@/lib/strava/oauth";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(request: Request) {
+  try {
+    const env = getServerEnv();
+    const origin = request.headers.get("origin");
+
+    if (origin && origin !== new URL(env.appBaseUrl).origin) {
+      return NextResponse.json(
+        { error: "Invalid request origin." },
+        { status: 403 },
+      );
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url), {
+        status: 303,
+      });
+    }
+
+    const serviceClient = createSupabaseServiceRoleClient();
+    const { data: connection, error } = await serviceClient
+      .from("strava_connections")
+      .select("id, refresh_token, revoked")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    let revokeWarning = false;
+
+    if (connection && !connection.revoked) {
+      try {
+        await revokeStravaToken({
+          clientId: env.stravaClientId,
+          clientSecret: env.stravaClientSecret,
+          token: connection.refresh_token,
+          tokenTypeHint: "refresh_token",
+        });
+      } catch {
+        revokeWarning = true;
+      }
+
+      const { error: updateError } = await serviceClient
+        .from("strava_connections")
+        .update({
+          access_token: null,
+          revoked: true,
+        })
+        .eq("id", connection.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+    }
+
+    await supabase.auth.signOut();
+
+    const url = new URL("/login", request.url);
+    url.searchParams.set("disconnected", "1");
+
+    if (revokeWarning) {
+      url.searchParams.set("warning", "strava_revoke_failed");
+    }
+
+    return NextResponse.redirect(url, { status: 303 });
+  } catch {
+    const url = new URL("/profile", request.url);
+    url.searchParams.set("error", "disconnect_failed");
+
+    return NextResponse.redirect(url, { status: 303 });
+  }
+}
