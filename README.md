@@ -1,4 +1,4 @@
-﻿# ZGB Strava Rangliste
+# ZGB Strava Rangliste
 
 Mobile-first PWA fuer eine vereinsinterne Rennrad-Wertung auf Basis von Strava-Aktivitaeten.
 
@@ -37,6 +37,26 @@ Mobile-first PWA fuer eine vereinsinterne Rennrad-Wertung auf Basis von Strava-A
 - Regelmatching nach Saison, Keywords, Wochentag, Zeitraum, Sportart, Distanz und manueller Quelle
 - Re-Scoring-Funktion fuer saisonweite oder aktivitaetsbezogene Neubewertung
 - Unit Tests fuer Scoring und Re-Scoring
+
+## Phase 5 Umfang
+
+- Strava Webhook GET-Verifikation ueber `/api/strava/webhook`
+- Webhook POST mit Event-Speicherung in `webhook_events`
+- idempotente Verarbeitung ueber Event-Claiming und bestehende Unique-Constraints
+- Activity Fetch nach Create-/Update-Events
+- idempotenter Activity-Upsert inklusive Scoring
+- logische Behandlung von Delete-Events ueber `activities.status = 'deleted'`
+- Revoke-/Deauthorization-Events mit lokaler Revoked-Markierung
+- Fehler- und Ignore-Gruende in `webhook_events.processing_error`
+
+## Phase 6 Umfang
+
+- Leaderboard API ueber `/api/leaderboard`
+- Aggregation ueber `public.get_leaderboard(...)` mit Gesamtpunkten, Gesamtfahrten, Samstags-Fondo-Fahrten, Mittwochsfahrten, Sonderevents und Platzierung
+- API-seitige Filter fuer Saison, Kategorie, Quelle, Zeitraum und Sportart
+- API-seitige Sortierung nach Platz, Name, Punkten, Fahrten, Fondo, Mittwoch, Sonderevents, manuellen Punkten und letzter Aktivitaet
+- Mobile- und Desktop-UI fuer Filter, Sortierung, Summary-Kennzahlen, Login-, Fehler-, Leer- und Tabellen-/Kartenansichten
+- Tests fuer Query-Normalisierung, aktive Saison als Default und stabile Sortierung
 
 ## Lokale Entwicklung
 
