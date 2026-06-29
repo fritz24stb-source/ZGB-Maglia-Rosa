@@ -30,6 +30,13 @@ const publicLeaderboardSql = readFileSync(
   ),
   "utf8",
 );
+const scoredActivitiesOnlySql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260629152000_scored_activities_only.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -93,6 +100,15 @@ describe("database migrations", () => {
     expect(publicLeaderboardSql).not.toContain("auth.uid()");
     expect(publicLeaderboardSql).toContain(
       "to anon, authenticated, service_role;",
+    );
+  });
+
+  it("keeps only scored active activities in the leaderboard", () => {
+    expect(scoredActivitiesOnlySql).toContain("delete from public.activities");
+    expect(scoredActivitiesOnlySql).toContain("and a.status = 'active'");
+    expect(scoredActivitiesOnlySql).toContain("and a.points > 0");
+    expect(scoredActivitiesOnlySql).toContain(
+      "join public.scoring_rules sr on sr.id = a.matched_rule_id",
     );
   });
 });

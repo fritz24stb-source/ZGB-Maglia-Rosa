@@ -70,6 +70,10 @@ export function toActivityScoreUpdate(
   };
 }
 
+export function isScoreResultScored(result: ScoreResult) {
+  return result.matchedRuleId !== null && result.points > 0;
+}
+
 export function compareRulesForScoring(
   left: ScoringRuleRow,
   right: ScoringRuleRow,

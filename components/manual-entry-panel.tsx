@@ -37,6 +37,7 @@ export function ManualEntryPanel() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [manualState, setManualState] = useState<ManualEntryState | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [participantName, setParticipantName] = useState("");
   const [selectedRuleId, setSelectedRuleId] = useState("");
   const [activityStartedLocal, setActivityStartedLocal] = useState("");
   const [sportType, setSportType] = useState("Ride");
@@ -65,6 +66,9 @@ export function ManualEntryPanel() {
     );
     setActivityStartedLocal((current) =>
       current ? current : nextState.defaultActivityStartedLocal,
+    );
+    setParticipantName((current) =>
+      current ? current : (nextState.profileName ?? ""),
     );
   }, []);
 
@@ -163,6 +167,7 @@ export function ManualEntryPanel() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        participantName,
         ruleId: selectedOption.ruleId,
         activityStartedLocal,
         sportType,
@@ -307,6 +312,17 @@ export function ManualEntryPanel() {
         </div>
 
         <div className="mt-5 grid gap-4">
+          <InputField
+            label="Name"
+            type="text"
+            value={participantName}
+            onChange={setParticipantName}
+            required
+            maxLength={80}
+            autoComplete="name"
+            disabled={!selectedOption}
+          />
+
           <SelectField
             label="Kategorie"
             value={selectedOption?.ruleId ?? ""}

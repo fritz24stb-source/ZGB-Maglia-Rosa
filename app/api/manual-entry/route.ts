@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAppBaseUrl } from "@/lib/env";
+import { findOrCreateManualParticipantProfile } from "@/lib/manual-entry/profile";
 import { loadManualEntryEvaluation } from "@/lib/manual-entry/server";
 import { parseManualLocalDateTime } from "@/lib/manual-entry/time";
 import type { ManualEntryContext } from "@/lib/manual-entry/types";
@@ -15,6 +16,7 @@ type ManualEntryPayload = {
   activityStartedLocal?: unknown;
   comment?: unknown;
   distanceKm?: unknown;
+  participantName?: unknown;
   sportType?: unknown;
 };
 
@@ -29,16 +31,17 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const supabase = await createSupabaseServerClient();
+    const [serverClient, serviceClient] = await Promise.all([
+      createSupabaseServerClient(),
+      Promise.resolve(createSupabaseServiceRoleClient()),
+    ]);
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await serverClient.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ kind: "anonymous" }, { status: 401 });
-    }
-
-    const evaluation = await loadManualEntryEvaluation(supabase, user.id);
+    const evaluation = await loadManualEntryEvaluation(serviceClient, {
+      userId: user?.id ?? null,
+    });
 
     return NextResponse.json(evaluation.state);
   } catch (error) {
@@ -54,23 +57,17 @@ export async function POST(request: Request) {
     validateOrigin(request);
 
     const now = new Date();
-    const [payload, supabase] = await Promise.all([
-      readPayload(request),
-      createSupabaseServerClient(),
-    ]);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      throw new HttpError(401, "Nicht angemeldet.");
-    }
+    const payload = await readPayload(request);
 
     const input = normalizeManualEntryPayload(payload);
     const serviceClient = createSupabaseServiceRoleClient();
+    const profile = await findOrCreateManualParticipantProfile(
+      serviceClient,
+      input.participantName,
+    );
     const evaluation = await loadManualEntryEvaluation(
       serviceClient,
-      user.id,
+      { profile },
       now,
     );
 
@@ -141,7 +138,7 @@ export async function POST(request: Request) {
     }
 
     const activityInsert: ActivityInsert = {
-      user_id: user.id,
+      user_id: profile.id,
       season_id: evaluation.season.id,
       strava_activity_id: null,
       source: "manual",
@@ -185,9 +182,9 @@ export async function POST(request: Request) {
           context,
           localActivityTime: localActivityTime.inputValue,
           points: score.points,
-          profileName: evaluation.profile.display_name,
+          profileName: profile.display_name,
         }),
-        user_id: user.id,
+        user_id: profile.id,
         activity_id: activity.id,
       });
 
@@ -197,7 +194,7 @@ export async function POST(request: Request) {
 
     const updatedEvaluation = await loadManualEntryEvaluation(
       serviceClient,
-      user.id,
+      { profile },
       now,
     );
 
@@ -245,11 +242,16 @@ async function readPayload(request: Request): Promise<ManualEntryPayload> {
     activityStartedLocal: formData.get("activityStartedLocal"),
     comment: formData.get("comment"),
     distanceKm: formData.get("distanceKm"),
+    participantName: formData.get("participantName"),
     sportType: formData.get("sportType"),
   };
 }
 
 function normalizeManualEntryPayload(payload: ManualEntryPayload) {
+  const participantName = normalizeRequiredText(
+    payload.participantName,
+    "Name fehlt.",
+  );
   const ruleId = normalizeRequiredText(payload.ruleId, "Kategorie fehlt.");
   const activityStartedLocal = normalizeRequiredText(
     payload.activityStartedLocal,
@@ -267,6 +269,7 @@ function normalizeManualEntryPayload(payload: ManualEntryPayload) {
   }
 
   return {
+    participantName,
     ruleId,
     activityStartedLocal,
     comment,

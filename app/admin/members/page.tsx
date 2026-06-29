@@ -17,7 +17,7 @@ type ConnectionRow = Pick<
 >;
 type ActivityMiniRow = Pick<
   Database["public"]["Tables"]["activities"]["Row"],
-  "points" | "status" | "user_id"
+  "matched_rule_id" | "points" | "status" | "user_id"
 >;
 
 type MemberStats = {
@@ -233,7 +233,7 @@ async function loadMembersState(): Promise<MembersState> {
           .select("user_id, strava_athlete_id, expires_at, scope, revoked"),
         supabase
           .from("activities")
-          .select("user_id, points, status")
+          .select("user_id, points, status, matched_rule_id")
           .limit(10000),
         supabase
           .from("seasons")
@@ -282,7 +282,11 @@ function buildActivityStats(activities: ActivityMiniRow[]) {
   return activities.reduce((statsByUser, activity) => {
     const current = statsByUser.get(activity.user_id) ?? { ...emptyStats };
 
-    if (activity.status === "active") {
+    if (
+      activity.status === "active" &&
+      activity.points > 0 &&
+      activity.matched_rule_id
+    ) {
       current.activeActivities += 1;
       current.points += activity.points;
     }

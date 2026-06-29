@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  isScoreResultScored,
   rescoreActivities,
   scoreActivity,
   toActivityScoreUpdate,
@@ -143,6 +144,15 @@ describe("scoring engine", () => {
       scoring_reason: "Standardregel 'Samstags-Fondo' angewendet.",
       scored_at: "2026-06-26T10:00:00.000Z",
     });
+  });
+
+  it("classifies only matched positive results as scored", () => {
+    expect(isScoreResultScored(scoreActivity(activity(), [rule()]))).toBe(true);
+    expect(
+      isScoreResultScored(
+        scoreActivity(activity({ activity_name: "Private Runde" }), [rule()]),
+      ),
+    ).toBe(false);
   });
 });
 

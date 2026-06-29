@@ -38,9 +38,9 @@ describe("MainNav", () => {
 
     fireEvent.click(button);
 
-    expect(
-      screen.getByRole("button", { name: "Navigation schliessen" }),
-    ).toBe(button);
+    expect(screen.getByRole("button", { name: "Navigation schliessen" })).toBe(
+      button,
+    );
     expect(button.getAttribute("aria-expanded")).toBe("true");
     expect(mobileNavigation?.className).toContain("block");
     expect(mobileNavigation?.textContent).toContain("Manuell");

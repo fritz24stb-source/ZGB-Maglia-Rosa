@@ -1,7 +1,12 @@
 import "server-only";
 
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
-import { scoreActivity, toActivityScoreUpdate } from "@/lib/scoring";
+import {
+  isScoreResultScored,
+  scoreActivity,
+  toActivityScoreUpdate,
+} from "@/lib/scoring";
+import type { ScorableActivity, ScoringRuleRow } from "@/lib/scoring";
 import {
   fetchStravaActivity,
   getStravaActivityAthleteId,
@@ -23,7 +28,6 @@ import type { Database, Json } from "@/types/database";
 
 type FetchLike = typeof fetch;
 type ServiceClient = SupabaseClient<Database>;
-type ActivityRow = Database["public"]["Tables"]["activities"]["Row"];
 type ActivityWrite = Database["public"]["Tables"]["activities"]["Insert"] &
   Database["public"]["Tables"]["activities"]["Update"];
 type SeasonRow = Database["public"]["Tables"]["seasons"]["Row"];
@@ -182,9 +186,24 @@ async function fetchAndUpsertStravaActivity(
     userId: connection.user_id,
     seasonId: season.id,
   });
-  const activity = await upsertStravaActivity(client, activityWrite);
+  const rules = await fetchScoringRules(client, season.id);
+  const score = scoreActivity(toScorableStravaActivity(activityWrite), rules, {
+    scoredAt: now,
+  });
 
-  await scoreAndUpdateActivity(client, activity, now);
+  if (!isScoreResultScored(score)) {
+    await deleteStravaActivityByStravaId(client, event.object_id);
+
+    return {
+      status: "ignored",
+      reason: `Strava activity ${event.object_id} did not match an active scoring rule and was not stored.`,
+    };
+  }
+
+  const activity = await upsertStravaActivity(client, {
+    ...activityWrite,
+    ...toActivityScoreUpdate(score),
+  });
 
   return {
     status: "processed",
@@ -258,30 +277,57 @@ async function markStravaActivityDeleted(
   };
 }
 
-async function scoreAndUpdateActivity(
-  client: ServiceClient,
-  activity: ActivityRow,
-  now: Date,
-) {
+async function fetchScoringRules(client: ServiceClient, seasonId: string) {
   const { data: rules, error: rulesError } = await client
     .from("scoring_rules")
     .select("*")
     .eq("is_active", true)
-    .or(`season_id.is.null,season_id.eq.${activity.season_id}`);
+    .or(`season_id.is.null,season_id.eq.${seasonId}`);
 
   if (rulesError) {
     throw rulesError;
   }
 
-  const score = scoreActivity(activity, rules ?? [], { scoredAt: now });
+  return (rules ?? []) as ScoringRuleRow[];
+}
+
+async function deleteStravaActivityByStravaId(
+  client: ServiceClient,
+  stravaActivityId: number,
+) {
   const { error } = await client
     .from("activities")
-    .update(toActivityScoreUpdate(score))
-    .eq("id", activity.id);
+    .delete()
+    .eq("source", "strava")
+    .eq("strava_activity_id", stravaActivityId);
 
   if (error) {
     throw error;
   }
+}
+
+function toScorableStravaActivity(activityWrite: ActivityWrite) {
+  const activityStartedAt = activityWrite.activity_started_at;
+  const activityName = activityWrite.activity_name;
+  const seasonId = activityWrite.season_id;
+  const stravaActivityId = activityWrite.strava_activity_id;
+
+  if (!activityStartedAt || !activityName || !seasonId || !stravaActivityId) {
+    throw new Error("Cannot score incomplete Strava activity payload.");
+  }
+
+  return {
+    id: `strava-${stravaActivityId}`,
+    season_id: seasonId,
+    source: "strava",
+    activity_name: activityName,
+    sport_type: activityWrite.sport_type ?? null,
+    distance_m: activityWrite.distance_m ?? null,
+    activity_started_at: activityStartedAt,
+    activity_started_local_at: activityWrite.activity_started_local_at ?? null,
+    status: "active",
+    manually_entered: false,
+  } satisfies ScorableActivity;
 }
 
 async function upsertStravaActivity(

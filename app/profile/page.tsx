@@ -318,6 +318,9 @@ async function loadProfileState(): Promise<ProfileState> {
             "id, activity_name, points, status, activity_started_local_at, activity_started_at",
           )
           .eq("user_id", user.id)
+          .eq("status", "active")
+          .gt("points", 0)
+          .not("matched_rule_id", "is", null)
           .order("activity_started_at", { ascending: false })
           .limit(5),
       ]);

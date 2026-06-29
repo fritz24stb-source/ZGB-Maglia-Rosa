@@ -47,7 +47,7 @@ export type ManualEntryState =
   | {
       kind: "ready";
       generatedAt: string;
-      profileName: string;
+      profileName: string | null;
       season: ManualEntrySeason;
       options: ManualEntryOption[];
       nextOpensAt: string | null;
@@ -66,12 +66,12 @@ export type ManualEntryEvaluation =
       state: Extract<ManualEntryState, { kind: "unavailable" }>;
       contexts: [];
       season: SeasonRow | null;
-      profile: Pick<ProfileRow, "display_name" | "is_active"> | null;
+      profile: Pick<ProfileRow, "display_name" | "id" | "is_active"> | null;
     }
   | {
       kind: "ready";
       state: Extract<ManualEntryState, { kind: "ready" }>;
       contexts: ManualEntryContext[];
       season: SeasonRow;
-      profile: Pick<ProfileRow, "display_name" | "is_active">;
+      profile: Pick<ProfileRow, "display_name" | "id" | "is_active"> | null;
     };

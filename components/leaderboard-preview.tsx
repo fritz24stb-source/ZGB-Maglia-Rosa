@@ -390,8 +390,8 @@ function DesktopLeaderboard({
   sortKey: LeaderboardSortKey;
 }) {
   return (
-    <div className="hidden overflow-hidden rounded-lg border border-asphalt-200 bg-white shadow-line md:block">
-      <table className="w-full border-collapse text-left text-sm">
+    <div className="hidden overflow-x-auto rounded-lg border border-asphalt-200 bg-white shadow-line md:block">
+      <table className="min-w-[980px] w-full border-collapse text-left text-sm">
         <thead className="sticky top-[65px] bg-asphalt-50 text-xs uppercase text-asphalt-500">
           <tr>
             <SortableHeader
@@ -441,7 +441,7 @@ function DesktopLeaderboard({
         <tbody className="divide-y divide-asphalt-100">
           {rows.map((row) => (
             <tr key={`${row.seasonId}-${row.userId}`}>
-              <td className="px-4 py-4 font-semibold text-asphalt-900">
+              <td className="whitespace-nowrap px-4 py-4 font-semibold text-asphalt-900">
                 <span className="inline-flex items-center gap-2">
                   {row.place <= 3 ? (
                     <Trophy aria-hidden className="h-4 w-4 text-signal-amber" />
@@ -449,7 +449,7 @@ function DesktopLeaderboard({
                   {row.place}
                 </span>
               </td>
-              <td className="px-4 py-4 text-asphalt-900">
+              <td className="min-w-48 px-4 py-4 text-asphalt-900">
                 <div>
                   <p className="font-medium">{row.displayName}</p>
                   <p className="mt-1 text-xs text-asphalt-500">
@@ -457,19 +457,19 @@ function DesktopLeaderboard({
                   </p>
                 </div>
               </td>
-              <td className="px-4 py-4 font-semibold text-asphalt-900">
+              <td className="whitespace-nowrap px-4 py-4 font-semibold text-asphalt-900">
                 {formatNumber(row.totalPoints)}
               </td>
-              <td className="px-4 py-4 text-asphalt-700">
+              <td className="whitespace-nowrap px-4 py-4 text-asphalt-700">
                 {formatNumber(row.totalRides)}
               </td>
-              <td className="px-4 py-4 text-asphalt-700">
+              <td className="whitespace-nowrap px-4 py-4 text-asphalt-700">
                 {formatNumber(row.samstagsFahrten)}
               </td>
-              <td className="px-4 py-4 text-asphalt-700">
+              <td className="whitespace-nowrap px-4 py-4 text-asphalt-700">
                 {formatNumber(row.mittwochsFahrten)}
               </td>
-              <td className="px-4 py-4 text-asphalt-700">
+              <td className="whitespace-nowrap px-4 py-4 text-asphalt-700">
                 {row.sonderevents > 0 ? (
                   <StatusBadge tone="info">
                     {formatNumber(row.sonderevents)}
@@ -498,7 +498,7 @@ function SortableHeader({
   onSort: () => void;
 }) {
   return (
-    <th className="px-4 py-3">
+    <th className="whitespace-nowrap px-4 py-3">
       <button
         type="button"
         className={cn(

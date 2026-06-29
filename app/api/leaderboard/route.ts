@@ -73,6 +73,8 @@ export async function GET(request: Request) {
           .from("activities")
           .select("sport_type")
           .eq("status", "active")
+          .gt("points", 0)
+          .not("matched_rule_id", "is", null)
           .not("sport_type", "is", null)
           .limit(5000),
       ]);

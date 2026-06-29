@@ -23,29 +23,29 @@ type AppClient = Pick<
   Awaited<ReturnType<typeof createSupabaseServerClient>>,
   "from"
 >;
-type ProfileSummary = Pick<ProfileRow, "display_name" | "is_active">;
+type ProfileSummary = Pick<ProfileRow, "display_name" | "id" | "is_active">;
+type ManualEntryTarget = {
+  profile?: ProfileSummary | null;
+  userId?: string | null;
+};
 
 export async function loadManualEntryStateForUser(
   client: AppClient,
   userId: string,
   now = new Date(),
 ): Promise<ManualEntryState> {
-  const evaluation = await loadManualEntryEvaluation(client, userId, now);
+  const evaluation = await loadManualEntryEvaluation(client, { userId }, now);
 
   return evaluation.state;
 }
 
 export async function loadManualEntryEvaluation(
   client: AppClient,
-  userId: string,
+  target: ManualEntryTarget = {},
   now = new Date(),
 ): Promise<ManualEntryEvaluation> {
   const [profileResult, seasonResult] = await Promise.all([
-    client
-      .from("profiles")
-      .select("display_name, is_active")
-      .eq("id", userId)
-      .maybeSingle(),
+    loadTargetProfile(client, target),
     client
       .from("seasons")
       .select("*")
@@ -55,19 +55,19 @@ export async function loadManualEntryEvaluation(
       .maybeSingle(),
   ]);
 
-  if (profileResult.error || seasonResult.error) {
-    throw profileResult.error ?? seasonResult.error;
+  if (seasonResult.error) {
+    throw seasonResult.error;
   }
 
-  const profile = profileResult.data as ProfileSummary | null;
+  const profile = profileResult;
   const season = seasonResult.data as SeasonRow | null;
   const generatedAt = now.toISOString();
 
-  if (!profile?.is_active) {
+  if (profile && !profile.is_active) {
     return buildUnavailableEvaluation({
       generatedAt,
       profile,
-      reason: "Kein aktives Mitgliederprofil gefunden.",
+      reason: "Das Mitgliederprofil ist nicht aktiv.",
       season,
     });
   }
@@ -133,12 +133,14 @@ export async function loadManualEntryEvaluation(
     });
   }
 
-  const existingEntryCounts = await loadExistingEntryCounts(
-    client,
-    userId,
-    season.id,
-    initialContexts,
-  );
+  const existingEntryCounts = profile
+    ? await loadExistingEntryCounts(
+        client,
+        profile.id,
+        season.id,
+        initialContexts,
+      )
+    : new Map<string, number>();
   const contexts = buildManualEntryContexts({
     existingEntryCounts,
     now,
@@ -149,7 +151,7 @@ export async function loadManualEntryEvaluation(
   const state: Extract<ManualEntryState, { kind: "ready" }> = {
     kind: "ready",
     generatedAt,
-    profileName: profile.display_name,
+    profileName: profile?.display_name ?? null,
     season: toManualEntrySeason(season),
     options,
     nextOpensAt: getNextManualEntryOpening(options),
@@ -163,6 +165,28 @@ export async function loadManualEntryEvaluation(
     season,
     profile,
   };
+}
+
+async function loadTargetProfile(client: AppClient, target: ManualEntryTarget) {
+  if (target.profile) {
+    return target.profile;
+  }
+
+  if (!target.userId) {
+    return null;
+  }
+
+  const { data, error } = await client
+    .from("profiles")
+    .select("id, display_name, is_active")
+    .eq("id", target.userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as ProfileSummary | null;
 }
 
 async function loadExistingEntryCounts(
