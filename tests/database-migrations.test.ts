@@ -26,7 +26,7 @@ const phase4Sql = readFileSync(
 const publicLeaderboardSql = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260629100000_public_leaderboard_access.sql",
+    "supabase/migrations/20260629094359_public_leaderboard_access.sql",
   ),
   "utf8",
 );

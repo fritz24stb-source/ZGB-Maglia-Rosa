@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_COOKIE_PATH,
   ADMIN_SESSION_MAX_AGE_SECONDS,
   createAdminSessionToken,
   getAdminPassword,
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
       {
         httpOnly: true,
         maxAge: ADMIN_SESSION_MAX_AGE_SECONDS,
-        path: "/admin",
+        path: ADMIN_SESSION_COOKIE_PATH,
         sameSite: "lax",
         secure: new URL(request.url).protocol === "https:",
       },

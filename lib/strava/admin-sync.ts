@@ -1,0 +1,429 @@
+import "server-only";
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { scoreActivity, toActivityScoreUpdate } from "@/lib/scoring";
+import {
+  fetchStravaActivity,
+  fetchStravaAthleteActivities,
+  getStravaActivityAthleteId,
+  getStravaActivityLocalDate,
+  mapStravaActivityToActivityWrite,
+  type StravaDetailedActivity,
+} from "@/lib/strava/activity";
+import { getValidStravaAccessToken } from "@/lib/strava/token";
+import type { Database } from "@/types/database";
+
+type ServiceClient = SupabaseClient<Database>;
+type ActivityRow = Database["public"]["Tables"]["activities"]["Row"];
+type ActivityWrite = Database["public"]["Tables"]["activities"]["Insert"] &
+  Database["public"]["Tables"]["activities"]["Update"];
+type SeasonRow = Database["public"]["Tables"]["seasons"]["Row"];
+type StravaConnectionRow =
+  Database["public"]["Tables"]["strava_connections"]["Row"];
+
+type FetchLike = typeof fetch;
+
+export type AdminSyncError = {
+  message: string;
+  scope: string;
+};
+
+export type AdminSyncSummary = {
+  activitiesFetched: number;
+  failed: number;
+  scored: number;
+  skipped: number;
+  synced: number;
+  users: number;
+  errors: AdminSyncError[];
+};
+
+export type SyncUserInput = {
+  client: ServiceClient;
+  fetchImpl?: FetchLike;
+  maxPages?: number;
+  now?: Date;
+  perPage?: number;
+  seasonId?: string | null;
+  userId: string;
+};
+
+export type SyncActiveUsersInput = Omit<SyncUserInput, "userId">;
+
+const DEFAULT_MAX_PAGES = 3;
+const DEFAULT_PER_PAGE = 100;
+
+export async function syncStravaActivitiesForUser({
+  client,
+  fetchImpl = fetch,
+  maxPages = DEFAULT_MAX_PAGES,
+  now = new Date(),
+  perPage = DEFAULT_PER_PAGE,
+  seasonId,
+  userId,
+}: SyncUserInput): Promise<AdminSyncSummary> {
+  const summary = emptySummary();
+  summary.users = 1;
+
+  const [connection, season] = await Promise.all([
+    findConnectionForUser(client, userId),
+    seasonId ? findSeasonById(client, seasonId) : Promise.resolve(null),
+  ]);
+
+  if (!connection) {
+    summary.skipped += 1;
+    summary.errors.push({
+      scope: `user:${userId}`,
+      message: "Keine Strava-Verbindung vorhanden.",
+    });
+    return summary;
+  }
+
+  if (connection.revoked) {
+    summary.skipped += 1;
+    summary.errors.push({
+      scope: `user:${userId}`,
+      message: "Strava-Verbindung ist widerrufen.",
+    });
+    return summary;
+  }
+
+  const accessToken = await getValidStravaAccessToken(connection);
+  const range: { after?: number; before?: number } = season
+    ? seasonToStravaRange(season)
+    : {};
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const activities = await fetchStravaAthleteActivities(
+      {
+        accessToken,
+        after: range.after,
+        before: range.before,
+        page,
+        perPage,
+      },
+      fetchImpl,
+    );
+
+    if (activities.length === 0) {
+      break;
+    }
+
+    for (const activity of activities) {
+      if (!Number.isFinite(activity.id)) {
+        summary.skipped += 1;
+        continue;
+      }
+
+      try {
+        const detailedActivity = await fetchStravaActivity(
+          activity.id,
+          accessToken,
+          fetchImpl,
+        );
+        summary.activitiesFetched += 1;
+
+        const result = await syncDetailedActivity({
+          activity: detailedActivity,
+          client,
+          connection,
+          now,
+          requestedSeasonId: season?.id ?? null,
+        });
+
+        if (result === "synced") {
+          summary.synced += 1;
+          summary.scored += 1;
+        } else {
+          summary.skipped += 1;
+        }
+      } catch (error) {
+        summary.failed += 1;
+        summary.errors.push({
+          scope: `activity:${activity.id}`,
+          message: getErrorMessage(error),
+        });
+      }
+    }
+
+    if (activities.length < perPage) {
+      break;
+    }
+  }
+
+  return summary;
+}
+
+export async function syncStravaActivitiesForActiveUsers({
+  client,
+  fetchImpl = fetch,
+  maxPages = DEFAULT_MAX_PAGES,
+  now = new Date(),
+  perPage = DEFAULT_PER_PAGE,
+  seasonId,
+}: SyncActiveUsersInput): Promise<AdminSyncSummary> {
+  const { data, error } = await client
+    .from("profiles")
+    .select("id")
+    .eq("is_active", true)
+    .order("display_name", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  const aggregate = emptySummary();
+
+  for (const profile of data ?? []) {
+    try {
+      const userSummary = await syncStravaActivitiesForUser({
+        client,
+        fetchImpl,
+        maxPages,
+        now,
+        perPage,
+        seasonId,
+        userId: profile.id,
+      });
+
+      mergeSummary(aggregate, userSummary);
+    } catch (error) {
+      aggregate.users += 1;
+      aggregate.failed += 1;
+      aggregate.errors.push({
+        scope: `user:${profile.id}`,
+        message: getErrorMessage(error),
+      });
+    }
+  }
+
+  return aggregate;
+}
+
+function emptySummary(): AdminSyncSummary {
+  return {
+    activitiesFetched: 0,
+    failed: 0,
+    scored: 0,
+    skipped: 0,
+    synced: 0,
+    users: 0,
+    errors: [],
+  };
+}
+
+function mergeSummary(target: AdminSyncSummary, source: AdminSyncSummary) {
+  target.activitiesFetched += source.activitiesFetched;
+  target.failed += source.failed;
+  target.scored += source.scored;
+  target.skipped += source.skipped;
+  target.synced += source.synced;
+  target.users += source.users;
+  target.errors.push(...source.errors);
+}
+
+async function syncDetailedActivity(input: {
+  activity: StravaDetailedActivity;
+  client: ServiceClient;
+  connection: StravaConnectionRow;
+  now: Date;
+  requestedSeasonId: string | null;
+}) {
+  const athleteId = getStravaActivityAthleteId(input.activity);
+
+  if (athleteId !== null && athleteId !== input.connection.strava_athlete_id) {
+    throw new Error(
+      `Strava-Aktivitaet gehoert zu Athlete ${athleteId}, erwartet ${input.connection.strava_athlete_id}.`,
+    );
+  }
+
+  const season = await findSeasonForActivity(input.client, input.activity);
+
+  if (!season) {
+    return "skipped";
+  }
+
+  if (input.requestedSeasonId && season.id !== input.requestedSeasonId) {
+    return "skipped";
+  }
+
+  const activityWrite = mapStravaActivityToActivityWrite({
+    activity: input.activity,
+    seasonId: season.id,
+    userId: input.connection.user_id,
+  });
+  const activity = await upsertStravaActivity(input.client, activityWrite);
+  await scoreAndUpdateActivity(input.client, activity, input.now);
+
+  return "synced";
+}
+
+async function findConnectionForUser(client: ServiceClient, userId: string) {
+  const { data, error } = await client
+    .from("strava_connections")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as StravaConnectionRow | null;
+}
+
+async function findSeasonById(client: ServiceClient, seasonId: string) {
+  const { data, error } = await client
+    .from("seasons")
+    .select("*")
+    .eq("id", seasonId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error("Saison nicht gefunden.");
+  }
+
+  return data as SeasonRow;
+}
+
+async function findSeasonForActivity(
+  client: ServiceClient,
+  activity: StravaDetailedActivity,
+) {
+  const activityDate = getStravaActivityLocalDate(activity);
+
+  if (!activityDate) {
+    throw new Error("Aktivitaet hat kein verwertbares Startdatum.");
+  }
+
+  const { data, error } = await client
+    .from("seasons")
+    .select("*")
+    .lte("starts_on", activityDate)
+    .gte("ends_on", activityDate)
+    .order("is_active", { ascending: false })
+    .order("starts_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as SeasonRow | null;
+}
+
+async function upsertStravaActivity(
+  client: ServiceClient,
+  activityWrite: ActivityWrite,
+) {
+  const stravaActivityId = activityWrite.strava_activity_id;
+
+  if (stravaActivityId === undefined || stravaActivityId === null) {
+    throw new Error(
+      "Strava-Aktivitaet ohne Strava-ID kann nicht synchronisiert werden.",
+    );
+  }
+
+  const updatedActivity = await updateStravaActivity(
+    client,
+    stravaActivityId,
+    activityWrite,
+  );
+
+  if (updatedActivity) {
+    return updatedActivity;
+  }
+
+  const { data: insertedActivity, error } = await client
+    .from("activities")
+    .insert(activityWrite)
+    .select("*")
+    .single();
+
+  if (error) {
+    if (error.code !== "23505") {
+      throw error;
+    }
+
+    const retriedActivity = await updateStravaActivity(
+      client,
+      stravaActivityId,
+      activityWrite,
+    );
+
+    if (!retriedActivity) {
+      throw error;
+    }
+
+    return retriedActivity;
+  }
+
+  return insertedActivity;
+}
+
+async function updateStravaActivity(
+  client: ServiceClient,
+  stravaActivityId: number,
+  activityWrite: ActivityWrite,
+) {
+  const { data, error } = await client
+    .from("activities")
+    .update(activityWrite)
+    .eq("strava_activity_id", stravaActivityId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as ActivityRow | null;
+}
+
+async function scoreAndUpdateActivity(
+  client: ServiceClient,
+  activity: ActivityRow,
+  now: Date,
+) {
+  const { data: rules, error: rulesError } = await client
+    .from("scoring_rules")
+    .select("*")
+    .eq("is_active", true)
+    .or(`season_id.is.null,season_id.eq.${activity.season_id}`);
+
+  if (rulesError) {
+    throw rulesError;
+  }
+
+  const score = scoreActivity(activity, rules ?? [], { scoredAt: now });
+  const { error } = await client
+    .from("activities")
+    .update(toActivityScoreUpdate(score))
+    .eq("id", activity.id);
+
+  if (error) {
+    throw error;
+  }
+}
+
+function seasonToStravaRange(season: SeasonRow) {
+  const after = Math.floor(
+    new Date(`${season.starts_on}T00:00:00.000Z`).getTime() / 1000,
+  );
+  const before = Math.floor(
+    (new Date(`${season.ends_on}T00:00:00.000Z`).getTime() +
+      24 * 60 * 60 * 1000) /
+      1000,
+  );
+
+  return { after, before };
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}

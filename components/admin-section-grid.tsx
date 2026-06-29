@@ -10,6 +10,14 @@ import {
 } from "lucide-react";
 import { adminSections } from "@/lib/navigation";
 
+type AdminSectionGridProps = {
+  activeActivities?: number;
+  activeMembers?: number;
+  failedWebhookEvents?: number;
+  pendingWebhookEvents?: number;
+  unreadNotifications?: number;
+};
+
 const iconByHref = {
   "/admin/seasons": CalendarDays,
   "/admin/rules": ListChecks,
@@ -18,7 +26,13 @@ const iconByHref = {
   "/admin/export": Download,
 } satisfies Record<string, React.ComponentType<{ className?: string }>>;
 
-export function AdminSectionGrid() {
+export function AdminSectionGrid({
+  activeActivities = 0,
+  activeMembers = 0,
+  failedWebhookEvents = 0,
+  pendingWebhookEvents = 0,
+  unreadNotifications = 0,
+}: AdminSectionGridProps) {
   return (
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
@@ -26,8 +40,11 @@ export function AdminSectionGrid() {
           <Bell aria-hidden className="h-5 w-5 text-signal-amber" />
           <h2 className="text-base font-semibold">Offene Hinweise</h2>
         </div>
-        <p className="mt-3 text-sm text-asphalt-600">
-          Admin-Notifications werden in der Datenbankphase angebunden.
+        <p className="mt-3 text-2xl font-semibold text-asphalt-900">
+          {unreadNotifications}
+        </p>
+        <p className="mt-1 text-sm text-asphalt-600">
+          ungelesene Admin-Notifications.
         </p>
       </article>
       <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
@@ -35,8 +52,23 @@ export function AdminSectionGrid() {
           <RefreshCcw aria-hidden className="h-5 w-5 text-signal-blue" />
           <h2 className="text-base font-semibold">Sync Status</h2>
         </div>
-        <p className="mt-3 text-sm text-asphalt-600">
-          Webhook- und Fallback-Sync erhalten eigene Admin-Aktionen.
+        <p className="mt-3 text-2xl font-semibold text-asphalt-900">
+          {pendingWebhookEvents}/{failedWebhookEvents}
+        </p>
+        <p className="mt-1 text-sm text-asphalt-600">
+          pending/failed Webhook Events.
+        </p>
+      </article>
+      <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
+        <div className="flex items-center gap-2 text-asphalt-900">
+          <Users aria-hidden className="h-5 w-5 text-signal-blue" />
+          <h2 className="text-base font-semibold">Aktive Daten</h2>
+        </div>
+        <p className="mt-3 text-2xl font-semibold text-asphalt-900">
+          {activeMembers}/{activeActivities}
+        </p>
+        <p className="mt-1 text-sm text-asphalt-600">
+          aktive Mitglieder/Aktivitaeten.
         </p>
       </article>
       {adminSections.map((section) => {

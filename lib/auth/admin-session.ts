@@ -1,4 +1,5 @@
 export const ADMIN_SESSION_COOKIE = "zgb_admin_session";
+export const ADMIN_SESSION_COOKIE_PATH = "/";
 export const ADMIN_SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
 const ADMIN_SESSION_MESSAGE = "zgb-strava-admin-session:v1";

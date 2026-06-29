@@ -20,6 +20,11 @@ export type StravaDetailedActivity = {
   } | null;
 };
 
+export type StravaActivitySummary = Pick<
+  StravaDetailedActivity,
+  "id" | "name" | "sport_type" | "start_date" | "start_date_local"
+>;
+
 export type ActivityMappingInput = {
   activity: StravaDetailedActivity;
   userId: string;
@@ -67,6 +72,47 @@ export async function fetchStravaActivity(
   }
 
   return activity;
+}
+
+export async function fetchStravaAthleteActivities(
+  input: {
+    accessToken: string;
+    after?: number;
+    before?: number;
+    page?: number;
+    perPage?: number;
+  },
+  fetchImpl: FetchLike = fetch,
+) {
+  const url = new URL(`${STRAVA_API_BASE_URL}/athlete/activities`);
+
+  if (input.after !== undefined) {
+    url.searchParams.set("after", String(input.after));
+  }
+
+  if (input.before !== undefined) {
+    url.searchParams.set("before", String(input.before));
+  }
+
+  url.searchParams.set("page", String(input.page ?? 1));
+  url.searchParams.set("per_page", String(input.perPage ?? 100));
+
+  const response = await fetchImpl(url, {
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const responseBody = await response.text().catch(() => "");
+    throw new StravaActivityFetchError(
+      "Strava activity list fetch failed.",
+      response.status,
+      responseBody,
+    );
+  }
+
+  return (await response.json()) as StravaActivitySummary[];
 }
 
 export function mapStravaActivityToActivityWrite({

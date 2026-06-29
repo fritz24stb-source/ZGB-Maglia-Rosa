@@ -69,6 +69,18 @@ Mobile-first PWA fuer eine vereinsinterne Rennrad-Wertung auf Basis von Strava-A
 - Anzeige des naechsten ermittelten Zeitfensters
 - Tests fuer Zeitfenstergrenzen, lokale Berlin-Zeit, Duplicate-Status und Sonderevent-Fenster
 
+## Phase 8 Umfang
+
+- Admin-Dashboard mit Kennzahlen, offenen Benachrichtigungen, Webhook-Status und Gesamt-Resync
+- Saisonverwaltung mit Anlegen, Bearbeiten und aktiver Saison
+- Regelverwaltung fuer Standardregeln und Sonderevents inklusive manueller Eingaberegeln
+- Mitgliederverwaltung mit Rolle, Aktivstatus, Strava-Status, Aktivitaetslink und User-Resync
+- Aktivitaetsuebersicht mit Filtern, manuellen Eintraegen, Re-Scoring und Ausschluss/Reaktivierung
+- Admin-API-Routen fuer Sync, Re-Scoring, Statuskorrekturen, Benachrichtigungen und CSV-Export
+- CSV-Export fuer Leaderboard und Aktivitaeten
+- Audit-Log fuer schreibende Admin-Aktionen
+- Tests fuer Admin-Formularnormalisierung und CSV-Escaping
+
 ## Login- und Zugriffsmodell
 
 - Strava Login ist nur fuer das Verknuepfen eines Athleten und fuer spaeteres Trennen der Strava-Verbindung notwendig.
