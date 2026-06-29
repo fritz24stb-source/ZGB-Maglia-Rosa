@@ -65,7 +65,10 @@ function toBase64Url(bytes: Uint8Array) {
     binary += String.fromCharCode(byte);
   }
 
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 function timingSafeStringEqual(left: string, right: string) {

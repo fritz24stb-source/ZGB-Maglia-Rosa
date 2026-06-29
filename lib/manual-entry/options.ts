@@ -100,10 +100,12 @@ export function buildManualEntryContexts({
 export function getNextManualEntryOpening(
   options: Pick<ManualEntryOption, "nextOpensAt">[],
 ) {
-  return options
-    .map((option) => option.nextOpensAt)
-    .filter((value): value is string => Boolean(value))
-    .sort()[0] ?? null;
+  return (
+    options
+      .map((option) => option.nextOpensAt)
+      .filter((value): value is string => Boolean(value))
+      .sort()[0] ?? null
+  );
 }
 
 export function getManualEntryLabel(rule: ScoringRuleRow) {
@@ -137,7 +139,9 @@ function buildContext(input: {
     closesAt: input.windowStatus.closesAt.toISOString(),
     nextOpensAt:
       input.windowStatus.nextOpensAt?.toISOString() ??
-      (input.windowStatus.isOpen ? null : input.windowStatus.opensAt.toISOString()),
+      (input.windowStatus.isOpen
+        ? null
+        : input.windowStatus.opensAt.toISOString()),
     maxEntries,
     existingEntries,
     remainingEntries,

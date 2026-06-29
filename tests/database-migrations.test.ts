@@ -23,6 +23,13 @@ const phase4Sql = readFileSync(
   ),
   "utf8",
 );
+const publicLeaderboardSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260629100000_public_leaderboard_access.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -77,5 +84,15 @@ describe("database migrations", () => {
   it("stores activity distance for distance-based scoring rules", () => {
     expect(phase4Sql).toContain("add column distance_m numeric");
     expect(phase4Sql).toContain("activities_distance_m_check");
+  });
+
+  it("allows public leaderboard reads without a user session", () => {
+    expect(publicLeaderboardSql).toContain(
+      "create or replace function public.get_leaderboard",
+    );
+    expect(publicLeaderboardSql).not.toContain("auth.uid()");
+    expect(publicLeaderboardSql).toContain(
+      "to anon, authenticated, service_role;",
+    );
   });
 });

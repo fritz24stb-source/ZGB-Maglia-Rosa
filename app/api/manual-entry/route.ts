@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAppBaseUrl } from "@/lib/env";
 import { loadManualEntryEvaluation } from "@/lib/manual-entry/server";
-import {
-  MANUAL_ENTRY_TIME_ZONE,
-  parseManualLocalDateTime,
-} from "@/lib/manual-entry/time";
+import { parseManualLocalDateTime } from "@/lib/manual-entry/time";
 import type { ManualEntryContext } from "@/lib/manual-entry/types";
 import { scoreActivity, toActivityScoreUpdate } from "@/lib/scoring";
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
 } from "@/lib/supabase/server";
-import type { Database, Json } from "@/types/database";
+import type { Database } from "@/types/database";
 
 type ManualEntryPayload = {
   ruleId?: unknown;
@@ -110,7 +107,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (localActivityTime.utcDate.getTime() > now.getTime() + FUTURE_TOLERANCE_MS) {
+    if (
+      localActivityTime.utcDate.getTime() >
+      now.getTime() + FUTURE_TOLERANCE_MS
+    ) {
       throw new HttpError(
         400,
         "Aktivitaetszeitpunkt darf nicht in der Zukunft liegen.",
@@ -129,7 +129,9 @@ export async function POST(request: Request) {
       status: "active" as const,
       manually_entered: true,
     };
-    const score = scoreActivity(activityDraft, [context.rule], { scoredAt: now });
+    const score = scoreActivity(activityDraft, [context.rule], {
+      scoredAt: now,
+    });
 
     if (score.matchedRuleId !== context.rule.id || score.points <= 0) {
       throw new HttpError(

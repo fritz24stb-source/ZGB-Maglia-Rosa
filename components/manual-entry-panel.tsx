@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CalendarClock,
@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { cn } from "@/lib/ui";
-import type { ManualEntryOption, ManualEntryState } from "@/lib/manual-entry/types";
+import type {
+  ManualEntryOption,
+  ManualEntryState,
+} from "@/lib/manual-entry/types";
 
 type LoadState = "loading" | "success" | "unauthorized" | "error";
 
@@ -41,79 +44,7 @@ export function ManualEntryPanel() {
   const [comment, setComment] = useState("");
   const [submitState, setSubmitState] = useState<SubmitState>({ kind: "idle" });
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    loadManualEntryState(controller.signal).catch((error: unknown) => {
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      setLoadState("error");
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Manuelle Eingabe konnte nicht geladen werden.",
-      );
-    });
-
-    return () => {
-      controller.abort();
-    };
-  }, []);
-
-  const readyState = manualState?.kind === "ready" ? manualState : null;
-  const openOptions = useMemo(
-    () => readyState?.options.filter((option) => option.status === "open") ?? [],
-    [readyState],
-  );
-  const selectedOption =
-    openOptions.find((option) => option.ruleId === selectedRuleId) ??
-    openOptions[0] ??
-    null;
-
-  useEffect(() => {
-    if (!readyState) {
-      return;
-    }
-
-    if (!activityStartedLocal) {
-      setActivityStartedLocal(readyState.defaultActivityStartedLocal);
-    }
-
-    if (!selectedRuleId && openOptions[0]) {
-      setSelectedRuleId(openOptions[0].ruleId);
-    }
-  }, [activityStartedLocal, openOptions, readyState, selectedRuleId]);
-
-  async function loadManualEntryState(signal?: AbortSignal) {
-    setLoadState("loading");
-    setErrorMessage(null);
-
-    const response = await fetch("/api/manual-entry", { signal });
-    const payload = (await response.json()) as ManualEntryState | { error?: string };
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        setLoadState("unauthorized");
-        setManualState({ kind: "anonymous" });
-        return;
-      }
-
-      throw new Error(
-        "message" in payload && typeof payload.message === "string"
-          ? payload.message
-          : "error" in payload && payload.error
-            ? payload.error
-            : "Manuelle Eingabe konnte nicht geladen werden.",
-      );
-    }
-
-    applyManualState(payload as ManualEntryState);
-    setLoadState("success");
-  }
-
-  function applyManualState(nextState: ManualEntryState) {
+  const applyManualState = useCallback((nextState: ManualEntryState) => {
     setManualState(nextState);
 
     if (nextState.kind !== "ready") {
@@ -135,7 +66,85 @@ export function ManualEntryPanel() {
     setActivityStartedLocal((current) =>
       current ? current : nextState.defaultActivityStartedLocal,
     );
-  }
+  }, []);
+
+  const loadManualEntryState = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoadState("loading");
+      setErrorMessage(null);
+
+      const response = await fetch("/api/manual-entry", { signal });
+      const payload = (await response.json()) as
+        | ManualEntryState
+        | { error?: string };
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setLoadState("unauthorized");
+          setManualState({ kind: "anonymous" });
+          return;
+        }
+
+        throw new Error(
+          "message" in payload && typeof payload.message === "string"
+            ? payload.message
+            : "error" in payload && payload.error
+              ? payload.error
+              : "Manuelle Eingabe konnte nicht geladen werden.",
+        );
+      }
+
+      applyManualState(payload as ManualEntryState);
+      setLoadState("success");
+    },
+    [applyManualState],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    loadManualEntryState(controller.signal).catch((error: unknown) => {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      setLoadState("error");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Manuelle Eingabe konnte nicht geladen werden.",
+      );
+    });
+
+    return () => {
+      controller.abort();
+    };
+  }, [loadManualEntryState]);
+
+  const readyState = manualState?.kind === "ready" ? manualState : null;
+  const openOptions = useMemo(
+    () =>
+      readyState?.options.filter((option) => option.status === "open") ?? [],
+    [readyState],
+  );
+  const selectedOption =
+    openOptions.find((option) => option.ruleId === selectedRuleId) ??
+    openOptions[0] ??
+    null;
+
+  useEffect(() => {
+    if (!readyState) {
+      return;
+    }
+
+    if (!activityStartedLocal) {
+      setActivityStartedLocal(readyState.defaultActivityStartedLocal);
+    }
+
+    if (!selectedRuleId && openOptions[0]) {
+      setSelectedRuleId(openOptions[0].ruleId);
+    }
+  }, [activityStartedLocal, openOptions, readyState, selectedRuleId]);
 
   async function submitManualEntry(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -428,7 +437,8 @@ function OptionRow({
             {option.label}
           </p>
           <p className="mt-1 text-xs text-asphalt-500">
-            {formatDateTime(option.opensAt)} bis {formatDateTime(option.closesAt)}
+            {formatDateTime(option.opensAt)} bis{" "}
+            {formatDateTime(option.closesAt)}
           </p>
         </div>
         <StatusBadge tone={statusTone(option.status)}>
@@ -440,7 +450,9 @@ function OptionRow({
         <span>
           Rest: {option.remainingEntries}/{option.maxEntries}
         </span>
-        {option.unavailableReason ? <span>{option.unavailableReason}</span> : null}
+        {option.unavailableReason ? (
+          <span>{option.unavailableReason}</span>
+        ) : null}
       </div>
     </button>
   );

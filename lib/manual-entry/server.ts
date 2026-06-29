@@ -1,6 +1,5 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildManualEntryContexts, getNextManualEntryOpening } from "./options";
 import {
   MANUAL_ENTRY_TIME_ZONE,
@@ -18,9 +17,12 @@ import type {
   ScoringRuleRow,
   SeasonRow,
 } from "./types";
-import type { Database } from "@/types/database";
+import type { createSupabaseServerClient } from "@/lib/supabase/server";
 
-type AppClient = SupabaseClient<Database>;
+type AppClient = Pick<
+  Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  "from"
+>;
 type ProfileSummary = Pick<ProfileRow, "display_name" | "is_active">;
 
 export async function loadManualEntryStateForUser(

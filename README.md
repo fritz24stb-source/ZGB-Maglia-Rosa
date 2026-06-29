@@ -55,8 +55,26 @@ Mobile-first PWA fuer eine vereinsinterne Rennrad-Wertung auf Basis von Strava-A
 - Aggregation ueber `public.get_leaderboard(...)` mit Gesamtpunkten, Gesamtfahrten, Samstags-Fondo-Fahrten, Mittwochsfahrten, Sonderevents und Platzierung
 - API-seitige Filter fuer Saison, Kategorie, Quelle, Zeitraum und Sportart
 - API-seitige Sortierung nach Platz, Name, Punkten, Fahrten, Fondo, Mittwoch, Sonderevents, manuellen Punkten und letzter Aktivitaet
-- Mobile- und Desktop-UI fuer Filter, Sortierung, Summary-Kennzahlen, Login-, Fehler-, Leer- und Tabellen-/Kartenansichten
+- Mobile- und Desktop-UI fuer Filter, Sortierung, Summary-Kennzahlen, Fehler-, Leer- und Tabellen-/Kartenansichten
 - Tests fuer Query-Normalisierung, aktive Saison als Default und stabile Sortierung
+
+## Phase 7 Umfang
+
+- Manuelle Eingabefenster fuer Fondo, Mittwochskategorien und Sonderevents
+- Servervalidierung fuer Auth, aktive Saison, Mitgliederstatus, Zeitfenster, Eingabedaten und Scoring-Regel
+- Duplicate Protection ueber deterministische `manual_entry_key`-Fenster und bestehenden Unique-Index
+- Manuelle Aktivitaet mit direkter Punktezuweisung und Scoring-Metadaten
+- Admin-Benachrichtigung pro manueller Aktivitaet
+- Mobile Formular-UI fuer offene, geschlossene und bereits genutzte Zeitfenster
+- Anzeige des naechsten ermittelten Zeitfensters
+- Tests fuer Zeitfenstergrenzen, lokale Berlin-Zeit, Duplicate-Status und Sonderevent-Fenster
+
+## Login- und Zugriffsmodell
+
+- Strava Login ist nur fuer das Verknuepfen eines Athleten und fuer spaeteres Trennen der Strava-Verbindung notwendig.
+- Aktivitaeten werden nach der Verknuepfung ueber Strava Webhooks und serverseitige Tokens verarbeitet; dafuer ist keine aktive Benutzersession erforderlich.
+- Das Leaderboard ist ohne Benutzerlogin sichtbar und wird serverseitig ueber `/api/leaderboard` geladen.
+- Der Adminbereich unter `/admin` ist separat ueber `ADMIN_PASSWORD` geschuetzt.
 
 ## Lokale Entwicklung
 
@@ -73,7 +91,7 @@ Mobile-first PWA fuer eine vereinsinterne Rennrad-Wertung auf Basis von Strava-A
    npm run dev
    ```
 
-Ohne Supabase-Werte kann die Profilseite keine Session, Profile oder Strava-Verbindung laden. Fuer lokale Profil- und OAuth-Tests muessen mindestens diese Werte in `.env.local` gesetzt sein:
+Ohne Supabase-Werte koennen Leaderboard, Profilseite, Profile oder Strava-Verbindung nicht geladen werden. Fuer lokale Profil-, Leaderboard- und OAuth-Tests muessen mindestens diese Werte in `.env.local` gesetzt sein:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
@@ -91,6 +109,12 @@ STRAVA_VERIFY_TOKEN=<eigener-webhook-verify-token>
 STRAVA_WEBHOOK_CALLBACK_URL=http://127.0.0.1:3000/api/strava/webhook
 ```
 
+Fuer den Adminbereich:
+
+```bash
+ADMIN_PASSWORD=<starkes-admin-passwort>
+```
+
 ## Environment Variables
 
 | Variable                        | Zweck                                       |
@@ -103,6 +127,7 @@ STRAVA_WEBHOOK_CALLBACK_URL=http://127.0.0.1:3000/api/strava/webhook
 | `STRAVA_VERIFY_TOKEN`           | Verify Token fuer Strava Webhook Challenge  |
 | `STRAVA_WEBHOOK_CALLBACK_URL`   | Oeffentliche Webhook-Callback-URL           |
 | `APP_BASE_URL`                  | Basis-URL der App                           |
+| `ADMIN_PASSWORD`                | Separates Passwort fuer `/admin`            |
 
 ## Qualitaetsbefehle
 

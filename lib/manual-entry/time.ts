@@ -52,7 +52,12 @@ export function getWeeklyWindowStatus(
   let period = buildWeeklyPeriod(config, referenceDate, 0, timeZone);
 
   if (referenceDate < period.opensAt) {
-    const previousPeriod = buildWeeklyPeriod(config, referenceDate, -1, timeZone);
+    const previousPeriod = buildWeeklyPeriod(
+      config,
+      referenceDate,
+      -1,
+      timeZone,
+    );
 
     if (
       referenceDate >= previousPeriod.opensAt &&
@@ -156,17 +161,14 @@ export function parseTimeOfDay(value: string): TimeOfDay | null {
 export function parseManualLocalDateTime(
   value: string,
   timeZone = MANUAL_ENTRY_TIME_ZONE,
-):
-  | {
-      parts: Required<LocalDateTimeParts>;
-      utcDate: Date;
-      localIsoWithOffset: string;
-      localDate: string;
-      inputValue: string;
-    }
-  | null {
-  const match =
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value.trim());
+): {
+  parts: Required<LocalDateTimeParts>;
+  utcDate: Date;
+  localIsoWithOffset: string;
+  localDate: string;
+  inputValue: string;
+} | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value.trim());
 
   if (!match) {
     return null;
@@ -263,7 +265,8 @@ export function zonedDateTimeToUtc(
     parts.second ?? 0,
   );
   let utcMs =
-    localAsUtc - getTimeZoneOffsetMinutes(new Date(localAsUtc), timeZone) * 60_000;
+    localAsUtc -
+    getTimeZoneOffsetMinutes(new Date(localAsUtc), timeZone) * 60_000;
 
   for (let iteration = 0; iteration < 2; iteration += 1) {
     utcMs =
@@ -354,13 +357,11 @@ function buildPeriodFromStartLocalDate(
   };
 }
 
-function parseWeeklyRule(value: string | null):
-  | {
-      weekday: number;
-      time: TimeOfDay;
-      timeZone: string;
-    }
-  | null {
+function parseWeeklyRule(value: string | null): {
+  weekday: number;
+  time: TimeOfDay;
+  timeZone: string;
+} | null {
   if (!value) {
     return null;
   }
@@ -451,7 +452,9 @@ function formatLocalIsoWithOffset(
   ].join("");
 }
 
-function formatLocalDate(parts: Pick<LocalDateTimeParts, "year" | "month" | "day">) {
+function formatLocalDate(
+  parts: Pick<LocalDateTimeParts, "year" | "month" | "day">,
+) {
   return `${pad(parts.year, 4)}-${pad(parts.month)}-${pad(parts.day)}`;
 }
 

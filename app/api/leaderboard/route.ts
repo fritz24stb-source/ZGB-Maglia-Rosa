@@ -11,7 +11,7 @@ import type {
   LeaderboardOptions,
   LeaderboardRpcRow,
 } from "@/lib/leaderboard/types";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 type SeasonOptionRow = {
   id: string;
@@ -56,15 +56,7 @@ export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url);
     const query = parseLeaderboardSearchParams(requestUrl.searchParams);
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
-    }
+    const supabase = createSupabaseServiceRoleClient();
 
     const [seasonsResult, rulesResult, activityOptionsResult] =
       await Promise.all([
