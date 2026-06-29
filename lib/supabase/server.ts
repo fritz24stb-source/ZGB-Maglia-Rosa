@@ -3,7 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
-import { getPublicEnv, getServerEnv } from "@/lib/env";
+import { getPublicEnv, getSupabaseServiceEnv } from "@/lib/env";
 import type { CookieOptions } from "@supabase/ssr";
 import type { Database } from "@/types/database";
 
@@ -36,7 +36,7 @@ export async function createSupabaseServerClient() {
 }
 
 export function createSupabaseServiceRoleClient() {
-  const env = getServerEnv();
+  const env = getSupabaseServiceEnv();
 
   return createClient<Database>(env.supabaseUrl, env.supabaseServiceRoleKey, {
     auth: {

@@ -12,6 +12,10 @@ export type ServerEnv = PublicEnv & {
   appBaseUrl: string;
 };
 
+export type SupabaseServiceEnv = PublicEnv & {
+  supabaseServiceRoleKey: string;
+};
+
 function requireEnv(name: string, value: string | undefined): string {
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
@@ -35,11 +39,7 @@ export function getPublicEnv(): PublicEnv {
 
 export function getServerEnv(): ServerEnv {
   return {
-    ...getPublicEnv(),
-    supabaseServiceRoleKey: requireEnv(
-      "SUPABASE_SERVICE_ROLE_KEY",
-      process.env.SUPABASE_SERVICE_ROLE_KEY,
-    ),
+    ...getSupabaseServiceEnv(),
     stravaClientId: requireEnv(
       "STRAVA_CLIENT_ID",
       process.env.STRAVA_CLIENT_ID,
@@ -58,4 +58,18 @@ export function getServerEnv(): ServerEnv {
     ),
     appBaseUrl: requireEnv("APP_BASE_URL", process.env.APP_BASE_URL),
   };
+}
+
+export function getSupabaseServiceEnv(): SupabaseServiceEnv {
+  return {
+    ...getPublicEnv(),
+    supabaseServiceRoleKey: requireEnv(
+      "SUPABASE_SERVICE_ROLE_KEY",
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+    ),
+  };
+}
+
+export function getAppBaseUrl() {
+  return requireEnv("APP_BASE_URL", process.env.APP_BASE_URL);
 }
