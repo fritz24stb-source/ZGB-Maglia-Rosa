@@ -102,16 +102,16 @@ export function compareRulesForScoring(
   left: ScoringRuleRow,
   right: ScoringRuleRow,
 ) {
+  if (left.rule_type !== right.rule_type) {
+    return left.rule_type === "special" ? -1 : 1;
+  }
+
   if (right.priority !== left.priority) {
     return right.priority - left.priority;
   }
 
   if (right.points !== left.points) {
     return right.points - left.points;
-  }
-
-  if (left.rule_type !== right.rule_type) {
-    return left.rule_type === "special" ? -1 : 1;
   }
 
   return left.name.localeCompare(right.name, "de");
@@ -189,24 +189,45 @@ function isManualActivity(activity: ScorableActivity) {
 
 function matchesNameKeywords(keywords: string[], activityName: string) {
   const normalizedActivityName = normalizeForMatch(activityName);
-  const keywordGroups = keywords
-    .map((keyword) => parseKeywordGroup(keyword))
-    .filter((group) => group.length > 0);
+  const keywordConditions = keywords
+    .map((keyword) => parseKeywordCondition(keyword))
+    .filter((condition) => condition.alternatives.length > 0);
 
-  if (keywordGroups.length === 0) {
+  if (
+    keywordConditions.length === 0 ||
+    !keywordConditions.some((condition) => condition.mode === "required")
+  ) {
     return false;
   }
 
-  return keywordGroups.every((group) =>
-    group.some((keyword) => normalizedActivityName.includes(keyword)),
-  );
+  return keywordConditions.every((condition) => {
+    if (condition.mode === "excluded") {
+      return condition.alternatives.every(
+        (keyword) => !normalizedActivityName.includes(keyword),
+      );
+    }
+
+    return condition.alternatives.some((keyword) =>
+      normalizedActivityName.includes(keyword),
+    );
+  });
 }
 
-function parseKeywordGroup(keyword: string) {
-  return keyword
-    .split(/\s*(?:\||\boder\b)\s*/i)
-    .map((alternative) => normalizeForMatch(alternative))
-    .filter(Boolean);
+function parseKeywordCondition(keyword: string): {
+  alternatives: string[];
+  mode: "excluded" | "required";
+} {
+  const trimmed = keyword.trim();
+  const excludedMatch = /^(?:!\s*|kein\s+)(.+)$/i.exec(trimmed);
+  const rawAlternatives = excludedMatch ? excludedMatch[1] : trimmed;
+
+  return {
+    alternatives: rawAlternatives
+      .split(/\s*(?:\||\boder\b)\s*/i)
+      .map((alternative) => normalizeForMatch(alternative))
+      .filter(Boolean),
+    mode: excludedMatch ? "excluded" : "required",
+  };
 }
 
 function matchesWeekday(

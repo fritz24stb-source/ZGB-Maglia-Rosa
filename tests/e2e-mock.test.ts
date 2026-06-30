@@ -162,6 +162,7 @@ describe("Strava API error handling", () => {
 });
 
 type ScoredMockActivity = ScorableActivity & {
+  category: string | null;
   points: number;
 };
 
@@ -191,12 +192,14 @@ function scoreMockStravaActivity(input: {
   const score = scoreActivity(scorableActivity, input.rules, {
     scoredAt: new Date("2026-06-30T10:00:00.000Z"),
   });
+  const scoreUpdate = toActivityScoreUpdate(score);
 
   expect(isScoreResultScored(score)).toBe(true);
 
   return {
     ...scorableActivity,
-    points: toActivityScoreUpdate(score).points ?? 0,
+    category: scoreUpdate.category,
+    points: scoreUpdate.points ?? 0,
   };
 }
 
@@ -214,18 +217,18 @@ function aggregateRpcRow(input: {
         .sort()
         .at(-1) ?? null,
     manual_points: 0,
-    mittwochs_fahrten: input.activities.filter((activity) => {
-      const name = activity.activity_name.toLowerCase();
-
-      return !name.includes("fondo") && name.includes("zgb");
-    }).length,
+    mittwochs_fahrten: input.activities.filter((activity) =>
+      ["zgb_zug", "scuola", "scuderia"].includes(activity.category ?? ""),
+    ).length,
     place: input.place,
-    samstags_fahrten: input.activities.filter((activity) =>
-      activity.activity_name.toLowerCase().includes("fondo"),
+    samstags_fahrten: input.activities.filter(
+      (activity) => activity.category === "fondo",
     ).length,
     season_id: MOCK_SEASON_ID,
     season_name: "Mock Saison 2026",
-    sonderevents: 0,
+    sonderevents: input.activities.filter(
+      (activity) => activity.category === "sonderevent",
+    ).length,
     total_points: input.activities.reduce(
       (sum, activity) => sum + activity.points,
       0,

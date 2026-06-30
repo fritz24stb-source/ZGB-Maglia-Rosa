@@ -302,12 +302,16 @@ function buildManualActivityName(context: ManualEntryContext) {
   const parts = [
     "Manuelle Eingabe",
     context.rule.name,
-    ...context.rule.name_keywords,
+    ...context.rule.name_keywords.filter(isPositiveNameKeyword),
   ];
 
   return [...new Set(parts.map((part) => part.trim()).filter(Boolean))].join(
     " ",
   );
+}
+
+function isPositiveNameKeyword(keyword: string) {
+  return !/^(?:!\s*|kein\s+)/i.test(keyword.trim());
 }
 
 function buildAdminNotificationMessage(input: {

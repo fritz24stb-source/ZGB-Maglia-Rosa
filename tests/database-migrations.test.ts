@@ -44,6 +44,13 @@ const scoringOverridesSql = readFileSync(
   ),
   "utf8",
 );
+const standardKeywordLogicSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260630160000_update_standard_scoring_keyword_logic.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -128,5 +135,15 @@ describe("database migrations", () => {
     expect(scoringOverridesSql).toContain(
       "references public.scoring_rules(id) on delete set null",
     );
+  });
+
+  it("updates standard rules for OR and exclusion keyword logic", () => {
+    expect(standardKeywordLogicSql).toContain("fondo oder samstags");
+    expect(standardKeywordLogicSql).toContain("zgb oder zug");
+    expect(standardKeywordLogicSql).toContain("zgb oder scuola");
+    expect(standardKeywordLogicSql).toContain("zgb oder scuderia");
+    expect(standardKeywordLogicSql).toContain("kein zug");
+    expect(standardKeywordLogicSql).toContain("kein scuola");
+    expect(standardKeywordLogicSql).toContain("kein scuderia");
   });
 });

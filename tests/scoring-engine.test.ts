@@ -79,6 +79,80 @@ describe("scoring engine", () => {
     });
   });
 
+  it("scores Fondo for fondo or samstags keywords", () => {
+    const result = scoreActivity(
+      activity({
+        activity_name: "ZGB Samstagsrunde",
+        activity_started_local_at: "2026-06-27T10:00:00+02:00",
+      }),
+      [
+        rule({
+          name: "Samstags-Fondo",
+          category: "fondo",
+          points: 100,
+          name_keywords: ["fondo oder samstags"],
+          allowed_weekdays: [6, 7],
+        }),
+      ],
+      { scoredAt },
+    );
+
+    expect(result).toMatchObject({
+      category: "fondo",
+      matchedRuleName: "Samstags-Fondo",
+      points: 100,
+    });
+  });
+
+  it("separates Wednesday categories with negative keywords", () => {
+    const rules = [
+      rule({
+        id: "rule-scuderia",
+        name: "Scuderia",
+        category: "scuderia",
+        points: 80,
+        priority: 82,
+        name_keywords: ["zgb oder scuderia", "kein zug", "kein scuola"],
+        allowed_weekdays: [3, 4],
+      }),
+      rule({
+        id: "rule-zug",
+        name: "ZGB Zug",
+        category: "zgb_zug",
+        points: 80,
+        priority: 81,
+        name_keywords: ["zgb oder zug", "kein scuderia", "kein scuola"],
+        allowed_weekdays: [3, 4],
+      }),
+      rule({
+        id: "rule-scuola",
+        name: "Scuola",
+        category: "scuola",
+        points: 80,
+        priority: 80,
+        name_keywords: ["zgb oder scuola", "kein zug", "kein scuderia"],
+        allowed_weekdays: [3, 4],
+      }),
+    ];
+
+    expect(scoreWednesdayRide("ZGB Scuderia Feierabend", rules)).toMatchObject({
+      category: "scuderia",
+      matchedRuleId: "rule-scuderia",
+    });
+    expect(scoreWednesdayRide("ZGB Zug Feierabend", rules)).toMatchObject({
+      category: "zgb_zug",
+      matchedRuleId: "rule-zug",
+    });
+    expect(scoreWednesdayRide("ZGB Scuola Feierabend", rules)).toMatchObject({
+      category: "scuola",
+      matchedRuleId: "rule-scuola",
+    });
+    expect(scoreWednesdayRide("ZGB Feierabend", rules)).toMatchObject({
+      category: "scuderia",
+      matchedRuleId: "rule-scuderia",
+    });
+  });
+
   it("prefers a higher-priority Sonderevent rule from the database", () => {
     const result = scoreActivity(
       activity({
@@ -119,6 +193,43 @@ describe("scoring engine", () => {
     expect(result.scoringReason).toBe(
       "Sonderevent 'Sommer Classic' angewendet.",
     );
+  });
+
+  it("prefers a Sonderevent over a matching Fondo standard rule", () => {
+    const result = scoreActivity(
+      activity({
+        activity_name: "Sommer Classic Samstagsrunde",
+        activity_started_local_at: "2026-06-20T09:00:00+02:00",
+      }),
+      [
+        rule({
+          id: "rule-fondo",
+          name: "Samstags-Fondo",
+          category: "fondo",
+          points: 100,
+          priority: 100,
+          name_keywords: ["fondo oder samstags"],
+          allowed_weekdays: [6],
+        }),
+        rule({
+          id: "rule-special",
+          name: "Sommer Classic",
+          category: "sonderevent",
+          points: 250,
+          rule_type: "special",
+          priority: 10,
+          name_keywords: ["sommer", "classic"],
+          allowed_weekdays: [6],
+        }),
+      ],
+      { scoredAt },
+    );
+
+    expect(result).toMatchObject({
+      category: "sonderevent",
+      matchedRuleId: "rule-special",
+      points: 250,
+    });
   });
 
   it("ignores season-specific rules from other seasons", () => {
@@ -261,6 +372,17 @@ function rule(overrides: Partial<ScoringRuleRow> = {}): ScoringRuleRow {
     updated_at: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
+}
+
+function scoreWednesdayRide(activityName: string, rules: ScoringRuleRow[]) {
+  return scoreActivity(
+    activity({
+      activity_name: activityName,
+      activity_started_local_at: "2026-07-01T18:00:00+02:00",
+    }),
+    rules,
+    { scoredAt },
+  );
 }
 
 function activity(overrides: Partial<ScorableActivity> = {}): ScorableActivity {
