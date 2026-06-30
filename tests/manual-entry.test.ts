@@ -134,6 +134,7 @@ describe("manual entry options", () => {
     expect(contexts).toHaveLength(1);
     expect(contexts[0]).toMatchObject({
       ruleId: "rule-special",
+      label: "Sommer Classic",
       status: "open",
       manualEntryKey: "rule:rule-special:2026-08-15T08:00:00.000Z",
       points: 250,

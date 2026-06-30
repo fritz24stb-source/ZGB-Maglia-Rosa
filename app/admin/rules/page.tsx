@@ -225,9 +225,9 @@ function RuleForm({
       <div className="grid gap-4 md:grid-cols-2">
         <TextareaField
           defaultValue={rule?.name_keywords.join(", ") ?? ""}
-          label="Keywords"
+          label="Keywords (UND/ODER)"
           name="nameKeywords"
-          placeholder="sommer, classic"
+          placeholder="zgb|zug, mittwoch"
         />
         <TextareaField
           defaultValue={rule?.allowed_sport_types?.join(", ") ?? ""}

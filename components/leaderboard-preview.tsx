@@ -354,7 +354,7 @@ function DesktopLeaderboard({
   return (
     <div className="hidden overflow-x-auto rounded-lg border border-asphalt-200 bg-white shadow-line md:block">
       <table className="min-w-[980px] w-full border-collapse text-left text-sm">
-        <thead className="sticky top-[65px] bg-asphalt-50 text-xs uppercase text-asphalt-500">
+        <thead className="sticky top-0 z-10 bg-asphalt-50 text-xs uppercase text-asphalt-500">
           <tr>
             <SortableHeader
               active={sortKey === "place"}

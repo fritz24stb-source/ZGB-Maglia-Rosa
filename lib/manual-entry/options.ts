@@ -22,14 +22,6 @@ type BuildManualEntryContextsInput = {
   now: Date;
 };
 
-const categoryLabels: Record<string, string> = {
-  fondo: "Samstags-Fondo",
-  zgb_zug: "ZGB Zug",
-  scuola: "Scuola",
-  scuderia: "Scuderia",
-  sonderevent: "Sonderevent",
-};
-
 export function buildManualEntryContexts({
   existingEntryCounts,
   now,
@@ -109,7 +101,7 @@ export function getNextManualEntryOpening(
 }
 
 export function getManualEntryLabel(rule: ScoringRuleRow) {
-  return categoryLabels[rule.category] ?? rule.name;
+  return rule.name;
 }
 
 function buildContext(input: {

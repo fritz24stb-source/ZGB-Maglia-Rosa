@@ -189,17 +189,24 @@ function isManualActivity(activity: ScorableActivity) {
 
 function matchesNameKeywords(keywords: string[], activityName: string) {
   const normalizedActivityName = normalizeForMatch(activityName);
-  const normalizedKeywords = keywords
-    .map((keyword) => normalizeForMatch(keyword))
-    .filter(Boolean);
+  const keywordGroups = keywords
+    .map((keyword) => parseKeywordGroup(keyword))
+    .filter((group) => group.length > 0);
 
-  if (normalizedKeywords.length === 0) {
+  if (keywordGroups.length === 0) {
     return false;
   }
 
-  return normalizedKeywords.every((keyword) =>
-    normalizedActivityName.includes(keyword),
+  return keywordGroups.every((group) =>
+    group.some((keyword) => normalizedActivityName.includes(keyword)),
   );
+}
+
+function parseKeywordGroup(keyword: string) {
+  return keyword
+    .split(/\s*(?:\||\boder\b)\s*/i)
+    .map((alternative) => normalizeForMatch(alternative))
+    .filter(Boolean);
 }
 
 function matchesWeekday(

@@ -54,6 +54,31 @@ describe("scoring engine", () => {
     expect(result.matchedRuleId).toBeNull();
   });
 
+  it("matches OR keyword alternatives case-insensitively", () => {
+    const result = scoreActivity(
+      activity({
+        activity_name: "ZGB Abendrunde",
+        activity_started_local_at: "2026-06-26T18:00:00+02:00",
+      }),
+      [
+        rule({
+          name: "ZGB oder Zug Abendrunde",
+          category: "zgb_zug",
+          points: 80,
+          name_keywords: ["zug oder zgb", "ABENDRUNDE"],
+          allowed_weekdays: [5],
+        }),
+      ],
+      { scoredAt },
+    );
+
+    expect(result).toMatchObject({
+      points: 80,
+      matchedRuleId: "rule-standard",
+      matchedRuleName: "ZGB oder Zug Abendrunde",
+    });
+  });
+
   it("prefers a higher-priority Sonderevent rule from the database", () => {
     const result = scoreActivity(
       activity({
