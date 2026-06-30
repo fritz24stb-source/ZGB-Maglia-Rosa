@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getServerEnv } from "@/lib/env";
+import { logError } from "@/lib/logger";
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
@@ -76,7 +77,9 @@ export async function GET(request: Request) {
     return redirectWithClearedState(request, "/profile", {
       connected: "1",
     });
-  } catch {
+  } catch (error) {
+    logError("strava.callback.failed", error);
+
     return redirectWithClearedState(request, "/login", {
       error: "strava_callback_failed",
     });

@@ -37,6 +37,13 @@ const scoredActivitiesOnlySql = readFileSync(
   ),
   "utf8",
 );
+const scoringOverridesSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260630100000_activity_scoring_overrides.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -104,11 +111,22 @@ describe("database migrations", () => {
   });
 
   it("keeps only scored active activities in the leaderboard", () => {
-    expect(scoredActivitiesOnlySql).toContain("delete from public.activities");
+    expect(scoredActivitiesOnlySql).not.toContain(
+      "delete from public.activities",
+    );
     expect(scoredActivitiesOnlySql).toContain("and a.status = 'active'");
     expect(scoredActivitiesOnlySql).toContain("and a.points > 0");
     expect(scoredActivitiesOnlySql).toContain(
       "join public.scoring_rules sr on sr.id = a.matched_rule_id",
+    );
+  });
+
+  it("stores admin scoring overrides separately from automatic matches", () => {
+    expect(scoringOverridesSql).toContain(
+      "add column if not exists scoring_override_rule_id uuid",
+    );
+    expect(scoringOverridesSql).toContain(
+      "references public.scoring_rules(id) on delete set null",
     );
   });
 });

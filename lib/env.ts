@@ -1,7 +1,8 @@
-export type PublicEnv = {
-  supabaseUrl: string;
-  supabaseAnonKey: string;
-};
+import "server-only";
+
+import { getPublicEnv, type PublicEnv } from "@/lib/env-public";
+
+export type { PublicEnv } from "@/lib/env-public";
 
 export type ServerEnv = PublicEnv & {
   supabaseServiceRoleKey: string;
@@ -22,19 +23,6 @@ function requireEnv(name: string, value: string | undefined): string {
   }
 
   return value;
-}
-
-export function getPublicEnv(): PublicEnv {
-  return {
-    supabaseUrl: requireEnv(
-      "NEXT_PUBLIC_SUPABASE_URL",
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-    ),
-    supabaseAnonKey: requireEnv(
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    ),
-  };
 }
 
 export function getServerEnv(): ServerEnv {

@@ -11,6 +11,7 @@ import type {
   LeaderboardOptions,
   LeaderboardRpcRow,
 } from "@/lib/leaderboard/types";
+import { logError } from "@/lib/logger";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 type SeasonOptionRow = {
@@ -117,6 +118,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json(response);
   } catch (error) {
+    logError("leaderboard.load.failed", error);
+
     return NextResponse.json(
       { error: formatLeaderboardError(error) },
       { status: 500 },
@@ -194,7 +197,5 @@ function formatLeaderboardError(error: unknown) {
     ].join(" ");
   }
 
-  return error instanceof Error
-    ? error.message
-    : "Leaderboard konnte nicht geladen werden.";
+  return "Leaderboard konnte nicht geladen werden. Details stehen im Server-Log.";
 }

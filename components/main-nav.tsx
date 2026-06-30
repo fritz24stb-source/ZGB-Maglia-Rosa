@@ -25,24 +25,24 @@ export function MainNav() {
       <div className="flex w-full items-center justify-between gap-3">
         <Link
           href="/leaderboard"
-          className="focus-ring flex items-center gap-2 rounded-md"
+          className="focus-ring flex items-center gap-3 rounded-lg"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-asphalt-900">
+          <span className="zgb-app-brand-mark flex h-11 w-11 items-center justify-center rounded-full">
             <Image
               src="/pwa-icon.svg"
-              width={28}
-              height={28}
+              width={36}
+              height={36}
               alt=""
               aria-hidden
-              className="h-7 w-7"
+              className="h-9 w-9"
               priority
             />
           </span>
           <span className="flex flex-col leading-none">
-            <span className="text-sm font-semibold text-asphalt-900">
-              ZGB Rangliste
+            <span className="zgb-app-page-title text-sm">ZGB Rangliste</span>
+            <span className="mt-1 text-xs font-medium text-asphalt-500">
+              Strava-Wertung
             </span>
-            <span className="text-xs text-asphalt-500">Strava-Wertung</span>
           </span>
         </Link>
 
@@ -55,12 +55,7 @@ export function MainNav() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={cn(
-                  "focus-ring rounded-md px-3 py-2 text-sm font-medium transition",
-                  active
-                    ? "bg-asphalt-900 text-white"
-                    : "text-asphalt-700 hover:bg-asphalt-100 hover:text-asphalt-900",
-                )}
+                className="zgb-nav-link focus-ring"
               >
                 {item.label}
               </Link>
@@ -70,7 +65,7 @@ export function MainNav() {
 
         <button
           type="button"
-          className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-md border border-asphalt-300 text-asphalt-800 md:hidden"
+          className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-md border border-asphalt-300 bg-white/70 text-asphalt-800 md:hidden"
           aria-label={
             mobileNavOpen ? "Navigation schliessen" : "Navigation oeffnen"
           }
@@ -102,12 +97,7 @@ export function MainNav() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={cn(
-                  "focus-ring rounded-md px-3 py-2 text-sm font-medium transition",
-                  active
-                    ? "bg-asphalt-900 text-white"
-                    : "text-asphalt-700 hover:bg-asphalt-100 hover:text-asphalt-900",
-                )}
+                className="zgb-nav-link focus-ring"
                 onClick={() => setMobileNavOpen(false)}
               >
                 {item.label}

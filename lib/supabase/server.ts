@@ -3,7 +3,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
-import { getPublicEnv, getSupabaseServiceEnv } from "@/lib/env";
+import { getSupabaseServiceEnv } from "@/lib/env";
+import { getPublicEnv } from "@/lib/env-public";
 import type { CookieOptions } from "@supabase/ssr";
 import type { Database } from "@/types/database";
 

@@ -8,10 +8,26 @@ export const metadata: Metadata = {
     "Vereinsinterne Rennrad-Wertung auf Basis von Strava-Aktivitäten.",
   applicationName: "ZGB Rangliste",
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ZGB Rangliste",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/pwa-icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    shortcut: [{ url: "/favicon.ico" }],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f6f7f8",
+  themeColor: "#ecdeca",
   width: "device-width",
   initialScale: 1,
 };

@@ -16,7 +16,8 @@ export type ScorableActivity = Pick<
   | "status"
   | "manually_entered"
   | "distance_m"
->;
+> &
+  Partial<Pick<ActivityRow, "scoring_override_rule_id">>;
 
 export type ScoreResult = {
   points: number;

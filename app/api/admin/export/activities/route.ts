@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { writeAdminAuditLog } from "@/lib/admin/audit";
 import { csvResponse } from "@/lib/admin/csv";
 import {
   AdminHttpError,
@@ -119,6 +120,19 @@ export async function GET(request: NextRequest) {
         activity.manual_comment ?? "",
       ]),
     ];
+
+    await writeAdminAuditLog(supabase, {
+      action: "export.activities",
+      after: {
+        rowCount: activities.length,
+        seasonId: requestUrl.searchParams.get("seasonId") ?? null,
+        source: requestUrl.searchParams.get("source") ?? null,
+        status: requestUrl.searchParams.get("status") ?? null,
+        userId: requestUrl.searchParams.get("memberId") ?? null,
+      },
+      entityId: null,
+      entityType: "export",
+    });
 
     return csvResponse(`aktivitaeten-${dateStamp()}.csv`, rows);
   } catch (error) {

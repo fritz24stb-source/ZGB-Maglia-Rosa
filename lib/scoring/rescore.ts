@@ -1,9 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  isScoreResultScored,
-  scoreActivity,
-  toActivityScoreUpdate,
-} from "@/lib/scoring/engine";
+import { scoreActivity, toActivityScoreUpdate } from "@/lib/scoring/engine";
 import type {
   ActivityScoreUpdate,
   ScorableActivity,
@@ -128,23 +124,6 @@ export async function rescoreSeasonActivities({
     scoredAt,
     stopOnError,
     updateActivity: async (activity, _score, update) => {
-      if (
-        activity.source === "strava" &&
-        activity.status === "active" &&
-        !isScoreResultScored(_score)
-      ) {
-        const { error } = await client
-          .from("activities")
-          .delete()
-          .eq("id", activity.id);
-
-        if (error) {
-          throw error;
-        }
-
-        return;
-      }
-
       const { error } = await client
         .from("activities")
         .update(update)

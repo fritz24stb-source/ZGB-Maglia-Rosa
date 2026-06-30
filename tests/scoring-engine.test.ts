@@ -131,6 +131,24 @@ describe("scoring engine", () => {
     expect(result.matchedRuleId).toBeNull();
   });
 
+  it("applies admin scoring overrides without normal rule matching", () => {
+    const result = scoreActivity(
+      activity({
+        activity_name: "Private Runde",
+        activity_started_local_at: "2026-06-26T18:00:00+02:00",
+        scoring_override_rule_id: "rule-standard",
+      }),
+      [rule()],
+      { scoredAt },
+    );
+
+    expect(result).toMatchObject({
+      points: 100,
+      matchedRuleId: "rule-standard",
+      scoringReason: "Admin-Override 'Samstags-Fondo' angewendet.",
+    });
+  });
+
   it("builds the database update payload from a scoring result", () => {
     const score = scoreActivity(activity(), [rule()], { scoredAt });
 

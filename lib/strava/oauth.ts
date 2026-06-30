@@ -3,6 +3,11 @@ export const STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
 export const STRAVA_REVOKE_URL = "https://www.strava.com/oauth/revoke";
 export const REQUIRED_STRAVA_SCOPES = ["read", "activity:read"] as const;
 
+import {
+  formatStravaRateLimitMessage,
+  isStravaRateLimitStatus,
+} from "@/lib/strava/errors";
+
 type FetchLike = typeof fetch;
 
 export type StravaAthlete = {
@@ -179,6 +184,9 @@ async function postStravaTokenRequest<T>(
 
 async function buildStravaApiError(message: string, response: Response) {
   const responseBody = await response.text().catch(() => "");
+  const safeMessage = isStravaRateLimitStatus(response.status)
+    ? formatStravaRateLimitMessage(response.headers.get("retry-after"))
+    : message;
 
-  return new StravaApiError(message, response.status, responseBody);
+  return new StravaApiError(safeMessage, response.status, responseBody);
 }

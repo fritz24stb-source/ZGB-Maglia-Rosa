@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAppBaseUrl } from "@/lib/env";
+import { logError } from "@/lib/logger";
 import { findOrCreateManualParticipantProfile } from "@/lib/manual-entry/profile";
 import { loadManualEntryEvaluation } from "@/lib/manual-entry/server";
 import { parseManualLocalDateTime } from "@/lib/manual-entry/time";
@@ -45,6 +46,8 @@ export async function GET() {
 
     return NextResponse.json(evaluation.state);
   } catch (error) {
+    logError("manual_entry.load.failed", error);
+
     return NextResponse.json(
       { kind: "unconfigured", message: formatManualEntryError(error) },
       { status: 500 },
@@ -206,6 +209,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const status = error instanceof HttpError ? error.status : 500;
+
+    if (!(error instanceof HttpError)) {
+      logError("manual_entry.submit.failed", error);
+    }
 
     return NextResponse.json(
       { error: formatManualEntryError(error) },
@@ -381,9 +388,7 @@ function formatManualEntryError(error: unknown) {
     ].join(" ");
   }
 
-  return error instanceof Error
-    ? error.message
-    : "Manuelle Eingabe konnte nicht verarbeitet werden.";
+  return "Manuelle Eingabe konnte nicht verarbeitet werden. Details stehen im Server-Log.";
 }
 
 class HttpError extends Error {

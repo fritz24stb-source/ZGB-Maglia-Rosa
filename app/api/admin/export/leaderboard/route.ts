@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { writeAdminAuditLog } from "@/lib/admin/audit";
 import { csvResponse } from "@/lib/admin/csv";
 import {
   AdminHttpError,
@@ -78,6 +79,22 @@ export async function GET(request: NextRequest) {
         row.last_activity_at ?? "",
       ]),
     ];
+
+    await writeAdminAuditLog(supabase, {
+      action: "export.leaderboard",
+      after: {
+        category,
+        from,
+        memberId,
+        rowCount: result.data?.length ?? 0,
+        seasonId,
+        source,
+        sportType,
+        to,
+      },
+      entityId: null,
+      entityType: "export",
+    });
 
     return csvResponse(`leaderboard-${dateStamp()}.csv`, rows);
   } catch (error) {

@@ -85,6 +85,7 @@ type ActivityRow = {
   matched_rule_id: string | null;
   matched_rule_name: string | null;
   matched_category: string | null;
+  scoring_override_rule_id: string | null;
   awarded_points: number;
   scoring_reason: string | null;
   scored_at: string | null;

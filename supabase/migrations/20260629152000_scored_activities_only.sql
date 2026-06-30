@@ -1,8 +1,3 @@
-delete from public.activities
-where source = 'strava'
-  and status = 'active'
-  and (matched_rule_id is null or points <= 0);
-
 create or replace function public.get_leaderboard(
   p_season_id uuid default null,
   p_category text default null,

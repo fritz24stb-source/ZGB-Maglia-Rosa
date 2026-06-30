@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getServerEnv } from "@/lib/env";
+import { logError } from "@/lib/logger";
 import { buildStravaAuthorizeUrl } from "@/lib/strava/oauth";
 
 const STATE_COOKIE = "strava_oauth_state";
@@ -30,7 +31,9 @@ export async function GET(request: Request) {
     });
 
     return response;
-  } catch {
+  } catch (error) {
+    logError("strava.connect.failed", error);
+
     const url = new URL("/login", request.url);
     url.searchParams.set("error", "config");
 

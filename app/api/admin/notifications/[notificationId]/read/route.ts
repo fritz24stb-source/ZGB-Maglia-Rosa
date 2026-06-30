@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { writeAdminAuditLog } from "@/lib/admin/audit";
 import {
   formatAdminError,
   redirectWithAdminFlash,
@@ -20,14 +21,34 @@ export async function POST(
 
     const { notificationId } = await context.params;
     const supabase = createSupabaseServiceRoleClient();
-    const { error } = await supabase
+    const { data: before, error: beforeError } = await supabase
+      .from("admin_notifications")
+      .select("*")
+      .eq("id", notificationId)
+      .single();
+
+    if (beforeError) {
+      throw beforeError;
+    }
+
+    const { data, error } = await supabase
       .from("admin_notifications")
       .update({ read_at: new Date().toISOString() })
-      .eq("id", notificationId);
+      .eq("id", notificationId)
+      .select("*")
+      .single();
 
     if (error) {
       throw error;
     }
+
+    await writeAdminAuditLog(supabase, {
+      action: "notification.read",
+      after: data,
+      before,
+      entityId: notificationId,
+      entityType: "admin_notification",
+    });
 
     return redirectWithAdminFlash(request, "/admin", {
       status: "Benachrichtigung wurde als gelesen markiert.",

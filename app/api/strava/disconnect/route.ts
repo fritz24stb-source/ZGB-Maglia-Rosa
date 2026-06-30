@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerEnv } from "@/lib/env";
+import { logError, logWarn } from "@/lib/logger";
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
@@ -53,7 +54,11 @@ export async function POST(request: Request) {
           token: connection.refresh_token,
           tokenTypeHint: "refresh_token",
         });
-      } catch {
+      } catch (error) {
+        logWarn("strava.disconnect.revoke_failed", {
+          connectionId: connection.id,
+          error,
+        });
         revokeWarning = true;
       }
 
@@ -80,7 +85,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.redirect(url, { status: 303 });
-  } catch {
+  } catch (error) {
+    logError("strava.disconnect.failed", error);
+
     const url = new URL("/profile", request.url);
     url.searchParams.set("error", "disconnect_failed");
 

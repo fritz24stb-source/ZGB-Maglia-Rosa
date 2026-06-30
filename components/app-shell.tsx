@@ -6,8 +6,8 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-20 border-b border-asphalt-200 bg-white/95 backdrop-blur">
+    <div className="zgb-app flex min-h-screen flex-col">
+      <header className="zgb-app-header sticky top-0 z-20 backdrop-blur-md">
         <MainNav />
       </header>
       {children}

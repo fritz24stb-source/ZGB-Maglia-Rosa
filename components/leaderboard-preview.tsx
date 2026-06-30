@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowDownUp,
-  CalendarDays,
   Filter,
   Loader2,
   LogIn,
@@ -123,7 +122,6 @@ export function LeaderboardPreview() {
 
   const selectedSeasonValue =
     draftFilters.seasonId || data?.filters.seasonId || "all";
-  const summary = useMemo(() => summarizeRows(data?.rows ?? []), [data?.rows]);
   const isRefreshing = loadState === "success" && data === null;
 
   function updateDraftFilter(key: keyof DraftFilters, value: string) {
@@ -275,7 +273,6 @@ export function LeaderboardPreview() {
 
       {loadState === "success" && data ? (
         <>
-          <SummaryBar summary={summary} generatedAt={data.generatedAt} />
           {data.rows.length > 0 ? (
             <>
               <DesktopLeaderboard
@@ -340,41 +337,6 @@ function DateField({
         onChange={(event) => onChange(event.target.value)}
       />
     </label>
-  );
-}
-
-function SummaryBar({
-  generatedAt,
-  summary,
-}: {
-  generatedAt: string;
-  summary: ReturnType<typeof summarizeRows>;
-}) {
-  return (
-    <div className="grid gap-3 md:grid-cols-5">
-      <SummaryMetric label="Mitglieder" value={summary.members} />
-      <SummaryMetric label="Punkte" value={summary.points} />
-      <SummaryMetric label="Fahrten" value={summary.rides} />
-      <SummaryMetric label="Fondo" value={summary.fondos} />
-      <SummaryMetric label="Mittwoch" value={summary.midweek} />
-      <div className="flex items-center gap-2 text-xs text-asphalt-500 md:col-span-5">
-        <CalendarDays aria-hidden className="h-4 w-4" />
-        Stand: {formatDateTime(generatedAt)}
-      </div>
-    </div>
-  );
-}
-
-function SummaryMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-asphalt-200 bg-white p-3 shadow-line">
-      <p className="text-xs font-semibold uppercase text-asphalt-500">
-        {label}
-      </p>
-      <p className="mt-1 text-xl font-semibold text-asphalt-900">
-        {formatNumber(value)}
-      </p>
-    </div>
   );
 }
 
@@ -671,25 +633,6 @@ function appendFilter(params: URLSearchParams, key: string, value: string) {
   params.set(key, value);
 }
 
-function summarizeRows(rows: LeaderboardRow[]) {
-  return rows.reduce(
-    (summary, row) => ({
-      members: summary.members + 1,
-      points: summary.points + row.totalPoints,
-      rides: summary.rides + row.totalRides,
-      fondos: summary.fondos + row.samstagsFahrten,
-      midweek: summary.midweek + row.mittwochsFahrten,
-    }),
-    {
-      members: 0,
-      points: 0,
-      rides: 0,
-      fondos: 0,
-      midweek: 0,
-    },
-  );
-}
-
 function defaultDirectionForSort(
   nextSortKey: LeaderboardSortKey,
 ): LeaderboardSortDirection {
@@ -705,14 +648,6 @@ function formatNumber(value: number) {
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("de-CH", {
     dateStyle: "medium",
-    timeZone: "Europe/Berlin",
-  }).format(new Date(value));
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("de-CH", {
-    dateStyle: "medium",
-    timeStyle: "short",
     timeZone: "Europe/Berlin",
   }).format(new Date(value));
 }

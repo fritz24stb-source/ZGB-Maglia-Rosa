@@ -136,9 +136,11 @@ export async function syncStravaActivitiesForUser({
           requestedSeasonId: season?.id ?? null,
         });
 
-        if (result === "synced") {
+        if (result === "scored") {
           summary.synced += 1;
           summary.scored += 1;
+        } else if (result === "synced") {
+          summary.synced += 1;
         } else {
           summary.skipped += 1;
         }
@@ -257,22 +259,29 @@ async function syncDetailedActivity(input: {
     seasonId: season.id,
     userId: input.connection.user_id,
   });
+  const existingActivity = await findExistingStravaActivityForScoring(
+    input.client,
+    input.activity.id,
+  );
   const rules = await fetchScoringRules(input.client, season.id);
-  const score = scoreActivity(toScorableStravaActivity(activityWrite), rules, {
-    scoredAt: input.now,
-  });
-
-  if (!isScoreResultScored(score)) {
-    await deleteStravaActivityByStravaId(input.client, input.activity.id);
-    return "skipped";
-  }
+  const score = scoreActivity(
+    toScorableStravaActivity(
+      activityWrite,
+      existingActivity?.scoring_override_rule_id ?? null,
+    ),
+    rules,
+    {
+      scoredAt: input.now,
+    },
+  );
+  const isScored = isScoreResultScored(score);
 
   await upsertStravaActivity(input.client, {
     ...activityWrite,
     ...toActivityScoreUpdate(score),
   });
 
-  return "synced";
+  return isScored ? "scored" : "synced";
 }
 
 async function findConnectionForUser(client: ServiceClient, userId: string) {
@@ -416,22 +425,28 @@ async function fetchScoringRules(client: ServiceClient, seasonId: string) {
   return (rules ?? []) as ScoringRuleRow[];
 }
 
-async function deleteStravaActivityByStravaId(
+async function findExistingStravaActivityForScoring(
   client: ServiceClient,
   stravaActivityId: number,
 ) {
-  const { error } = await client
+  const { data, error } = await client
     .from("activities")
-    .delete()
+    .select("id, scoring_override_rule_id")
     .eq("source", "strava")
-    .eq("strava_activity_id", stravaActivityId);
+    .eq("strava_activity_id", stravaActivityId)
+    .maybeSingle();
 
   if (error) {
     throw error;
   }
+
+  return data as Pick<ActivityRow, "id" | "scoring_override_rule_id"> | null;
 }
 
-function toScorableStravaActivity(activityWrite: ActivityWrite) {
+function toScorableStravaActivity(
+  activityWrite: ActivityWrite,
+  scoringOverrideRuleId: string | null,
+) {
   const activityStartedAt = activityWrite.activity_started_at;
   const activityName = activityWrite.activity_name;
   const seasonId = activityWrite.season_id;
@@ -452,6 +467,7 @@ function toScorableStravaActivity(activityWrite: ActivityWrite) {
     activity_started_local_at: activityWrite.activity_started_local_at ?? null,
     status: "active",
     manually_entered: false,
+    scoring_override_rule_id: scoringOverrideRuleId,
   } satisfies ScorableActivity;
 }
 

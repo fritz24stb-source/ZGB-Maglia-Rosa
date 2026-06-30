@@ -11,6 +11,8 @@ const INACTIVE_ACTIVITY_REASON =
   "Aktivitaet ist nicht aktiv und erhaelt 0 Punkte.";
 const INVALID_DATE_REASON =
   "Aktivitaet hat keinen gueltigen Startzeitpunkt und erhaelt 0 Punkte.";
+const INVALID_OVERRIDE_REASON =
+  "Admin-Override verweist auf keine aktive passende Scoring-Regel.";
 
 type ScoreOptions = {
   scoredAt?: Date;
@@ -25,6 +27,16 @@ export function scoreActivity(
 
   if (activity.status !== "active") {
     return buildNoScoreResult(INACTIVE_ACTIVITY_REASON, scoredAt);
+  }
+
+  const overrideRule = findScoringOverrideRule(activity, rules);
+
+  if (activity.scoring_override_rule_id) {
+    if (!overrideRule) {
+      return buildNoScoreResult(INVALID_OVERRIDE_REASON, scoredAt);
+    }
+
+    return buildScoreResult(overrideRule, scoredAt, "Admin-Override");
   }
 
   const activityDate = parseTimestamp(
@@ -43,14 +55,26 @@ export function scoreActivity(
     return buildNoScoreResult(NO_MATCH_REASON, scoredAt);
   }
 
+  return buildScoreResult(
+    matchedRule,
+    scoredAt,
+    matchedRule.rule_type === "special" ? "Sonderevent" : "Standardregel",
+  );
+}
+
+function buildScoreResult(
+  rule: ScoringRuleRow,
+  scoredAt: string,
+  reasonPrefix: "Admin-Override" | "Sonderevent" | "Standardregel",
+): ScoreResult {
   return {
-    points: matchedRule.points,
-    category: matchedRule.category,
-    matchedRuleId: matchedRule.id,
-    matchedRuleName: matchedRule.name,
-    matchedCategory: matchedRule.category,
-    awardedPoints: matchedRule.points,
-    scoringReason: `${matchedRule.rule_type === "special" ? "Sonderevent" : "Standardregel"} '${matchedRule.name}' angewendet.`,
+    points: rule.points,
+    category: rule.category,
+    matchedRuleId: rule.id,
+    matchedRuleName: rule.name,
+    matchedCategory: rule.category,
+    awardedPoints: rule.points,
+    scoringReason: `${reasonPrefix} '${rule.name}' angewendet.`,
     scoredAt,
   };
 }
@@ -139,6 +163,24 @@ function buildNoScoreResult(reason: string, scoredAt: string): ScoreResult {
     scoringReason: reason,
     scoredAt,
   };
+}
+
+function findScoringOverrideRule(
+  activity: ScorableActivity,
+  rules: ScoringRuleRow[],
+) {
+  if (!activity.scoring_override_rule_id) {
+    return null;
+  }
+
+  return (
+    rules.find(
+      (rule) =>
+        rule.id === activity.scoring_override_rule_id &&
+        rule.is_active &&
+        (!rule.season_id || rule.season_id === activity.season_id),
+    ) ?? null
+  );
 }
 
 function isManualActivity(activity: ScorableActivity) {

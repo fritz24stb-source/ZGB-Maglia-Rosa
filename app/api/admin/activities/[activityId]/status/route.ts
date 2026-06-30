@@ -7,8 +7,17 @@ import {
   requireAdminSession,
   validateAdminOrigin,
 } from "@/lib/admin/http";
-import { rescoreSeasonActivities } from "@/lib/scoring";
+import {
+  isScoreResultScored,
+  rescoreSeasonActivities,
+  scoreActivity,
+  toActivityScoreUpdate,
+} from "@/lib/scoring";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
+
+type ActivityRow = Database["public"]["Tables"]["activities"]["Row"];
+type ScoringRuleRow = Database["public"]["Tables"]["scoring_rules"]["Row"];
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +36,67 @@ export async function POST(
     const supabase = createSupabaseServiceRoleClient();
     const before = await getActivity(supabase, activityId);
 
+    if (action === "score") {
+      const ruleId = getFormText(formData, "ruleId", "Scoring-Regel fehlt.");
+      const rule = await getScoringRule(supabase, ruleId);
+
+      if (before.status === "deleted") {
+        throw new Error(
+          "Geloeschte Strava-Aktivitaeten koennen nicht zur Wertung hinzugefuegt werden.",
+        );
+      }
+
+      if (before.source !== "strava") {
+        throw new Error(
+          "Diese Aktion ist nur fuer synchronisierte Strava-Aktivitaeten vorgesehen.",
+        );
+      }
+
+      ensureRuleCanScoreActivity(rule, before);
+
+      const scoredAt = new Date();
+      const score = scoreActivity(
+        {
+          ...before,
+          status: "active",
+          scoring_override_rule_id: rule.id,
+        },
+        [rule],
+        { scoredAt },
+      );
+
+      if (!isScoreResultScored(score)) {
+        throw new Error("Ausgewaehlte Regel konnte nicht angewendet werden.");
+      }
+
+      const { data, error } = await supabase
+        .from("activities")
+        .update({
+          status: "active",
+          scoring_override_rule_id: rule.id,
+          ...toActivityScoreUpdate(score),
+        })
+        .eq("id", activityId)
+        .select("*")
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      await writeAdminAuditLog(supabase, {
+        action: "activity.score_override",
+        after: data,
+        before,
+        entityId: activityId,
+        entityType: "activity",
+      });
+
+      return redirectWithAdminFlash(request, "/admin/activities", {
+        status: "Aktivitaet wurde zur Wertung hinzugefuegt.",
+      });
+    }
+
     if (action === "ignore") {
       const { data, error } = await supabase
         .from("activities")
@@ -36,6 +106,7 @@ export async function POST(
           matched_category: null,
           matched_rule_id: null,
           matched_rule_name: null,
+          scoring_override_rule_id: null,
           points: 0,
           scored_at: new Date().toISOString(),
           scoring_reason: "Admin: Aktivitaet aus Wertung ausgeschlossen.",
@@ -123,6 +194,33 @@ async function getActivity(
   }
 
   return data;
+}
+
+async function getScoringRule(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  ruleId: string,
+) {
+  const { data, error } = await supabase
+    .from("scoring_rules")
+    .select("*")
+    .eq("id", ruleId)
+    .eq("is_active", true)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as ScoringRuleRow;
+}
+
+function ensureRuleCanScoreActivity(
+  rule: ScoringRuleRow,
+  activity: ActivityRow,
+) {
+  if (rule.season_id && rule.season_id !== activity.season_id) {
+    throw new Error("Scoring-Regel gehoert nicht zur Saison der Aktivitaet.");
+  }
 }
 
 export function GET() {

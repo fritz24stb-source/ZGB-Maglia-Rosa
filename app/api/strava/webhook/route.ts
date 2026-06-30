@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerEnv } from "@/lib/env";
+import { logError } from "@/lib/logger";
 import { processStravaWebhookPayload } from "@/lib/strava/webhook-processor";
 import {
   StravaWebhookValidationError,
@@ -56,6 +57,8 @@ export async function POST(request: Request) {
       { status },
     );
   } catch (error) {
+    logError("strava.webhook.failed", error);
+
     const message =
       error instanceof StravaWebhookValidationError
         ? error.message

@@ -1,3 +1,7 @@
+import {
+  formatStravaRateLimitMessage,
+  isStravaRateLimitStatus,
+} from "@/lib/strava/errors";
 import type { Database } from "@/types/database";
 
 export const STRAVA_API_BASE_URL = "https://www.strava.com/api/v3";
@@ -57,11 +61,9 @@ export async function fetchStravaActivity(
   );
 
   if (!response.ok) {
-    const responseBody = await response.text().catch(() => "");
-    throw new StravaActivityFetchError(
+    throw await buildStravaActivityFetchError(
       `Strava activity fetch failed for ${activityId}.`,
-      response.status,
-      responseBody,
+      response,
     );
   }
 
@@ -104,11 +106,9 @@ export async function fetchStravaAthleteActivities(
   });
 
   if (!response.ok) {
-    const responseBody = await response.text().catch(() => "");
-    throw new StravaActivityFetchError(
+    throw await buildStravaActivityFetchError(
       "Strava activity list fetch failed.",
-      response.status,
-      responseBody,
+      response,
     );
   }
 
@@ -174,6 +174,22 @@ function normalizeActivityName(name: string | null | undefined, id: number) {
   const normalizedName = name?.trim();
 
   return normalizedName || `Strava Aktivitaet ${id}`;
+}
+
+async function buildStravaActivityFetchError(
+  message: string,
+  response: Response,
+) {
+  const responseBody = await response.text().catch(() => "");
+  const safeMessage = isStravaRateLimitStatus(response.status)
+    ? formatStravaRateLimitMessage(response.headers.get("retry-after"))
+    : message;
+
+  return new StravaActivityFetchError(
+    safeMessage,
+    response.status,
+    responseBody,
+  );
 }
 
 function normalizeOptionalText(value: string | null | undefined) {

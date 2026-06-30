@@ -3,6 +3,8 @@ import {
   ADMIN_SESSION_COOKIE,
   hasValidAdminSession,
 } from "@/lib/auth/admin-session";
+import { logError } from "@/lib/logger";
+import { isStravaRateLimitError } from "@/lib/strava/errors";
 
 export class AdminHttpError extends Error {
   constructor(
@@ -60,7 +62,13 @@ export function redirectWithAdminFlash(
 }
 
 export function formatAdminError(error: unknown) {
+  logError("admin.action.failed", error);
+
   if (error instanceof AdminHttpError) {
+    return error.message;
+  }
+
+  if (isStravaRateLimitError(error) && error instanceof Error) {
     return error.message;
   }
 
@@ -71,9 +79,7 @@ export function formatAdminError(error: unknown) {
     return "Supabase oder Admin-Konfiguration fehlt. Bitte .env.local pruefen.";
   }
 
-  return error instanceof Error
-    ? error.message
-    : "Admin-Aktion konnte nicht ausgefuehrt werden.";
+  return "Admin-Aktion konnte nicht ausgefuehrt werden. Details stehen im Server-Log.";
 }
 
 export function getSafeAdminRefererUrl(

@@ -22,6 +22,7 @@
   --zgb-color-text-soft: #564e4c;
   --zgb-color-muted: #756856;
   --zgb-color-border: #c7b79f;
+  --zgb-color-club-green: #004225;
   --zgb-color-accent: #a63d11;
   --zgb-color-accent-hover: #3b3634;
   --zgb-color-success: #3a8b5b;
@@ -52,6 +53,7 @@
   --zgb-radius-pill: 999px;
   --zgb-shadow-subtle: 0 1px 0 rgba(59, 54, 52, 0.08);
   --zgb-shadow-panel: 0 16px 40px rgba(59, 54, 52, 0.12);
+  --zgb-shadow-app: 0 18px 48px rgba(59, 54, 52, 0.1);
 
   --zgb-space-1: 0.25rem;
   --zgb-space-2: 0.5rem;
@@ -62,6 +64,47 @@
   --zgb-space-8: 2rem;
   --zgb-space-10: 2.5rem;
   --zgb-space-12: 3rem;
+}
+
+.zgb-app {
+  min-height: 100vh;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0, 66, 37, 0.08) 0,
+      rgba(236, 222, 202, 0) 20rem
+    ),
+    var(--zgb-color-canvas);
+  color: var(--zgb-color-text);
+  font-family: var(--zgb-font-body);
+  line-height: var(--zgb-line-normal);
+}
+
+.zgb-app-header {
+  border-bottom: 1px solid rgba(199, 183, 159, 0.75);
+  background: rgba(236, 222, 202, 0.9);
+  box-shadow: var(--zgb-shadow-subtle);
+}
+
+.zgb-app-brand-mark {
+  border: 1px solid rgba(199, 183, 159, 0.8);
+  background: var(--zgb-color-club-green);
+  box-shadow: 0 8px 24px rgba(0, 66, 37, 0.16);
+}
+
+.zgb-app-page-title {
+  color: var(--zgb-color-text);
+  font-family: var(--zgb-font-display);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: var(--zgb-line-tight);
+  text-transform: uppercase;
+}
+
+.zgb-app-panel {
+  border: 1px solid rgba(199, 183, 159, 0.75);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--zgb-shadow-app);
 }
 
 .zgb-theme {

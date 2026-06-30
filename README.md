@@ -81,6 +81,17 @@ Mobile-first PWA fuer eine vereinsinterne Rennrad-Wertung auf Basis von Strava-A
 - Audit-Log fuer schreibende Admin-Aktionen
 - Tests fuer Admin-Formularnormalisierung und CSV-Escaping
 
+## Phase 9/10 Abschluss
+
+- Server-/Client-Environment getrennt, damit Secrets nicht in Client-Bundles gelangen.
+- Redaction fuer Logging und Audit-Log ergaenzt.
+- Strava Rate-Limit-Fehler werden mit nutzbarer Meldung behandelt.
+- Error Boundaries und Loading States fuer App und Adminbereich ergaenzt.
+- Audit Log auf Benachrichtigungen und CSV-Exporte erweitert.
+- Mock-End-to-End-Test fuer Scoring bis Leaderboard ergaenzt.
+- Alte ungenutzte Produktiv-Mockdaten entfernt.
+- Abschlussdokumentation: `docs/finalisierung.md`
+
 ## Login- und Zugriffsmodell
 
 - Strava Login ist nur fuer das Verknuepfen eines Athleten und fuer spaeteres Trennen der Strava-Verbindung notwendig.
@@ -126,6 +137,36 @@ Fuer den Adminbereich:
 ```bash
 ADMIN_PASSWORD=<starkes-admin-passwort>
 ```
+
+## Setup Kurzcheck
+
+| Schritt    | Pruefung                                                                        |
+| ---------- | ------------------------------------------------------------------------------- |
+| Supabase   | Migrationen aus `supabase/migrations` in Reihenfolge ausfuehren                 |
+| Strava App | Callback `/api/strava/callback`, Scopes `read,activity:read`                    |
+| Webhook    | Callback `/api/strava/webhook`, Verify Token identisch zu `STRAVA_VERIFY_TOKEN` |
+| Admin      | `ADMIN_PASSWORD` setzen und `/admin/login` pruefen                              |
+| Regeln     | aktive Saison und Standardregeln in `/admin/seasons` und `/admin/rules` pruefen |
+
+## Deployment Vercel/Supabase
+
+1. Supabase-Projekt anlegen und Migrationen ausfuehren.
+2. Vercel-Projekt mit diesem Repository verbinden.
+3. In Vercel Environment Variables setzen:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `STRAVA_CLIENT_ID`
+   - `STRAVA_CLIENT_SECRET`
+   - `STRAVA_VERIFY_TOKEN`
+   - `STRAVA_WEBHOOK_CALLBACK_URL`
+   - `APP_BASE_URL`
+   - `ADMIN_PASSWORD`
+4. `APP_BASE_URL` auf die Vercel-Produktionsdomain setzen.
+5. Strava App Callback Domain und Webhook Callback auf die Vercel-Domain setzen.
+6. Deployment bauen und `/leaderboard`, `/login`, `/manual`, `/admin/login` pruefen.
+
+Details zu Strava App, Webhook, Supabase, Admin Workflow, Nutzer Workflow, Regelpflege, Saisonwechsel, Security Review und offenen Punkten stehen in `docs/finalisierung.md`.
 
 ## Environment Variables
 
