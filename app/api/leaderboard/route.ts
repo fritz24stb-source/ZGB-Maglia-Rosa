@@ -44,7 +44,7 @@ type LeaderboardRpcClient = {
 
 const categoryLabels: Record<string, string> = {
   fondo: "Samstags-Fondo",
-  zgb_zug: "ZGB Zug",
+  zug: "Zug",
   scuola: "Scuola",
   scuderia: "Scuderia",
   sonderevent: "Sonderevent",

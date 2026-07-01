@@ -41,13 +41,14 @@ Mobile-first PWA fuer eine vereinsinterne Rennrad-Wertung auf Basis von Strava-A
 ## Phase 5 Umfang
 
 - Strava Webhook GET-Verifikation ueber `/api/strava/webhook`
-- Webhook POST mit Event-Speicherung in `webhook_events`
+- Webhook POST mit schneller Event-Queue in `webhook_events` und nachgelagerter Verarbeitung
 - idempotente Verarbeitung ueber Event-Claiming und bestehende Unique-Constraints
 - Activity Fetch nach Create-/Update-Events
 - idempotenter Activity-Upsert inklusive Scoring
 - logische Behandlung von Delete-Events ueber `activities.status = 'deleted'`
 - Revoke-/Deauthorization-Events mit lokaler Revoked-Markierung
 - Fehler- und Ignore-Gruende in `webhook_events.processing_error`
+- Automatische Subscription-Wartung und taeglicher Fallback-Sync ueber `/api/cron/strava`
 
 ## Phase 6 Umfang
 
@@ -136,17 +137,19 @@ Fuer den Adminbereich:
 
 ```bash
 ADMIN_PASSWORD=<starkes-admin-passwort>
+CRON_SECRET=<zufaelliger-cron-secret>
 ```
 
 ## Setup Kurzcheck
 
-| Schritt    | Pruefung                                                                        |
-| ---------- | ------------------------------------------------------------------------------- |
-| Supabase   | Migrationen aus `supabase/migrations` in Reihenfolge ausfuehren                 |
-| Strava App | Callback `/api/strava/callback`, Scopes `read,activity:read`                    |
-| Webhook    | Callback `/api/strava/webhook`, Verify Token identisch zu `STRAVA_VERIFY_TOKEN` |
-| Admin      | `ADMIN_PASSWORD` setzen und `/admin/login` pruefen                              |
-| Regeln     | aktive Saison und Standardregeln in `/admin/seasons` und `/admin/rules` pruefen |
+| Schritt    | Pruefung                                                                               |
+| ---------- | -------------------------------------------------------------------------------------- |
+| Supabase   | Migrationen aus `supabase/migrations` in Reihenfolge ausfuehren                        |
+| Strava App | Callback `/api/strava/callback`, Scopes `read,activity:read`                           |
+| Webhook    | `STRAVA_WEBHOOK_CALLBACK_URL` zeigt auf `/api/strava/webhook`                          |
+| Cron       | `CRON_SECRET` setzen; `/api/cron/strava` wird ueber `vercel.json` taeglich ausgefuehrt |
+| Admin      | `ADMIN_PASSWORD` setzen und `/admin/login` pruefen                                     |
+| Regeln     | aktive Saison und Standardregeln in `/admin/seasons` und `/admin/rules` pruefen        |
 
 ## Deployment Vercel/Supabase
 
@@ -162,9 +165,12 @@ ADMIN_PASSWORD=<starkes-admin-passwort>
    - `STRAVA_WEBHOOK_CALLBACK_URL`
    - `APP_BASE_URL`
    - `ADMIN_PASSWORD`
+   - `CRON_SECRET`
 4. `APP_BASE_URL` auf die Vercel-Produktionsdomain setzen.
-5. Strava App Callback Domain und Webhook Callback auf die Vercel-Domain setzen.
-6. Deployment bauen und `/leaderboard`, `/login`, `/manual`, `/admin/login` pruefen.
+5. `STRAVA_WEBHOOK_CALLBACK_URL` auf `https://<domain>/api/strava/webhook` setzen.
+6. Strava App Callback Domain fuer OAuth auf die Vercel-Domain setzen.
+7. Deployment bauen und `/leaderboard`, `/login`, `/manual`, `/admin/login` pruefen.
+8. Nach dem ersten Cron-Lauf pruefen, ob `/api/cron/strava` die Strava Push Subscription angelegt hat.
 
 Details zu Strava App, Webhook, Supabase, Admin Workflow, Nutzer Workflow, Regelpflege, Saisonwechsel, Security Review und offenen Punkten stehen in `docs/finalisierung.md`.
 
@@ -181,6 +187,7 @@ Details zu Strava App, Webhook, Supabase, Admin Workflow, Nutzer Workflow, Regel
 | `STRAVA_WEBHOOK_CALLBACK_URL`   | Oeffentliche Webhook-Callback-URL           |
 | `APP_BASE_URL`                  | Basis-URL der App                           |
 | `ADMIN_PASSWORD`                | Separates Passwort fuer `/admin`            |
+| `CRON_SECRET`                   | Bearer Secret fuer Vercel Cron              |
 
 ## Qualitaetsbefehle
 

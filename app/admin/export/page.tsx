@@ -127,7 +127,7 @@ function ExportCard({
             <SelectField label="Kategorie" name="category" value="all">
               <option value="all">Alle</option>
               <option value="fondo">fondo</option>
-              <option value="zgb_zug">zgb_zug</option>
+              <option value="zug">zug</option>
               <option value="scuola">scuola</option>
               <option value="scuderia">scuderia</option>
               <option value="sonderevent">sonderevent</option>

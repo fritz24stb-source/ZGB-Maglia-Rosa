@@ -51,6 +51,13 @@ const standardKeywordLogicSql = readFileSync(
   ),
   "utf8",
 );
+const zugCategorySql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260630170000_replace_zgb_zug_with_zug.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -145,5 +152,17 @@ describe("database migrations", () => {
     expect(standardKeywordLogicSql).toContain("kein zug");
     expect(standardKeywordLogicSql).toContain("kein scuola");
     expect(standardKeywordLogicSql).toContain("kein scuderia");
+  });
+
+  it("replaces the legacy zgb_zug category with zug", () => {
+    expect(zugCategorySql).toContain("category = 'zug'");
+    expect(zugCategorySql).toContain("category = 'zgb_zug'");
+    expect(zugCategorySql).toContain("matched_category = 'zgb_zug'");
+    expect(zugCategorySql).toContain(
+      "where filtered.category in ('zug', 'scuola', 'scuderia')",
+    );
+    expect(zugCategorySql).not.toContain(
+      "where filtered.category in ('zgb_zug', 'scuola', 'scuderia')",
+    );
   });
 });

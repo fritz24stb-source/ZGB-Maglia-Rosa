@@ -9,9 +9,15 @@ Zielbetrieb fuer das MVP:
 
 ## Sync-Strategie
 
-Strava Webhooks sind der primaere Sync-Mechanismus. Pro Webhook-Event wird nur die betroffene Aktivitaet nachgeladen, bewertet und per `strava_activity_id` idempotent gespeichert.
+Strava Webhooks sind der primaere Sync-Mechanismus. Pro Webhook-Event wird das Event schnell in `webhook_events` gespeichert, mit `200 OK` bestaetigt und danach die betroffene Aktivitaet nachgeladen, bewertet und per `strava_activity_id` idempotent gespeichert.
 
-Ein Fallback-Sync darf im MVP maximal einmal taeglich laufen. Haeufigere Fallback-Syncs setzen eine andere Betriebsvariante voraus:
+Der taegliche Vercel Cron `/api/cron/strava` uebernimmt drei Wartungsaufgaben:
+
+- Strava Push Subscription anlegen oder bei falscher Callback-URL ersetzen
+- pending/failed Webhook-Events nachverarbeiten
+- kleinen Backfill fuer aktive Mitglieder in der aktiven Saison ausfuehren
+
+Haeufigere oder groessere Fallback-Syncs setzen eine andere Betriebsvariante voraus:
 
 - Supabase Scheduled Functions
 - GitHub Actions

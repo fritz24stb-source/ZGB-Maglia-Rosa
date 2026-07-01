@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getServerEnv } from "@/lib/env";
 import { logError } from "@/lib/logger";
-import { processStravaWebhookPayload } from "@/lib/strava/webhook-processor";
+import {
+  processQueuedStravaWebhookEvent,
+  queueStravaWebhookPayload,
+} from "@/lib/strava/webhook-processor";
 import {
   StravaWebhookValidationError,
   verifyStravaWebhookChallenge,
@@ -43,18 +46,35 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await processStravaWebhookPayload({ payload });
-    const status = result.status === "failed" ? 500 : 200;
+    const result = await queueStravaWebhookPayload({ payload });
+
+    if (result.status === "queued") {
+      after(async () => {
+        try {
+          const processingResult = await processQueuedStravaWebhookEvent({
+            eventId: result.eventId,
+          });
+
+          if (processingResult.status === "failed") {
+            logError(
+              "strava.webhook.processing.failed",
+              processingResult.reason ?? "Strava webhook processing failed.",
+            );
+          }
+        } catch (error) {
+          logError("strava.webhook.processing.failed", error);
+        }
+      });
+    }
 
     return NextResponse.json(
       {
         received: true,
         status: result.status,
         event_id: result.eventId,
-        activity_id: result.activityId,
         reason: result.reason,
       },
-      { status },
+      { status: 200 },
     );
   } catch (error) {
     logError("strava.webhook.failed", error);

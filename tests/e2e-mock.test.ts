@@ -31,7 +31,7 @@ describe("mocked end-to-end scoring and leaderboard flow", () => {
       }),
       scoringRule({
         allowed_weekdays: [3, 4],
-        category: "zgb_zug",
+        category: "zug",
         id: "rule-zgb",
         name: "ZGB Zug",
         name_keywords: ["zgb"],
@@ -218,7 +218,7 @@ function aggregateRpcRow(input: {
         .at(-1) ?? null,
     manual_points: 0,
     mittwochs_fahrten: input.activities.filter((activity) =>
-      ["zgb_zug", "scuola", "scuderia"].includes(activity.category ?? ""),
+      ["zug", "scuola", "scuderia"].includes(activity.category ?? ""),
     ).length,
     place: input.place,
     samstags_fahrten: input.activities.filter(

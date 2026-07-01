@@ -75,7 +75,7 @@ describe("manual entry options", () => {
   it("marks an open category as used when the window key already exists", () => {
     const now = new Date("2026-07-01T16:30:00.000Z");
     const existingEntryCounts = new Map([
-      ["category:zgb_zug:2026-07-01T16:00:00.000Z", 1],
+      ["category:zug:2026-07-01T16:00:00.000Z", 1],
     ]);
 
     const contexts = buildManualEntryContexts({
@@ -83,7 +83,7 @@ describe("manual entry options", () => {
       existingEntryCounts,
       windows: [
         windowRow({
-          category: "zgb_zug",
+          category: "zug",
           weekday_start: 3,
           time_start: "18:00:00",
           weekday_end: 4,
@@ -95,7 +95,7 @@ describe("manual entry options", () => {
         rule({
           id: "rule-zgb",
           name: "ZGB Zug",
-          category: "zgb_zug",
+          category: "zug",
           points: 80,
           name_keywords: ["zgb", "zug"],
           allowed_weekdays: [3, 4],
@@ -106,7 +106,7 @@ describe("manual entry options", () => {
     expect(contexts).toHaveLength(1);
     expect(contexts[0]).toMatchObject({
       status: "used",
-      manualEntryKey: "category:zgb_zug:2026-07-01T16:00:00.000Z",
+      manualEntryKey: "category:zug:2026-07-01T16:00:00.000Z",
       remainingEntries: 0,
     });
   });

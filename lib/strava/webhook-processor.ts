@@ -42,6 +42,8 @@ type ProcessClaimResult = {
   activityId?: string;
 };
 
+type QueueStatus = "queued" | "duplicate";
+
 export type ProcessStravaWebhookInput = {
   payload: unknown;
   client?: ServiceClient;
@@ -56,14 +58,102 @@ export type ProcessStravaWebhookResult = {
   activityId?: string;
 };
 
+export type QueueStravaWebhookResult = {
+  status: QueueStatus;
+  eventId: string;
+  reason?: string;
+};
+
+export type ProcessQueuedStravaWebhookInput = {
+  eventId: string;
+  client?: ServiceClient;
+  fetchImpl?: FetchLike;
+  now?: Date;
+};
+
+export type ProcessPendingStravaWebhookInput = {
+  client?: ServiceClient;
+  fetchImpl?: FetchLike;
+  limit?: number;
+  now?: Date;
+};
+
+export type ProcessPendingStravaWebhookSummary = {
+  failed: number;
+  ignored: number;
+  processed: number;
+  duplicates: number;
+  errors: Array<{
+    eventId: string;
+    message: string;
+  }>;
+};
+
+const DEFAULT_PENDING_WEBHOOK_LIMIT = 25;
+
 export async function processStravaWebhookPayload({
   payload,
   client = createSupabaseServiceRoleClient(),
   fetchImpl = fetch,
   now = new Date(),
 }: ProcessStravaWebhookInput): Promise<ProcessStravaWebhookResult> {
+  const queuedEvent = await queueStravaWebhookPayload({ payload, client });
+
+  if (queuedEvent.status === "duplicate") {
+    return {
+      status: "duplicate",
+      eventId: queuedEvent.eventId,
+      reason: queuedEvent.reason,
+    };
+  }
+
+  return processQueuedStravaWebhookEvent({
+    eventId: queuedEvent.eventId,
+    client,
+    fetchImpl,
+    now,
+  });
+}
+
+export async function queueStravaWebhookPayload({
+  payload,
+  client = createSupabaseServiceRoleClient(),
+}: Pick<
+  ProcessStravaWebhookInput,
+  "payload" | "client"
+>): Promise<QueueStravaWebhookResult> {
   const event = parseStravaWebhookEvent(payload);
   const storedEvent = await insertOrFetchWebhookEvent(client, event, payload);
+
+  if (storedEvent.processing_status === "pending") {
+    return {
+      status: "queued",
+      eventId: storedEvent.id,
+    };
+  }
+
+  if (storedEvent.processing_status === "failed") {
+    return {
+      status: "queued",
+      eventId: storedEvent.id,
+      reason: "Previously failed event queued for retry.",
+    };
+  }
+
+  return {
+    status: "duplicate",
+    eventId: storedEvent.id,
+    reason: `Event is already ${storedEvent.processing_status}.`,
+  };
+}
+
+export async function processQueuedStravaWebhookEvent({
+  eventId,
+  client = createSupabaseServiceRoleClient(),
+  fetchImpl = fetch,
+  now = new Date(),
+}: ProcessQueuedStravaWebhookInput): Promise<ProcessStravaWebhookResult> {
+  const storedEvent = await findWebhookEventById(client, eventId);
   const claimedEvent = await claimWebhookEvent(client, storedEvent.id);
 
   if (!claimedEvent) {
@@ -75,6 +165,7 @@ export async function processStravaWebhookPayload({
   }
 
   try {
+    const event = parseStravaWebhookEvent(claimedEvent.raw_payload);
     const result = await processClaimedWebhookEvent(
       client,
       event,
@@ -107,6 +198,65 @@ export async function processStravaWebhookPayload({
       reason: message,
     };
   }
+}
+
+export async function processPendingStravaWebhookEvents({
+  client = createSupabaseServiceRoleClient(),
+  fetchImpl = fetch,
+  limit = DEFAULT_PENDING_WEBHOOK_LIMIT,
+  now = new Date(),
+}: ProcessPendingStravaWebhookInput = {}): Promise<ProcessPendingStravaWebhookSummary> {
+  const { data, error } = await client
+    .from("webhook_events")
+    .select("id")
+    .in("processing_status", ["pending", "failed"])
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    throw error;
+  }
+
+  const summary: ProcessPendingStravaWebhookSummary = {
+    failed: 0,
+    ignored: 0,
+    processed: 0,
+    duplicates: 0,
+    errors: [],
+  };
+
+  for (const event of data ?? []) {
+    try {
+      const result = await processQueuedStravaWebhookEvent({
+        eventId: event.id,
+        client,
+        fetchImpl,
+        now,
+      });
+
+      if (result.status === "processed") {
+        summary.processed += 1;
+      } else if (result.status === "ignored") {
+        summary.ignored += 1;
+      } else if (result.status === "failed") {
+        summary.failed += 1;
+        summary.errors.push({
+          eventId: event.id,
+          message: result.reason ?? "Webhook event processing failed.",
+        });
+      } else {
+        summary.duplicates += 1;
+      }
+    } catch (error) {
+      summary.failed += 1;
+      summary.errors.push({
+        eventId: event.id,
+        message: getErrorMessage(error),
+      });
+    }
+  }
+
+  return summary;
 }
 
 async function processClaimedWebhookEvent(
@@ -455,6 +605,20 @@ async function findStravaConnectionByAthleteId(
   }
 
   return data as StravaConnectionRow | null;
+}
+
+async function findWebhookEventById(client: ServiceClient, eventId: string) {
+  const { data, error } = await client
+    .from("webhook_events")
+    .select("*")
+    .eq("id", eventId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as WebhookEventRow;
 }
 
 async function insertOrFetchWebhookEvent(

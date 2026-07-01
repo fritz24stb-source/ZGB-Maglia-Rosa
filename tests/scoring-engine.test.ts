@@ -41,7 +41,7 @@ describe("scoring engine", () => {
       [
         rule({
           name: "ZGB Zug",
-          category: "zgb_zug",
+          category: "zug",
           points: 80,
           name_keywords: ["zgb", "zug"],
           allowed_weekdays: [3, 4],
@@ -63,7 +63,7 @@ describe("scoring engine", () => {
       [
         rule({
           name: "ZGB oder Zug Abendrunde",
-          category: "zgb_zug",
+          category: "zug",
           points: 80,
           name_keywords: ["zug oder zgb", "ABENDRUNDE"],
           allowed_weekdays: [5],
@@ -118,7 +118,7 @@ describe("scoring engine", () => {
       rule({
         id: "rule-zug",
         name: "ZGB Zug",
-        category: "zgb_zug",
+        category: "zug",
         points: 80,
         priority: 81,
         name_keywords: ["zgb oder zug", "kein scuderia", "kein scuola"],
@@ -140,7 +140,7 @@ describe("scoring engine", () => {
       matchedRuleId: "rule-scuderia",
     });
     expect(scoreWednesdayRide("ZGB Zug Feierabend", rules)).toMatchObject({
-      category: "zgb_zug",
+      category: "zug",
       matchedRuleId: "rule-zug",
     });
     expect(scoreWednesdayRide("ZGB Scuola Feierabend", rules)).toMatchObject({

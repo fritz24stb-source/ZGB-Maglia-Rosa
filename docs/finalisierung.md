@@ -28,10 +28,11 @@ Pflichtwerte:
 | `STRAVA_VERIFY_TOKEN`         | frei gewaehltes Verify Token fuer Strava Challenge |
 | `STRAVA_WEBHOOK_CALLBACK_URL` | oeffentliche Callback-URL                          |
 | `APP_BASE_URL`                | oeffentliche App-Basis-URL                         |
+| `CRON_SECRET`                 | Bearer Secret fuer Vercel Cron                     |
 
 Pruefung:
 
-1. Strava Webhook Subscription mit Callback URL und Verify Token registrieren.
+1. Vercel Cron `/api/cron/strava` fuehrt die Strava Webhook Subscription automatisch mit Callback URL und Verify Token.
 2. Strava GET-Challenge muss `hub.challenge` zurueckgeben.
 3. Eine Testaktivitaet erstellen oder aktualisieren.
 4. In `/admin` kontrollieren, ob ein Webhook Event gespeichert und verarbeitet wurde.
@@ -144,13 +145,13 @@ Nach Regelanpassung:
 
 ## Offene Punkte und technische Einschraenkungen
 
-| Punkt                      | Einschraenkung                                                                | Empfehlung                                                                           |
-| -------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Token-Verschluesselung     | Tokens liegen serverseitig in Postgres, aber nicht feldweise verschluesselt.  | Vor Produktivbetrieb Supabase Vault oder eigene Envelope Encryption pruefen.         |
-| Admin Auth                 | MVP nutzt einzelnes `ADMIN_PASSWORD`, keine personenbezogenen Admin-Accounts. | Fuer mehrere Admins Supabase Auth Rollen oder separate Admin-User einfuehren.        |
-| Webhook Subscription       | Registrierung wird nicht automatisch vom Code erstellt.                       | Einrichtung dokumentiert ausfuehren und Subscription-ID betrieblich notieren.        |
-| Fallback Sync              | Kein geplanter Cron im Free-MVP.                                              | Bei Bedarf Vercel Cron, GitHub Actions oder Supabase Scheduled Function ergaenzen.   |
-| Rate-Limit Backoff         | Fehler wird erkannt, aber kein Queue-/Retry-System.                           | Bei hoeherer Last Job Queue mit Backoff einfuehren.                                  |
-| E-Mail/Push Notifications  | Admin Notifications sind nur In-App.                                          | Optional E-Mail, Discord oder Slack anbinden.                                        |
-| Vollstaendiger Browser-E2E | Aktuell reproduzierbarer Mock-E2E in Vitest.                                  | Fuer Release zusaetzlich Playwright gegen Staging mit Test-Supabase nutzen.          |
-| Testdaten                  | Seed-Saison ist als Test-Saison 2026 markiert.                                | Vor Produktivstart echte Saison anlegen und Test-Saison deaktivieren oder entfernen. |
+| Punkt                      | Einschraenkung                                                                            | Empfehlung                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Token-Verschluesselung     | Tokens liegen serverseitig in Postgres, aber nicht feldweise verschluesselt.              | Vor Produktivbetrieb Supabase Vault oder eigene Envelope Encryption pruefen.         |
+| Admin Auth                 | MVP nutzt einzelnes `ADMIN_PASSWORD`, keine personenbezogenen Admin-Accounts.             | Fuer mehrere Admins Supabase Auth Rollen oder separate Admin-User einfuehren.        |
+| Webhook Subscription       | Wird ueber `/api/cron/strava` automatisch angelegt und bei falscher Callback-URL ersetzt. | `CRON_SECRET` in Vercel setzen und Cron-Logs nach dem ersten Deployment pruefen.     |
+| Fallback Sync              | Tritt maximal taeglich als kleiner Backfill fuer aktive Mitglieder auf.                   | Bei hoeherer Last Job Queue oder dedizierte Scheduled Function mit Backoff nutzen.   |
+| Rate-Limit Backoff         | Fehler wird erkannt, aber kein Queue-/Retry-System.                                       | Bei hoeherer Last Job Queue mit Backoff einfuehren.                                  |
+| E-Mail/Push Notifications  | Admin Notifications sind nur In-App.                                                      | Optional E-Mail, Discord oder Slack anbinden.                                        |
+| Vollstaendiger Browser-E2E | Aktuell reproduzierbarer Mock-E2E in Vitest.                                              | Fuer Release zusaetzlich Playwright gegen Staging mit Test-Supabase nutzen.          |
+| Testdaten                  | Seed-Saison ist als Test-Saison 2026 markiert.                                            | Vor Produktivstart echte Saison anlegen und Test-Saison deaktivieren oder entfernen. |
