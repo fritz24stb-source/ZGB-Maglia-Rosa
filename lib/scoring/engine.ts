@@ -18,6 +18,21 @@ type ScoreOptions = {
   scoredAt?: Date;
 };
 
+type ActivityMatchContext = {
+  activityDate: Date;
+  isManual: boolean;
+  isoWeekday: number | null;
+  normalizedActivityName: string;
+  normalizedSportType: string | null;
+};
+
+type KeywordCondition = {
+  alternatives: string[];
+  mode: "excluded" | "required";
+};
+
+const keywordConditionCache = new Map<string, KeywordCondition>();
+
 export function scoreActivity(
   activity: ScorableActivity,
   rules: ScoringRuleRow[],
@@ -47,9 +62,8 @@ export function scoreActivity(
     return buildNoScoreResult(INVALID_DATE_REASON, scoredAt);
   }
 
-  const matchedRule = [...rules]
-    .filter((rule) => ruleMatchesActivity(rule, activity, activityDate))
-    .sort(compareRulesForScoring)[0];
+  const matchContext = buildActivityMatchContext(activity, activityDate);
+  const matchedRule = findBestMatchingRule(rules, activity, matchContext);
 
   if (!matchedRule) {
     return buildNoScoreResult(NO_MATCH_REASON, scoredAt);
@@ -124,6 +138,42 @@ export function ruleMatchesActivity(
     activity.activity_started_local_at ?? activity.activity_started_at,
   ),
 ) {
+  if (!activityDate) {
+    return false;
+  }
+
+  return ruleMatchesActivityWithContext(
+    rule,
+    activity,
+    buildActivityMatchContext(activity, activityDate),
+  );
+}
+
+function findBestMatchingRule(
+  rules: ScoringRuleRow[],
+  activity: ScorableActivity,
+  context: ActivityMatchContext,
+) {
+  let bestRule: ScoringRuleRow | null = null;
+
+  for (const rule of rules) {
+    if (!ruleMatchesActivityWithContext(rule, activity, context)) {
+      continue;
+    }
+
+    if (!bestRule || compareRulesForScoring(rule, bestRule) < 0) {
+      bestRule = rule;
+    }
+  }
+
+  return bestRule;
+}
+
+function ruleMatchesActivityWithContext(
+  rule: ScoringRuleRow,
+  activity: ScorableActivity,
+  context: ActivityMatchContext,
+) {
   if (!rule.is_active) {
     return false;
   }
@@ -132,22 +182,15 @@ export function ruleMatchesActivity(
     return false;
   }
 
-  if (!activityDate) {
-    return false;
-  }
-
-  if (isManualActivity(activity) && !rule.manual_entry_allowed) {
+  if (context.isManual && !rule.manual_entry_allowed) {
     return false;
   }
 
   return (
-    matchesNameKeywords(rule.name_keywords, activity.activity_name) &&
-    matchesWeekday(
-      rule.allowed_weekdays,
-      activity.activity_started_local_at ?? activity.activity_started_at,
-    ) &&
-    matchesValidityWindow(rule, activityDate) &&
-    matchesSportType(rule.allowed_sport_types, activity.sport_type) &&
+    matchesNameKeywords(rule.name_keywords, context.normalizedActivityName) &&
+    matchesWeekday(rule.allowed_weekdays, context.isoWeekday) &&
+    matchesValidityWindow(rule, context.activityDate) &&
+    matchesSportType(rule.allowed_sport_types, context.normalizedSportType) &&
     matchesMinimumDistance(rule.min_distance_m, activity.distance_m)
   );
 }
@@ -187,10 +230,30 @@ function isManualActivity(activity: ScorableActivity) {
   return activity.source === "manual" || activity.manually_entered;
 }
 
-function matchesNameKeywords(keywords: string[], activityName: string) {
-  const normalizedActivityName = normalizeForMatch(activityName);
+function buildActivityMatchContext(
+  activity: ScorableActivity,
+  activityDate: Date,
+): ActivityMatchContext {
+  const timestamp =
+    activity.activity_started_local_at ?? activity.activity_started_at;
+
+  return {
+    activityDate,
+    isManual: isManualActivity(activity),
+    isoWeekday: getIsoWeekdayFromTimestamp(timestamp),
+    normalizedActivityName: normalizeForMatch(activity.activity_name),
+    normalizedSportType: activity.sport_type
+      ? normalizeForMatch(activity.sport_type)
+      : null,
+  };
+}
+
+function matchesNameKeywords(
+  keywords: string[],
+  normalizedActivityName: string,
+) {
   const keywordConditions = keywords
-    .map((keyword) => parseKeywordCondition(keyword))
+    .map(getKeywordCondition)
     .filter((condition) => condition.alternatives.length > 0);
 
   if (
@@ -213,10 +276,20 @@ function matchesNameKeywords(keywords: string[], activityName: string) {
   });
 }
 
-function parseKeywordCondition(keyword: string): {
-  alternatives: string[];
-  mode: "excluded" | "required";
-} {
+function getKeywordCondition(keyword: string): KeywordCondition {
+  const cachedCondition = keywordConditionCache.get(keyword);
+
+  if (cachedCondition) {
+    return cachedCondition;
+  }
+
+  const condition = parseKeywordCondition(keyword);
+  keywordConditionCache.set(keyword, condition);
+
+  return condition;
+}
+
+function parseKeywordCondition(keyword: string): KeywordCondition {
   const trimmed = keyword.trim();
   const excludedMatch = /^(?:!\s*|kein\s+)(.+)$/i.exec(trimmed);
   const rawAlternatives = excludedMatch ? excludedMatch[1] : trimmed;
@@ -232,15 +305,13 @@ function parseKeywordCondition(keyword: string): {
 
 function matchesWeekday(
   allowedWeekdays: number[] | null,
-  timestamp: string | null,
+  isoWeekday: number | null,
 ) {
   if (!allowedWeekdays || allowedWeekdays.length === 0) {
     return true;
   }
 
-  const weekday = getIsoWeekdayFromTimestamp(timestamp);
-
-  return weekday !== null && allowedWeekdays.includes(weekday);
+  return isoWeekday !== null && allowedWeekdays.includes(isoWeekday);
 }
 
 function matchesValidityWindow(rule: ScoringRuleRow, activityDate: Date) {
@@ -268,21 +339,23 @@ function matchesValidityWindow(rule: ScoringRuleRow, activityDate: Date) {
 
 function matchesSportType(
   allowedSportTypes: string[] | null,
-  sportType: string | null,
+  normalizedSportType: string | null,
 ) {
   if (!allowedSportTypes || allowedSportTypes.length === 0) {
     return true;
   }
 
-  if (!sportType) {
+  if (!normalizedSportType) {
     return false;
   }
 
-  const normalizedSportType = normalizeForMatch(sportType);
+  for (const allowedSportType of allowedSportTypes) {
+    if (normalizeForMatch(allowedSportType) === normalizedSportType) {
+      return true;
+    }
+  }
 
-  return allowedSportTypes
-    .map((allowedSportType) => normalizeForMatch(allowedSportType))
-    .includes(normalizedSportType);
+  return false;
 }
 
 function matchesMinimumDistance(

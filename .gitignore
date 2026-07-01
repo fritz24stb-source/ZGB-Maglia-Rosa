@@ -6,6 +6,7 @@ node_modules
 # next
 .next
 out
+tsconfig.tsbuildinfo
 
 # production
 build
@@ -27,3 +28,9 @@ Thumbs.db
 
 # coverage
 coverage
+
+# local archives and cli state
+archive
+supabase/.branches
+supabase/.temp
+supabase/snippets

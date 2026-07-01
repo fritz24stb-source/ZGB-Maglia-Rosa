@@ -27,6 +27,10 @@ type StravaConnectionRow =
   Database["public"]["Tables"]["strava_connections"]["Row"];
 
 type FetchLike = typeof fetch;
+type SyncCaches = {
+  rulesBySeasonId: Map<string, ScoringRuleRow[]>;
+  seasonsByActivityDate: Map<string, SeasonRow | null>;
+};
 
 export type AdminSyncError = {
   message: string;
@@ -69,6 +73,7 @@ export async function syncStravaActivitiesForUser({
 }: SyncUserInput): Promise<AdminSyncSummary> {
   const summary = emptySummary();
   summary.users = 1;
+  const caches = createSyncCaches();
 
   const [connection, season] = await Promise.all([
     findConnectionForUser(client, userId),
@@ -130,10 +135,11 @@ export async function syncStravaActivitiesForUser({
 
         const result = await syncDetailedActivity({
           activity: detailedActivity,
+          caches,
           client,
           connection,
           now,
-          requestedSeasonId: season?.id ?? null,
+          requestedSeason: season,
         });
 
         if (result === "scored") {
@@ -219,6 +225,13 @@ function emptySummary(): AdminSyncSummary {
   };
 }
 
+function createSyncCaches(): SyncCaches {
+  return {
+    rulesBySeasonId: new Map(),
+    seasonsByActivityDate: new Map(),
+  };
+}
+
 function mergeSummary(target: AdminSyncSummary, source: AdminSyncSummary) {
   target.activitiesFetched += source.activitiesFetched;
   target.failed += source.failed;
@@ -231,10 +244,11 @@ function mergeSummary(target: AdminSyncSummary, source: AdminSyncSummary) {
 
 async function syncDetailedActivity(input: {
   activity: StravaDetailedActivity;
+  caches: SyncCaches;
   client: ServiceClient;
   connection: StravaConnectionRow;
   now: Date;
-  requestedSeasonId: string | null;
+  requestedSeason: SeasonRow | null;
 }) {
   const athleteId = getStravaActivityAthleteId(input.activity);
 
@@ -244,13 +258,21 @@ async function syncDetailedActivity(input: {
     );
   }
 
-  const season = await findSeasonForActivity(input.client, input.activity);
+  const activityDate = getStravaActivityLocalDate(input.activity);
 
-  if (!season) {
-    return "skipped";
+  if (!activityDate) {
+    throw new Error("Aktivitaet hat kein verwertbares Startdatum.");
   }
 
-  if (input.requestedSeasonId && season.id !== input.requestedSeasonId) {
+  const season = input.requestedSeason
+    ? seasonForActivityDate(input.requestedSeason, activityDate)
+    : await findSeasonForActivity(
+        input.client,
+        input.activity,
+        input.caches.seasonsByActivityDate,
+      );
+
+  if (!season) {
     return "skipped";
   }
 
@@ -263,7 +285,11 @@ async function syncDetailedActivity(input: {
     input.client,
     input.activity.id,
   );
-  const rules = await fetchScoringRules(input.client, season.id);
+  const rules = await fetchScoringRules(
+    input.client,
+    season.id,
+    input.caches.rulesBySeasonId,
+  );
   const score = scoreActivity(
     toScorableStravaActivity(
       activityWrite,
@@ -319,11 +345,16 @@ async function findSeasonById(client: ServiceClient, seasonId: string) {
 async function findSeasonForActivity(
   client: ServiceClient,
   activity: StravaDetailedActivity,
+  cache?: Map<string, SeasonRow | null>,
 ) {
   const activityDate = getStravaActivityLocalDate(activity);
 
   if (!activityDate) {
     throw new Error("Aktivitaet hat kein verwertbares Startdatum.");
+  }
+
+  if (cache?.has(activityDate)) {
+    return cache.get(activityDate) ?? null;
   }
 
   const { data, error } = await client
@@ -340,7 +371,10 @@ async function findSeasonForActivity(
     throw error;
   }
 
-  return data as SeasonRow | null;
+  const season = data as SeasonRow | null;
+  cache?.set(activityDate, season);
+
+  return season;
 }
 
 async function upsertStravaActivity(
@@ -411,7 +445,17 @@ async function updateStravaActivity(
   return data as ActivityRow | null;
 }
 
-async function fetchScoringRules(client: ServiceClient, seasonId: string) {
+async function fetchScoringRules(
+  client: ServiceClient,
+  seasonId: string,
+  cache?: Map<string, ScoringRuleRow[]>,
+) {
+  const cachedRules = cache?.get(seasonId);
+
+  if (cachedRules) {
+    return cachedRules;
+  }
+
   const { data: rules, error: rulesError } = await client
     .from("scoring_rules")
     .select("*")
@@ -422,7 +466,10 @@ async function fetchScoringRules(client: ServiceClient, seasonId: string) {
     throw rulesError;
   }
 
-  return (rules ?? []) as ScoringRuleRow[];
+  const scoringRules = (rules ?? []) as ScoringRuleRow[];
+  cache?.set(seasonId, scoringRules);
+
+  return scoringRules;
 }
 
 async function findExistingStravaActivityForScoring(
@@ -482,6 +529,12 @@ function seasonToStravaRange(season: SeasonRow) {
   );
 
   return { after, before };
+}
+
+function seasonForActivityDate(season: SeasonRow, activityDate: string) {
+  return activityDate >= season.starts_on && activityDate <= season.ends_on
+    ? season
+    : null;
 }
 
 function getErrorMessage(error: unknown) {
