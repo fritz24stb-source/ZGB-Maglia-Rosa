@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ArrowDownUp,
+  ChevronDown,
   Filter,
   Loader2,
   LogIn,
@@ -11,7 +12,6 @@ import {
   SearchX,
   Trophy,
 } from "lucide-react";
-import { StatusBadge } from "@/components/status-badge";
 import { cn } from "@/lib/ui";
 import type {
   LeaderboardResponse,
@@ -64,6 +64,7 @@ export function LeaderboardPreview() {
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -133,6 +134,7 @@ export function LeaderboardPreview() {
 
   function applyFilters() {
     setAppliedFilters(draftFilters);
+    setMobileFiltersOpen(false);
   }
 
   function resetFilters() {
@@ -140,6 +142,7 @@ export function LeaderboardPreview() {
     setAppliedFilters(initialFilters);
     setSortKey("totalPoints");
     setSortDirection("desc");
+    setMobileFiltersOpen(false);
   }
 
   function updateSort(nextSortKey: LeaderboardSortKey) {
@@ -154,118 +157,22 @@ export function LeaderboardPreview() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line">
-        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <SelectField
-            label="Saison"
-            value={selectedSeasonValue}
-            onChange={(value) => updateDraftFilter("seasonId", value)}
-          >
-            <option value="all">Alle Saisons</option>
-            {data?.options.seasons.map((season) => (
-              <option key={season.value} value={season.value}>
-                {season.label}
-                {season.isActive ? " (aktiv)" : ""}
-              </option>
-            ))}
-          </SelectField>
-
-          <SelectField
-            label="Kategorie"
-            value={draftFilters.category}
-            onChange={(value) => updateDraftFilter("category", value)}
-          >
-            <option value="all">Alle</option>
-            {data?.options.categories.map((category) => (
-              <option key={category.value} value={category.value}>
-                {category.label}
-              </option>
-            ))}
-          </SelectField>
-
-          <SelectField
-            label="Quelle"
-            value={draftFilters.source}
-            onChange={(value) => updateDraftFilter("source", value)}
-          >
-            <option value="all">Alle</option>
-            {data?.options.sources.map((source) => (
-              <option key={source.value} value={source.value}>
-                {source.label}
-              </option>
-            ))}
-          </SelectField>
-
-          <SelectField
-            label="Sportart"
-            value={draftFilters.sportType}
-            onChange={(value) => updateDraftFilter("sportType", value)}
-          >
-            <option value="all">Alle</option>
-            {data?.options.sportTypes.map((sportType) => (
-              <option key={sportType.value} value={sportType.value}>
-                {sportType.label}
-              </option>
-            ))}
-          </SelectField>
-
-          <DateField
-            label="Von"
-            value={draftFilters.from}
-            onChange={(value) => updateDraftFilter("from", value)}
-          />
-          <DateField
-            label="Bis"
-            value={draftFilters.to}
-            onChange={(value) => updateDraftFilter("to", value)}
-          />
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto]">
-          <SelectField
-            label="Sortierung"
-            value={sortKey}
-            onChange={(value) => updateSort(value as LeaderboardSortKey)}
-          >
-            {sortOptions.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </SelectField>
-
-          <button
-            type="button"
-            className="focus-ring mt-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
-            onClick={() =>
-              setSortDirection((current) =>
-                current === "desc" ? "asc" : "desc",
-              )
-            }
-          >
-            <ArrowDownUp aria-hidden className="h-4 w-4" />
-            {sortDirection === "desc" ? "Absteigend" : "Aufsteigend"}
-          </button>
-
-          <button
-            type="button"
-            className="focus-ring mt-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white"
-            onClick={applyFilters}
-          >
-            <Filter aria-hidden className="h-4 w-4" />
-            Filter anwenden
-          </button>
-
-          <button
-            type="button"
-            className="focus-ring mt-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
-            onClick={resetFilters}
-          >
-            <RotateCcw aria-hidden className="h-4 w-4" />
-            Zuruecksetzen
-          </button>
-        </div>
-      </div>
+      <LeaderboardFilters
+        data={data}
+        draftFilters={draftFilters}
+        mobileFiltersOpen={mobileFiltersOpen}
+        onApply={applyFilters}
+        onDraftFilterChange={updateDraftFilter}
+        onMobileFiltersOpenChange={setMobileFiltersOpen}
+        onReset={resetFilters}
+        onSortDirectionToggle={() =>
+          setSortDirection((current) => (current === "desc" ? "asc" : "desc"))
+        }
+        onSortKeyChange={updateSort}
+        selectedSeasonValue={selectedSeasonValue}
+        sortDirection={sortDirection}
+        sortKey={sortKey}
+      />
 
       {loadState === "loading" ? <LoadingState /> : null}
       {loadState === "unauthorized" ? <UnauthorizedState /> : null}
@@ -290,6 +197,221 @@ export function LeaderboardPreview() {
         </>
       ) : null}
     </section>
+  );
+}
+
+function LeaderboardFilters({
+  data,
+  draftFilters,
+  mobileFiltersOpen,
+  onApply,
+  onDraftFilterChange,
+  onMobileFiltersOpenChange,
+  onReset,
+  onSortDirectionToggle,
+  onSortKeyChange,
+  selectedSeasonValue,
+  sortDirection,
+  sortKey,
+}: {
+  data: LeaderboardResponse | null;
+  draftFilters: DraftFilters;
+  mobileFiltersOpen: boolean;
+  onApply: () => void;
+  onDraftFilterChange: (key: keyof DraftFilters, value: string) => void;
+  onMobileFiltersOpenChange: (open: boolean) => void;
+  onReset: () => void;
+  onSortDirectionToggle: () => void;
+  onSortKeyChange: (sortKey: LeaderboardSortKey) => void;
+  selectedSeasonValue: string;
+  sortDirection: LeaderboardSortDirection;
+  sortKey: LeaderboardSortKey;
+}) {
+  return (
+    <>
+      <details
+        className="group rounded-lg border border-asphalt-200 bg-white shadow-line md:hidden"
+        onToggle={(event) =>
+          onMobileFiltersOpenChange(event.currentTarget.open)
+        }
+        open={mobileFiltersOpen}
+      >
+        <summary className="focus-ring flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-4 text-sm font-semibold text-asphalt-900 [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-2">
+            <Filter aria-hidden className="h-4 w-4" />
+            Filter
+          </span>
+          <ChevronDown
+            aria-hidden
+            className="h-4 w-4 transition-transform group-open:rotate-180"
+          />
+        </summary>
+        <div className="border-t border-asphalt-100 p-4">
+          <LeaderboardFilterFields
+            data={data}
+            draftFilters={draftFilters}
+            onApply={onApply}
+            onDraftFilterChange={onDraftFilterChange}
+            onReset={onReset}
+            onSortDirectionToggle={onSortDirectionToggle}
+            onSortKeyChange={onSortKeyChange}
+            selectedSeasonValue={selectedSeasonValue}
+            sortDirection={sortDirection}
+            sortKey={sortKey}
+          />
+        </div>
+      </details>
+
+      <div className="hidden rounded-lg border border-asphalt-200 bg-white p-4 shadow-line md:block">
+        <LeaderboardFilterFields
+          data={data}
+          draftFilters={draftFilters}
+          onApply={onApply}
+          onDraftFilterChange={onDraftFilterChange}
+          onReset={onReset}
+          onSortDirectionToggle={onSortDirectionToggle}
+          onSortKeyChange={onSortKeyChange}
+          selectedSeasonValue={selectedSeasonValue}
+          sortDirection={sortDirection}
+          sortKey={sortKey}
+        />
+      </div>
+    </>
+  );
+}
+
+function LeaderboardFilterFields({
+  data,
+  draftFilters,
+  onApply,
+  onDraftFilterChange,
+  onReset,
+  onSortDirectionToggle,
+  onSortKeyChange,
+  selectedSeasonValue,
+  sortDirection,
+  sortKey,
+}: {
+  data: LeaderboardResponse | null;
+  draftFilters: DraftFilters;
+  onApply: () => void;
+  onDraftFilterChange: (key: keyof DraftFilters, value: string) => void;
+  onReset: () => void;
+  onSortDirectionToggle: () => void;
+  onSortKeyChange: (sortKey: LeaderboardSortKey) => void;
+  selectedSeasonValue: string;
+  sortDirection: LeaderboardSortDirection;
+  sortKey: LeaderboardSortKey;
+}) {
+  return (
+    <>
+      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <SelectField
+          label="Saison"
+          value={selectedSeasonValue}
+          onChange={(value) => onDraftFilterChange("seasonId", value)}
+        >
+          <option value="all">Alle Saisons</option>
+          {data?.options.seasons.map((season) => (
+            <option key={season.value} value={season.value}>
+              {season.label}
+              {season.isActive ? " (aktiv)" : ""}
+            </option>
+          ))}
+        </SelectField>
+
+        <SelectField
+          label="Kategorie"
+          value={draftFilters.category}
+          onChange={(value) => onDraftFilterChange("category", value)}
+        >
+          <option value="all">Alle</option>
+          {data?.options.categories.map((category) => (
+            <option key={category.value} value={category.value}>
+              {category.label}
+            </option>
+          ))}
+        </SelectField>
+
+        <SelectField
+          label="Quelle"
+          value={draftFilters.source}
+          onChange={(value) => onDraftFilterChange("source", value)}
+        >
+          <option value="all">Alle</option>
+          {data?.options.sources.map((source) => (
+            <option key={source.value} value={source.value}>
+              {source.label}
+            </option>
+          ))}
+        </SelectField>
+
+        <SelectField
+          label="Sportart"
+          value={draftFilters.sportType}
+          onChange={(value) => onDraftFilterChange("sportType", value)}
+        >
+          <option value="all">Alle</option>
+          {data?.options.sportTypes.map((sportType) => (
+            <option key={sportType.value} value={sportType.value}>
+              {sportType.label}
+            </option>
+          ))}
+        </SelectField>
+
+        <DateField
+          label="Von"
+          value={draftFilters.from}
+          onChange={(value) => onDraftFilterChange("from", value)}
+        />
+        <DateField
+          label="Bis"
+          value={draftFilters.to}
+          onChange={(value) => onDraftFilterChange("to", value)}
+        />
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto_auto]">
+        <SelectField
+          label="Sortierung"
+          value={sortKey}
+          onChange={(value) => onSortKeyChange(value as LeaderboardSortKey)}
+        >
+          {sortOptions.map((option) => (
+            <option key={option.key} value={option.key}>
+              {option.label}
+            </option>
+          ))}
+        </SelectField>
+
+        <button
+          type="button"
+          className="focus-ring mt-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
+          onClick={onSortDirectionToggle}
+        >
+          <ArrowDownUp aria-hidden className="h-4 w-4" />
+          {sortDirection === "desc" ? "Absteigend" : "Aufsteigend"}
+        </button>
+
+        <button
+          type="button"
+          className="focus-ring mt-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white"
+          onClick={onApply}
+        >
+          <Filter aria-hidden className="h-4 w-4" />
+          Filter anwenden
+        </button>
+
+        <button
+          type="button"
+          className="focus-ring mt-auto inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
+          onClick={onReset}
+        >
+          <RotateCcw aria-hidden className="h-4 w-4" />
+          Zuruecksetzen
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -432,13 +554,7 @@ function DesktopLeaderboard({
                 {formatNumber(row.mittwochsFahrten)}
               </td>
               <td className="whitespace-nowrap px-4 py-4 text-asphalt-700">
-                {row.sonderevents > 0 ? (
-                  <StatusBadge tone="info">
-                    {formatNumber(row.sonderevents)}
-                  </StatusBadge>
-                ) : (
-                  "0"
-                )}
+                {formatNumber(row.sonderevents)}
               </td>
             </tr>
           ))}
@@ -481,47 +597,44 @@ function SortableHeader({
 
 function MobileLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
   return (
-    <div className="grid gap-3 md:hidden">
+    <div className="overflow-hidden rounded-lg border border-asphalt-200 bg-white shadow-line md:hidden">
+      <div className="grid grid-cols-[3.5rem_minmax(0,1fr)_5.5rem_2.5rem] gap-2 border-b border-asphalt-100 bg-asphalt-50 px-3 py-2 text-xs font-semibold uppercase text-asphalt-500">
+        <span>Platz</span>
+        <span>Fahrer</span>
+        <span className="text-right">Punkte</span>
+        <span className="sr-only">Details</span>
+      </div>
       {rows.map((row) => (
-        <article
+        <details
           key={`${row.seasonId}-${row.userId}`}
-          className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line"
+          className="group border-b border-asphalt-100 last:border-b-0"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase text-asphalt-500">
-                Platz {row.place}
-              </p>
-              <h2 className="mt-1 text-lg font-semibold text-asphalt-900">
-                {row.displayName}
-              </h2>
-              <p className="mt-1 text-xs text-asphalt-500">{row.seasonName}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-semibold text-asphalt-900">
-                {formatNumber(row.totalPoints)}
-              </p>
-              <p className="text-xs text-asphalt-500">Punkte</p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-            <Metric label="Fahrten" value={row.totalRides} />
-            <Metric label="Fondo" value={row.samstagsFahrten} />
-            <Metric label="Mittwoch" value={row.mittwochsFahrten} />
-            <Metric label="Sonderevents" value={row.sonderevents} />
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-asphalt-500">
-            <StatusBadge tone={row.manualPoints > 0 ? "warning" : "neutral"}>
-              Manuell: {formatNumber(row.manualPoints)} P
-            </StatusBadge>
-            <span>
-              Letzte Aktivitaet:{" "}
-              {row.lastActivityAt ? formatDate(row.lastActivityAt) : "-"}
+          <summary className="focus-ring grid min-h-14 cursor-pointer list-none grid-cols-[3.5rem_minmax(0,1fr)_5.5rem_2.5rem] items-center gap-2 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
+            <span className="font-semibold text-asphalt-900">{row.place}</span>
+            <span className="truncate font-medium text-asphalt-900">
+              {row.displayName}
             </span>
+            <span className="text-right font-semibold text-asphalt-900">
+              {formatNumber(row.totalPoints)}
+            </span>
+            <span className="flex justify-end text-asphalt-500">
+              <ChevronDown
+                aria-hidden
+                className="h-4 w-4 transition-transform group-open:rotate-180"
+              />
+            </span>
+          </summary>
+
+          <div className="border-t border-asphalt-100 px-3 py-3">
+            <p className="mb-3 text-xs text-asphalt-500">{row.seasonName}</p>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <Metric label="Fahrten" value={row.totalRides} />
+              <Metric label="Fondo" value={row.samstagsFahrten} />
+              <Metric label="Mittwoch" value={row.mittwochsFahrten} />
+              <Metric label="Sonderevents" value={row.sonderevents} />
+            </div>
           </div>
-        </article>
+        </details>
       ))}
     </div>
   );
@@ -643,11 +756,4 @@ function defaultDirectionForSort(
 
 function formatNumber(value: number) {
   return numberFormatter.format(value);
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("de-CH", {
-    dateStyle: "medium",
-    timeZone: "Europe/Berlin",
-  }).format(new Date(value));
 }
