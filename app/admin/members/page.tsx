@@ -1,4 +1,4 @@
-import { RefreshCcw, Save, Users } from "lucide-react";
+import { ChevronDown, RefreshCcw, Save, Users } from "lucide-react";
 import { AdminFlash } from "@/components/admin-flash";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -89,120 +89,144 @@ function MemberCard({
 }) {
   return (
     <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <form
-          action={`/api/admin/members/${profile.id}`}
-          method="post"
-          className="grid flex-1 gap-4 md:grid-cols-[1.3fr_0.7fr_auto]"
-        >
-          <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
-            Name
-            <input
-              className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
-              defaultValue={profile.display_name}
-              name="displayName"
-              required
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <details className="group min-w-0 flex-1">
+          <summary className="focus-ring flex min-h-10 cursor-pointer list-none items-start justify-between gap-3 rounded-md [&::-webkit-details-marker]:hidden">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-semibold text-asphalt-900">
+                  {profile.display_name}
+                </h2>
+                <StatusBadge tone={profile.is_active ? "success" : "warning"}>
+                  {profile.is_active ? "Aktiv" : "Inaktiv"}
+                </StatusBadge>
+                <StatusBadge
+                  tone={profile.role === "admin" ? "info" : "neutral"}
+                >
+                  {profile.role}
+                </StatusBadge>
+                <StravaBadge connection={connection} />
+              </div>
+            </div>
+            <ChevronDown
+              aria-hidden
+              className="mt-1 h-4 w-4 shrink-0 text-asphalt-500 transition-transform group-open:rotate-180"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
-            Rolle
-            <select
-              className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
-              defaultValue={profile.role}
-              name="role"
-            >
-              <option value="member">member</option>
-              <option value="admin">admin</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2 pt-7 text-sm font-medium text-asphalt-800">
-            <input
-              className="h-4 w-4 rounded border-asphalt-300"
-              defaultChecked={profile.is_active}
-              name="isActive"
-              type="checkbox"
-            />
-            Aktiv
-          </label>
+          </summary>
 
-          <div className="flex flex-wrap items-center gap-2 md:col-span-3">
-            <StatusBadge tone={profile.is_active ? "success" : "warning"}>
-              {profile.is_active ? "Aktiv" : "Inaktiv"}
-            </StatusBadge>
-            <StatusBadge tone={profile.role === "admin" ? "info" : "neutral"}>
-              {profile.role}
-            </StatusBadge>
-            <StravaBadge connection={connection} />
-            <span className="text-xs text-asphalt-500">
-              {stats.activeActivities} aktive Aktivitaeten, {stats.points} P
-            </span>
-            <a
-              className="focus-ring inline-flex min-h-9 items-center gap-2 rounded-md border border-asphalt-300 px-3 text-xs font-medium text-asphalt-800"
-              href={`/admin/activities?userId=${profile.id}`}
-            >
-              <Users aria-hidden className="h-4 w-4" />
-              Aktivitaeten
-            </a>
-            <button
-              type="submit"
-              className="focus-ring inline-flex min-h-9 items-center gap-2 rounded-md border border-asphalt-300 px-3 text-xs font-medium text-asphalt-800"
-            >
-              <Save aria-hidden className="h-4 w-4" />
-              Speichern
-            </button>
+          <div className="mt-4 border-t border-asphalt-100 pt-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <form
+                action={`/api/admin/members/${profile.id}`}
+                method="post"
+                className="grid flex-1 gap-4 md:grid-cols-[1.3fr_0.7fr_auto]"
+              >
+                <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+                  Name
+                  <input
+                    className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
+                    defaultValue={profile.display_name}
+                    name="displayName"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+                  Rolle
+                  <select
+                    className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
+                    defaultValue={profile.role}
+                    name="role"
+                  >
+                    <option value="member">member</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 pt-7 text-sm font-medium text-asphalt-800">
+                  <input
+                    className="h-4 w-4 rounded border-asphalt-300"
+                    defaultChecked={profile.is_active}
+                    name="isActive"
+                    type="checkbox"
+                  />
+                  Aktiv
+                </label>
+
+                <div className="flex flex-wrap items-center gap-2 md:col-span-3">
+                  <span className="text-xs text-asphalt-500">
+                    {stats.activeActivities} aktive Aktivitaeten,{" "}
+                    {stats.ignoredActivities} ignoriert, {stats.points} P
+                  </span>
+                  <button
+                    type="submit"
+                    className="focus-ring inline-flex min-h-9 items-center gap-2 rounded-md border border-asphalt-300 px-3 text-xs font-medium text-asphalt-800"
+                  >
+                    <Save aria-hidden className="h-4 w-4" />
+                    Speichern
+                  </button>
+                </div>
+              </form>
+
+              <form
+                action={`/api/admin/sync/user/${profile.id}`}
+                method="post"
+                className="flex flex-col gap-2 lg:min-w-72"
+              >
+                <select
+                  className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
+                  name="seasonId"
+                  defaultValue={
+                    seasons.find((season) => season.is_active)?.id ?? "all"
+                  }
+                >
+                  <option value="all">Alle Saisons</option>
+                  {seasons.map((season) => (
+                    <option key={season.id} value={season.id}>
+                      {season.name}
+                      {season.is_active ? " (aktiv)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-asphalt-300"
+                  disabled={!connection || connection.revoked}
+                >
+                  <RefreshCcw aria-hidden className="h-4 w-4" />
+                  User resync
+                </button>
+              </form>
+            </div>
+            {connection ? (
+              <dl className="mt-4 grid gap-2 border-t border-asphalt-100 pt-4 text-xs text-asphalt-500 md:grid-cols-3">
+                <div>
+                  <dt className="font-semibold uppercase">Athlete ID</dt>
+                  <dd>{connection.strava_athlete_id}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold uppercase">Token Ablauf</dt>
+                  <dd>
+                    {connection.expires_at
+                      ? formatDateTime(connection.expires_at)
+                      : "-"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold uppercase">Scope</dt>
+                  <dd>{connection.scope ?? "-"}</dd>
+                </div>
+              </dl>
+            ) : null}
           </div>
-        </form>
+        </details>
 
-        <form
-          action={`/api/admin/sync/user/${profile.id}`}
-          method="post"
-          className="flex flex-col gap-2 lg:min-w-72"
+        <a
+          className="focus-ring inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
+          href={`/admin/activities?userId=${profile.id}`}
         >
-          <select
-            className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
-            name="seasonId"
-            defaultValue={
-              seasons.find((season) => season.is_active)?.id ?? "all"
-            }
-          >
-            <option value="all">Alle Saisons</option>
-            {seasons.map((season) => (
-              <option key={season.id} value={season.id}>
-                {season.name}
-                {season.is_active ? " (aktiv)" : ""}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-asphalt-300"
-            disabled={!connection || connection.revoked}
-          >
-            <RefreshCcw aria-hidden className="h-4 w-4" />
-            User resync
-          </button>
-        </form>
+          <Users aria-hidden className="h-4 w-4" />
+          Aktivitaeten
+        </a>
       </div>
-      {connection ? (
-        <dl className="mt-4 grid gap-2 border-t border-asphalt-100 pt-4 text-xs text-asphalt-500 md:grid-cols-3">
-          <div>
-            <dt className="font-semibold uppercase">Athlete ID</dt>
-            <dd>{connection.strava_athlete_id}</dd>
-          </div>
-          <div>
-            <dt className="font-semibold uppercase">Token Ablauf</dt>
-            <dd>
-              {connection.expires_at
-                ? formatDateTime(connection.expires_at)
-                : "-"}
-            </dd>
-          </div>
-          <div>
-            <dt className="font-semibold uppercase">Scope</dt>
-            <dd>{connection.scope ?? "-"}</dd>
-          </div>
-        </dl>
-      ) : null}
     </article>
   );
 }

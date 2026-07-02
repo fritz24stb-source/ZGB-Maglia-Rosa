@@ -1,4 +1,4 @@
-import { ListChecks, Save, ToggleLeft, ToggleRight } from "lucide-react";
+import { ChevronDown, ListChecks, Pencil, Save } from "lucide-react";
 import { AdminFlash } from "@/components/admin-flash";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -59,64 +59,9 @@ export default async function AdminRulesPage({
             />
           </section>
 
-          <section className="grid gap-4">
+          <section className="grid gap-3">
             {state.rules.map((rule) => (
-              <article
-                key={rule.id}
-                className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line"
-              >
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-base font-semibold text-asphalt-900">
-                        {rule.name}
-                      </h2>
-                      <StatusBadge
-                        tone={rule.rule_type === "special" ? "info" : "neutral"}
-                      >
-                        {rule.rule_type === "special"
-                          ? "Sonderevent"
-                          : "Standard"}
-                      </StatusBadge>
-                      <StatusBadge
-                        tone={rule.is_active ? "success" : "warning"}
-                      >
-                        {rule.is_active ? "Aktiv" : "Inaktiv"}
-                      </StatusBadge>
-                    </div>
-                    <p className="mt-1 text-sm text-asphalt-600">
-                      {rule.points} Punkte - Kategorie {rule.category} -
-                      Prioritaet {rule.priority}
-                    </p>
-                  </div>
-                  <form action="/api/admin/rules" method="post">
-                    <input type="hidden" name="action" value="toggle-active" />
-                    <input type="hidden" name="id" value={rule.id} />
-                    <input
-                      type="hidden"
-                      name="isActive"
-                      value={rule.is_active ? "false" : "true"}
-                    />
-                    <button
-                      type="submit"
-                      className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
-                    >
-                      {rule.is_active ? (
-                        <ToggleLeft aria-hidden className="h-4 w-4" />
-                      ) : (
-                        <ToggleRight aria-hidden className="h-4 w-4" />
-                      )}
-                      {rule.is_active ? "Deaktivieren" : "Aktivieren"}
-                    </button>
-                  </form>
-                </div>
-                <RuleForm
-                  action="update"
-                  rule={rule}
-                  seasons={state.seasons}
-                  submitLabel="Regel speichern"
-                />
-              </article>
+              <RuleDetails key={rule.id} rule={rule} seasons={state.seasons} />
             ))}
           </section>
         </>
@@ -125,19 +70,72 @@ export default async function AdminRulesPage({
   );
 }
 
+function RuleDetails({
+  rule,
+  seasons,
+}: {
+  rule: RuleRow;
+  seasons: SeasonRow[];
+}) {
+  return (
+    <details className="group rounded-lg border border-asphalt-200 bg-white shadow-line">
+      <summary className="focus-ring flex min-h-16 cursor-pointer list-none items-start justify-between gap-3 rounded-lg px-5 py-4 [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-semibold text-asphalt-900">
+              {rule.name}
+            </h2>
+            <StatusBadge
+              tone={rule.rule_type === "special" ? "info" : "neutral"}
+            >
+              {rule.rule_type === "special" ? "Sonderevent" : "Standard"}
+            </StatusBadge>
+            <StatusBadge tone={rule.is_active ? "success" : "warning"}>
+              {rule.is_active ? "Aktiv" : "Inaktiv"}
+            </StatusBadge>
+          </div>
+          <p className="mt-1 text-sm text-asphalt-600">
+            {rule.points} Punkte - Kategorie {rule.category} - Prioritaet{" "}
+            {rule.priority}
+          </p>
+        </div>
+        <span className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800">
+          <Pencil aria-hidden className="h-4 w-4" />
+          Bearbeiten
+          <ChevronDown
+            aria-hidden
+            className="h-4 w-4 transition-transform group-open:rotate-180"
+          />
+        </span>
+      </summary>
+      <div className="border-t border-asphalt-100 px-5 pb-5 pt-4">
+        <RuleForm
+          action="update"
+          className="grid gap-4"
+          rule={rule}
+          seasons={seasons}
+          submitLabel="Regel speichern"
+        />
+      </div>
+    </details>
+  );
+}
+
 function RuleForm({
   action,
+  className = "mt-5 grid gap-4",
   rule,
   seasons,
   submitLabel,
 }: {
   action: "create" | "update";
+  className?: string;
   rule?: RuleRow;
   seasons: SeasonRow[];
   submitLabel: string;
 }) {
   return (
-    <form action="/api/admin/rules" method="post" className="mt-5 grid gap-4">
+    <form action="/api/admin/rules" method="post" className={className}>
       <input type="hidden" name="action" value={action} />
       {rule ? <input type="hidden" name="id" value={rule.id} /> : null}
 

@@ -1,5 +1,6 @@
 import {
   Ban,
+  ChevronDown,
   CheckCircle2,
   Filter,
   PlusCircle,
@@ -106,58 +107,109 @@ function FilterPanel({
   seasons: SeasonRow[];
 }) {
   return (
-    <section className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
-      <div className="flex items-center gap-2">
-        <Filter aria-hidden className="h-5 w-5 text-signal-blue" />
-        <h2 className="text-base font-semibold text-asphalt-900">Filter</h2>
-      </div>
-      <form className="mt-4 grid gap-4 md:grid-cols-5" method="get">
-        <SelectField label="Saison" name="seasonId" value={filters.seasonId}>
-          <option value="all">Alle Saisons</option>
-          {seasons.map((season) => (
-            <option key={season.id} value={season.id}>
-              {season.name}
-              {season.is_active ? " (aktiv)" : ""}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField label="Mitglied" name="userId" value={filters.userId}>
-          <option value="all">Alle Mitglieder</option>
-          {profiles.map((profile) => (
-            <option key={profile.id} value={profile.id}>
-              {profile.display_name}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField label="Quelle" name="source" value={filters.source}>
-          <option value="all">Alle</option>
-          <option value="strava">Strava</option>
-          <option value="manual">Manuell</option>
-        </SelectField>
-        <SelectField label="Status" name="status" value={filters.status}>
-          <option value="all">Alle</option>
-          <option value="active">active</option>
-          <option value="ignored">ignored</option>
-          <option value="deleted">deleted</option>
-        </SelectField>
-        <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
-          Suche
-          <input
-            className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
-            defaultValue={filters.search}
-            name="search"
-            placeholder="Name"
+    <>
+      <details className="group rounded-lg border border-asphalt-200 bg-white shadow-line md:hidden">
+        <summary className="focus-ring flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-4 text-sm font-semibold text-asphalt-900 [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-2">
+            <Filter aria-hidden className="h-4 w-4" />
+            Filter
+          </span>
+          <ChevronDown
+            aria-hidden
+            className="h-4 w-4 transition-transform group-open:rotate-180"
           />
-        </label>
+        </summary>
+        <div className="border-t border-asphalt-100 p-4">
+          <ActivityFilterFields
+            filters={filters}
+            profiles={profiles}
+            seasons={seasons}
+          />
+        </div>
+      </details>
+
+      <section className="hidden rounded-lg border border-asphalt-200 bg-white p-5 shadow-line md:block">
+        <div className="flex items-center gap-2">
+          <Filter aria-hidden className="h-5 w-5 text-signal-blue" />
+          <h2 className="text-base font-semibold text-asphalt-900">Filter</h2>
+        </div>
+        <div className="mt-4">
+          <ActivityFilterFields
+            filters={filters}
+            profiles={profiles}
+            seasons={seasons}
+          />
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ActivityFilterFields({
+  filters,
+  profiles,
+  seasons,
+}: {
+  filters: ActivityFilters;
+  profiles: ProfileRow[];
+  seasons: SeasonRow[];
+}) {
+  return (
+    <form className="grid gap-4 md:grid-cols-5" method="get">
+      <SelectField label="Saison" name="seasonId" value={filters.seasonId}>
+        <option value="all">Alle Saisons</option>
+        {seasons.map((season) => (
+          <option key={season.id} value={season.id}>
+            {season.name}
+            {season.is_active ? " (aktiv)" : ""}
+          </option>
+        ))}
+      </SelectField>
+      <SelectField label="Mitglied" name="userId" value={filters.userId}>
+        <option value="all">Alle Mitglieder</option>
+        {profiles.map((profile) => (
+          <option key={profile.id} value={profile.id}>
+            {profile.display_name}
+          </option>
+        ))}
+      </SelectField>
+      <SelectField label="Quelle" name="source" value={filters.source}>
+        <option value="all">Alle</option>
+        <option value="strava">Strava</option>
+        <option value="manual">Manuell</option>
+      </SelectField>
+      <SelectField label="Status" name="status" value={filters.status}>
+        <option value="all">Alle</option>
+        <option value="active">active</option>
+        <option value="ignored">ignored</option>
+        <option value="deleted">deleted</option>
+      </SelectField>
+      <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+        Suche
+        <input
+          className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
+          defaultValue={filters.search}
+          name="search"
+          placeholder="Name"
+        />
+      </label>
+      <div className="flex flex-col gap-3 md:col-span-5 sm:flex-row">
         <button
           type="submit"
-          className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white md:col-span-5 md:w-fit"
+          className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white"
         >
           <Filter aria-hidden className="h-4 w-4" />
           Anwenden
         </button>
-      </form>
-    </section>
+        <a
+          className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
+          href="/admin/activities"
+        >
+          <RotateCcw aria-hidden className="h-4 w-4" />
+          Zuruecksetzen
+        </a>
+      </div>
+    </form>
   );
 }
 
@@ -182,16 +234,20 @@ function AdminManualActivityForm({
     ) ?? rules[0];
 
   return (
-    <section className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
-      <div className="flex items-center gap-2">
-        <PlusCircle aria-hidden className="h-5 w-5 text-signal-blue" />
-        <h2 className="text-base font-semibold text-asphalt-900">
-          Manuelle Admin-Aktivitaet
-        </h2>
-      </div>
+    <details className="group rounded-lg border border-asphalt-200 bg-white shadow-line">
+      <summary className="focus-ring flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-5 text-sm font-semibold text-asphalt-900 [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex items-center gap-2">
+          <PlusCircle aria-hidden className="h-4 w-4" />
+          Manuelle-Aktivitaet
+        </span>
+        <ChevronDown
+          aria-hidden
+          className="h-4 w-4 transition-transform group-open:rotate-180"
+        />
+      </summary>
       <form
         action="/api/admin/activities/manual"
-        className="mt-4 grid gap-4 lg:grid-cols-6"
+        className="grid gap-4 border-t border-asphalt-100 px-5 pb-5 pt-4 lg:grid-cols-6"
         method="post"
       >
         <SelectField label="Mitglied" name="userId" value={defaultUserId}>
@@ -279,7 +335,7 @@ function AdminManualActivityForm({
           Hinzufuegen
         </button>
       </form>
-    </section>
+    </details>
   );
 }
 
