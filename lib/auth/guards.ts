@@ -1,9 +1,11 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import {
-  createSupabaseServerClient,
-  createSupabaseServiceRoleClient,
-} from "@/lib/supabase/server";
+  APP_SESSION_COOKIE,
+  readAppSessionToken,
+} from "@/lib/auth/app-session";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
 type ProfileRow = Pick<
@@ -27,12 +29,12 @@ export class AppAccessError extends Error {
 }
 
 export async function loadCurrentAppAccessState(): Promise<AppAccessState> {
-  const serverClient = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await serverClient.auth.getUser();
+  const cookieStore = await cookies();
+  const appSession = await readAppSessionToken(
+    cookieStore.get(APP_SESSION_COOKIE)?.value,
+  );
 
-  if (!user) {
+  if (!appSession) {
     return { kind: "anonymous" };
   }
 
@@ -40,7 +42,7 @@ export async function loadCurrentAppAccessState(): Promise<AppAccessState> {
   const { data, error } = await serviceClient
     .from("profiles")
     .select("id, display_name, role, is_active")
-    .eq("id", user.id)
+    .eq("id", appSession.userId)
     .maybeSingle();
 
   if (error) {
@@ -54,10 +56,10 @@ export async function loadCurrentAppAccessState(): Promise<AppAccessState> {
   const profile = data as ProfileRow;
 
   if (!profile.is_active) {
-    return { kind: "blocked", profile, userId: user.id };
+    return { kind: "blocked", profile, userId: appSession.userId };
   }
 
-  return { kind: "active", profile, userId: user.id };
+  return { kind: "active", profile, userId: appSession.userId };
 }
 
 export async function requireActiveAppUser() {

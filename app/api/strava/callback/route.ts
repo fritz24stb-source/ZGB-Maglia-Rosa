@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getServerEnv } from "@/lib/env";
 import { signInSupabaseAsAppUser } from "@/lib/auth/app-auth";
 import { setAppSessionCookie } from "@/lib/auth/app-session";
+import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { logError } from "@/lib/logger";
 import {
   createSupabaseServerClient,
@@ -126,16 +127,16 @@ async function connectStravaToCurrentUser(input: {
   serviceClient: ReturnType<typeof createSupabaseServiceRoleClient>;
   tokenResponse: Awaited<ReturnType<typeof exchangeStravaAuthorizationCode>>;
 }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const accessState = await loadCurrentAppAccessState();
 
-  if (!user || user.id !== input.oauthState.userId) {
+  if (
+    accessState.kind !== "active" ||
+    accessState.userId !== input.oauthState.userId
+  ) {
     throw new StravaUserError("invalid_oauth_state");
   }
 
-  const profile = await getActiveProfile(input.serviceClient, user.id);
+  const profile = await getActiveProfile(input.serviceClient, accessState.userId);
   const athleteId = input.tokenResponse.athlete?.id;
 
   if (!profile || !athleteId) {
@@ -149,7 +150,7 @@ async function connectStravaToCurrentUser(input: {
 
   if (
     existingConnection &&
-    existingConnection.user_id !== user.id &&
+    existingConnection.user_id !== accessState.userId &&
     !existingConnection.revoked
   ) {
     throw new StravaUserError("strava_already_linked");
@@ -157,12 +158,12 @@ async function connectStravaToCurrentUser(input: {
 
   await upsertStravaConnectionForUser(
     input.serviceClient,
-    user.id,
+    accessState.userId,
     input.tokenResponse,
     input.acceptedScope,
   );
 
-  return user.id;
+  return accessState.userId;
 }
 
 async function signInWithLinkedStrava(input: {

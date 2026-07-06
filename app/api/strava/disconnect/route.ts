@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { clearAppSessionCookie } from "@/lib/auth/app-session";
+import { requireActiveAppUser } from "@/lib/auth/guards";
 import { getServerEnv } from "@/lib/env";
 import { logError, logWarn } from "@/lib/logger";
 import {
@@ -23,22 +24,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const access = await requireActiveAppUser();
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.redirect(new URL("/login", request.url), {
-        status: 303,
-      });
-    }
-
     const serviceClient = createSupabaseServiceRoleClient();
     const { data: connection, error } = await serviceClient
       .from("strava_connections")
       .select("id, refresh_token, revoked")
-      .eq("user_id", user.id)
+      .eq("user_id", access.userId)
       .maybeSingle();
 
     if (error) {

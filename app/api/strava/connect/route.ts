@@ -1,12 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getServerEnv } from "@/lib/env";
+import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { logError } from "@/lib/logger";
 import { buildStravaAuthorizeUrl } from "@/lib/strava/oauth";
-import {
-  createSupabaseServerClient,
-  createSupabaseServiceRoleClient,
-} from "@/lib/supabase/server";
 
 const STATE_COOKIE = "strava_oauth_state";
 const OAUTH_STATE_MAX_AGE_SECONDS = 10 * 60;
@@ -60,33 +57,19 @@ async function buildOAuthState(
   state: string,
   request: Request,
 ): Promise<StravaOAuthState> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const accessState = await loadCurrentAppAccessState();
 
-  if (!user) {
+  if (accessState.kind === "anonymous") {
     return { mode: "login", state, userId: null };
   }
 
-  const serviceClient = createSupabaseServiceRoleClient();
-  const { data, error } = await serviceClient
-    .from("profiles")
-    .select("id, is_active")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!data?.is_active) {
+  if (accessState.kind === "blocked") {
     const url = new URL("/login", request.url);
     url.searchParams.set("error", "account_blocked");
     throw new RedirectError(url);
   }
 
-  return { mode: "connect", state, userId: user.id };
+  return { mode: "connect", state, userId: accessState.userId };
 }
 
 function encodeOAuthState(state: StravaOAuthState) {

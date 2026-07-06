@@ -12,8 +12,8 @@ import { PageHeader } from "@/components/page-header";
 import { PasskeyPanel } from "@/components/passkey-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
+import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import {
-  createSupabaseServerClient,
   createSupabaseServiceRoleClient,
 } from "@/lib/supabase/server";
 
@@ -324,44 +324,42 @@ function ActivityList({
 
 async function loadProfileState(): Promise<ProfileState> {
   try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const accessState = await loadCurrentAppAccessState();
 
-    if (!user) {
+    if (accessState.kind !== "active") {
       return { kind: "anonymous" };
     }
 
+    const supabase = createSupabaseServiceRoleClient();
+    const userId = accessState.userId;
     const [profileResult, connectionResult, activitiesResult] =
       await Promise.all([
         supabase
           .from("profiles")
           .select("display_name, role")
-          .eq("id", user.id)
+          .eq("id", userId)
           .maybeSingle(),
         supabase
           .from("strava_connections")
           .select("strava_athlete_id, expires_at, scope, revoked")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .maybeSingle(),
         supabase
           .from("activities")
           .select(
             "id, activity_name, points, status, activity_started_local_at, activity_started_at",
           )
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("status", "active")
           .gt("points", 0)
           .not("matched_rule_id", "is", null)
           .order("activity_started_at", { ascending: false })
           .limit(5),
       ]);
-    const serviceClient = createSupabaseServiceRoleClient();
-    const passkeysResult = await serviceClient
+    const passkeysResult = await supabase
       .from("app_passkey_credentials")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
+      .eq("user_id", userId);
 
     if (passkeysResult.error) {
       throw passkeysResult.error;
@@ -383,7 +381,8 @@ async function loadProfileState(): Promise<ProfileState> {
 
     return {
       kind: "authenticated",
-      profileName: profile?.display_name ?? user.email ?? "Mitglied",
+      profileName:
+        profile?.display_name ?? accessState.profile.display_name ?? "Mitglied",
       role: profile?.role ?? "member",
       passkeyCount: passkeysResult.count ?? 0,
       connection: connection

@@ -3,6 +3,7 @@ import {
   APP_SESSION_COOKIE,
   clearAppSessionCookie,
   readAppSessionToken,
+  setAppSessionCookie,
 } from "@/lib/auth/app-session";
 import {
   ADMIN_SESSION_COOKIE,
@@ -50,7 +51,10 @@ export async function middleware(request: NextRequest) {
   );
 
   if (appSession) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    await setAppSessionCookie(response, appSession.userId, request.url);
+
+    return response;
   }
 
   if (pathname.startsWith("/api/")) {
