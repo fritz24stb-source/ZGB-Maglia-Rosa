@@ -84,7 +84,11 @@ describe("ride analysis aggregation", () => {
       ],
       [
         rule({ id: "rule-standard" }),
-        rule({ id: "rule-special", name: "Sommer-Challenge", rule_type: "special" }),
+        rule({
+          id: "rule-special",
+          name: "Sommer-Challenge",
+          rule_type: "special",
+        }),
       ],
     );
 

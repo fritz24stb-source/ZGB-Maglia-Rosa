@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AppAccessError, requireActiveAppUser } from "@/lib/auth/guards";
 import {
   buildLeaderboardResponse,
   normalizeLeaderboardRow,
@@ -55,6 +56,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
+    await requireActiveAppUser();
+
     const requestUrl = new URL(request.url);
     const query = parseLeaderboardSearchParams(requestUrl.searchParams);
     const supabase = createSupabaseServiceRoleClient();
@@ -118,6 +121,13 @@ export async function GET(request: Request) {
 
     return NextResponse.json(response);
   } catch (error) {
+    if (error instanceof AppAccessError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
+    }
+
     logError("leaderboard.load.failed", error);
 
     return NextResponse.json(

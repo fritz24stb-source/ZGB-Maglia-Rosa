@@ -1,4 +1,4 @@
-import { ChevronDown, RefreshCcw, Save, Users } from "lucide-react";
+import { ChevronDown, RefreshCcw, Save, Trash2, Users } from "lucide-react";
 import { AdminFlash } from "@/components/admin-flash";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -164,6 +164,21 @@ function MemberCard({
                     Speichern
                   </button>
                 </div>
+              </form>
+
+              <form
+                action={`/api/admin/members/${profile.id}`}
+                method="post"
+                className="flex lg:min-w-44"
+              >
+                <input name="action" type="hidden" value="delete" />
+                <button
+                  type="submit"
+                  className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-red-200 px-3 text-sm font-medium text-red-800"
+                >
+                  <Trash2 aria-hidden className="h-4 w-4" />
+                  Profil loeschen
+                </button>
               </form>
 
               <form

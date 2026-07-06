@@ -59,7 +59,7 @@ export async function ensureSupabaseUserForStrava({
     displayName,
   );
   await upsertProfile(serviceClient, user.id, displayName);
-  await upsertStravaConnection(
+  await upsertStravaConnectionForUser(
     serviceClient,
     user.id,
     tokenResponse,
@@ -99,13 +99,13 @@ export function buildSyntheticStravaPassword(
     .digest("hex");
 }
 
-async function findConnectionByAthleteId(
+export async function findConnectionByAthleteId(
   serviceClient: ServiceClient,
   athleteId: number,
 ) {
   const { data, error } = await serviceClient
     .from("strava_connections")
-    .select("user_id")
+    .select("user_id, revoked")
     .eq("strava_athlete_id", athleteId)
     .maybeSingle();
 
@@ -252,7 +252,7 @@ async function upsertProfile(
   }
 }
 
-async function upsertStravaConnection(
+export async function upsertStravaConnectionForUser(
   serviceClient: ServiceClient,
   userId: string,
   tokenResponse: StravaTokenResponse,

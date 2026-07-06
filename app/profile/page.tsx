@@ -3,13 +3,19 @@ import {
   Activity,
   AlertTriangle,
   Link2Off,
+  LogOut,
   PlugZap,
   RefreshCw,
   UserRound,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { PasskeyPanel } from "@/components/passkey-panel";
 import { StatusBadge } from "@/components/status-badge";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { requireActiveAppPage } from "@/lib/auth/page-guard";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server";
 
 type ProfilePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -28,6 +34,7 @@ type ProfileState =
         revoked: boolean;
         scope: string | null;
       } | null;
+      passkeyCount: number;
       activities: {
         id: string;
         activity_name: string;
@@ -58,9 +65,16 @@ type ActivitySummary = Extract<
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage({ searchParams }: ProfilePageProps) {
+  const accessBlocked = await requireActiveAppPage("/profile");
+
+  if (accessBlocked) {
+    return accessBlocked;
+  }
+
   const params = searchParams ? await searchParams : {};
   const connected = getSingleParam(params.connected);
   const error = getSingleParam(params.error);
+  const registered = getSingleParam(params.registered);
   const state = await loadProfileState();
 
   return (
@@ -74,6 +88,13 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         <section className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
           Strava wurde verbunden. Neue Aktivitaeten werden anschliessend per
           Webhook verarbeitet.
+        </section>
+      ) : null}
+
+      {registered ? (
+        <section className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+          Registrierung abgeschlossen. Strava kann jetzt verknuepft und ein
+          Passkey fuer schnelle Anmeldung erstellt werden.
         </section>
       ) : null}
 
@@ -117,6 +138,18 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
               </h3>
               <ConnectionStatus connection={state.connection} />
             </div>
+
+            <PasskeyPanel passkeyCount={state.passkeyCount} />
+
+            <form action="/api/auth/logout" className="mt-6" method="post">
+              <button
+                type="submit"
+                className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
+              >
+                <LogOut aria-hidden className="h-4 w-4" />
+                Abmelden
+              </button>
+            </form>
           </article>
 
           <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
@@ -324,6 +357,15 @@ async function loadProfileState(): Promise<ProfileState> {
           .order("activity_started_at", { ascending: false })
           .limit(5),
       ]);
+    const serviceClient = createSupabaseServiceRoleClient();
+    const passkeysResult = await serviceClient
+      .from("app_passkey_credentials")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    if (passkeysResult.error) {
+      throw passkeysResult.error;
+    }
 
     if (
       profileResult.error ||
@@ -343,6 +385,7 @@ async function loadProfileState(): Promise<ProfileState> {
       kind: "authenticated",
       profileName: profile?.display_name ?? user.email ?? "Mitglied",
       role: profile?.role ?? "member",
+      passkeyCount: passkeysResult.count ?? 0,
       connection: connection
         ? {
             athleteId: connection.strava_athlete_id,

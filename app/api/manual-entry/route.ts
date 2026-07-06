@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AppAccessError, requireActiveAppUser } from "@/lib/auth/guards";
 import { getAppBaseUrl } from "@/lib/env";
 import { logError } from "@/lib/logger";
 import { findOrCreateManualParticipantProfile } from "@/lib/manual-entry/profile";
@@ -6,10 +7,7 @@ import { loadManualEntryEvaluation } from "@/lib/manual-entry/server";
 import { parseManualLocalDateTime } from "@/lib/manual-entry/time";
 import type { ManualEntryContext } from "@/lib/manual-entry/types";
 import { scoreActivity, toActivityScoreUpdate } from "@/lib/scoring";
-import {
-  createSupabaseServerClient,
-  createSupabaseServiceRoleClient,
-} from "@/lib/supabase/server";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
 type ManualEntryPayload = {
@@ -32,20 +30,21 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const [serverClient, serviceClient] = await Promise.all([
-      createSupabaseServerClient(),
-      Promise.resolve(createSupabaseServiceRoleClient()),
-    ]);
-    const {
-      data: { user },
-    } = await serverClient.auth.getUser();
-
+    const access = await requireActiveAppUser();
+    const serviceClient = createSupabaseServiceRoleClient();
     const evaluation = await loadManualEntryEvaluation(serviceClient, {
-      userId: user?.id ?? null,
+      userId: access.userId,
     });
 
     return NextResponse.json(evaluation.state);
   } catch (error) {
+    if (error instanceof AppAccessError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
+    }
+
     logError("manual_entry.load.failed", error);
 
     return NextResponse.json(
@@ -58,6 +57,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     validateOrigin(request);
+    await requireActiveAppUser();
 
     const now = new Date();
     const payload = await readPayload(request);
@@ -208,6 +208,13 @@ export async function POST(request: Request) {
       state: updatedEvaluation.state,
     });
   } catch (error) {
+    if (error instanceof AppAccessError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
+    }
+
     const status = error instanceof HttpError ? error.status : 500;
 
     if (!(error instanceof HttpError)) {

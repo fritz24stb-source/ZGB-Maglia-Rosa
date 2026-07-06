@@ -1,8 +1,17 @@
 import { ClipboardCheck } from "lucide-react";
 import { ManualEntryPanel } from "@/components/manual-entry-panel";
 import { PageHeader } from "@/components/page-header";
+import { requireActiveAppPage } from "@/lib/auth/page-guard";
 
-export default function ManualEntryPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ManualEntryPage() {
+  const accessBlocked = await requireActiveAppPage("/manual");
+
+  if (accessBlocked) {
+    return accessBlocked;
+  }
+
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader

@@ -1,5 +1,6 @@
 import { Activity, BarChart3, CalendarDays } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import {
   buildRideAnalysis,
   type AnalysisActivity,
@@ -15,10 +16,7 @@ type SeasonRow = Pick<
   Database["public"]["Tables"]["seasons"]["Row"],
   "ends_on" | "id" | "is_active" | "name" | "starts_on"
 >;
-type ProfileRow = Pick<
-  Database["public"]["Tables"]["profiles"]["Row"],
-  "id"
->;
+type ProfileRow = Pick<Database["public"]["Tables"]["profiles"]["Row"], "id">;
 
 type AnalysisPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -46,6 +44,12 @@ const dateFormatter = new Intl.DateTimeFormat("de-CH", {
 export const dynamic = "force-dynamic";
 
 export default async function AnalysePage({ searchParams }: AnalysisPageProps) {
+  const accessBlocked = await requireActiveAppPage("/analyse");
+
+  if (accessBlocked) {
+    return accessBlocked;
+  }
+
   const params = searchParams ? await searchParams : {};
   const state = await loadAnalysisState(params);
 

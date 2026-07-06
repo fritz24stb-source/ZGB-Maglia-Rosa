@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { clearAppSessionCookie } from "@/lib/auth/app-session";
 import { getServerEnv } from "@/lib/env";
 import { logError, logWarn } from "@/lib/logger";
 import {
@@ -84,7 +85,10 @@ export async function POST(request: Request) {
       url.searchParams.set("warning", "strava_revoke_failed");
     }
 
-    return NextResponse.redirect(url, { status: 303 });
+    const response = NextResponse.redirect(url, { status: 303 });
+    clearAppSessionCookie(response);
+
+    return response;
   } catch (error) {
     logError("strava.disconnect.failed", error);
 

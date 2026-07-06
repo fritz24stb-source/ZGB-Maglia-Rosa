@@ -22,6 +22,46 @@ type ProfileRow = {
   updated_at: string;
 };
 
+type AppInviteRow = {
+  id: string;
+  token_hash: string;
+  token_hint: string;
+  invite_type: "single" | "group";
+  email: string | null;
+  expires_at: string;
+  max_uses: number | null;
+  use_count: number;
+  used_at: string | null;
+  used_by_user_id: string | null;
+  revoked_at: string | null;
+  sent_at: string | null;
+  email_delivery_status: "skipped" | "sent" | "failed" | null;
+  email_delivery_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type AppUserCredentialRow = {
+  user_id: string;
+  password_hash: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type AppPasskeyCredentialRow = {
+  id: string;
+  user_id: string;
+  credential_id: string;
+  public_key_spki: string;
+  algorithm: number;
+  sign_count: number;
+  transports: string[] | null;
+  name: string | null;
+  last_used_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type StravaConnectionRow = {
   id: string;
   user_id: string;
@@ -156,6 +196,9 @@ export type Database = {
   public: {
     Tables: {
       profiles: Table<ProfileRow>;
+      app_invites: Table<AppInviteRow>;
+      app_user_credentials: Table<AppUserCredentialRow>;
+      app_passkey_credentials: Table<AppPasskeyCredentialRow>;
       strava_connections: Table<StravaConnectionRow>;
       seasons: Table<SeasonRow>;
       scoring_rules: Table<ScoringRuleRow>;
@@ -191,6 +234,13 @@ export type Database = {
           manual_points: number;
           last_activity_at: string | null;
         }[];
+      };
+      consume_app_invite: {
+        Args: {
+          p_invite_id: string;
+          p_user_id: string;
+        };
+        Returns: AppInviteRow;
       };
     };
     Enums: Record<string, never>;

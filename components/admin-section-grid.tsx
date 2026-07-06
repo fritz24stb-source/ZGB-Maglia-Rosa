@@ -6,6 +6,7 @@ import {
   ListChecks,
   RefreshCcw,
   Route,
+  Ticket,
   Users,
 } from "lucide-react";
 import { adminSections } from "@/lib/navigation";
@@ -22,6 +23,7 @@ const iconByHref = {
   "/admin/seasons": CalendarDays,
   "/admin/rules": ListChecks,
   "/admin/members": Users,
+  "/admin/invitations": Ticket,
   "/admin/activities": Route,
   "/admin/export": Download,
 } satisfies Record<string, React.ComponentType<{ className?: string }>>;

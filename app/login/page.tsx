@@ -1,4 +1,6 @@
-import { AlertTriangle, Bike, CheckCircle2, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { AlertTriangle, CheckCircle2, UserPlus } from "lucide-react";
+import { LoginPanel } from "@/components/login-panel";
 import { PageHeader } from "@/components/page-header";
 
 type LoginPageProps = {
@@ -16,19 +18,24 @@ const messageByError: Record<string, string> = {
     "Strava-Callback konnte nicht verarbeitet werden. Bitte erneut versuchen.",
   strava_denied: "Strava-Zugriff wurde nicht bestaetigt.",
   strava_error: "Strava hat den Login abgebrochen.",
+  strava_not_linked:
+    "Dieses Strava-Konto ist noch mit keinem Profil verknuepft.",
+  strava_already_linked: "Dieses Strava-Konto ist bereits verknuepft.",
+  account_blocked: "Dieses Profil ist gesperrt.",
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = searchParams ? await searchParams : {};
   const error = getSingleParam(params.error);
   const disconnected = getSingleParam(params.disconnected);
+  const nextPath = normalizeAppNextPath(getSingleParam(params.next));
   const warning = getSingleParam(params.warning);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Anmelden"
-        description="Mitglieder verbinden ihr Konto ueber Strava. Access Tokens und Refresh Tokens bleiben serverseitig."
+        description="Zugang fuer registrierte Mitglieder per Passwort, Passkey oder verknuepftem Strava-Konto."
       />
 
       {error ? (
@@ -36,7 +43,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           tone="danger"
           icon={<AlertTriangle aria-hidden className="h-5 w-5" />}
           title="Anmeldung fehlgeschlagen"
-          message={messageByError[error] ?? messageByError.strava_error}
+          message={messageByError[error] ?? error}
         />
       ) : null}
 
@@ -58,29 +65,31 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         />
       ) : null}
 
+      <LoginPanel nextPath={nextPath} />
+
       <section className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-md bg-asphalt-900 p-2 text-white">
-              <Bike aria-hidden className="h-5 w-5" />
+            <div className="rounded-md bg-asphalt-50 p-2 text-signal-blue">
+              <UserPlus aria-hidden className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-base font-semibold text-asphalt-900">
-                Strava verbinden
+                Noch kein Profil
               </h2>
               <p className="mt-1 text-sm leading-6 text-asphalt-600">
-                Die App fordert nur die fuer Webhooks und Aktivitaetsimport
-                benoetigten Strava-Berechtigungen an.
+                Registrierung ist nur mit gueltigem Einladungslink oder
+                Gruppencode moeglich.
               </p>
             </div>
           </div>
-          <a
-            href="/api/strava/connect"
-            className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#fc4c02] px-4 text-sm font-semibold text-white shadow-line"
+          <Link
+            href="/register"
+            className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-4 text-sm font-semibold text-asphalt-900"
           >
-            <ShieldCheck aria-hidden className="h-4 w-4" />
-            Mit Strava verbinden
-          </a>
+            <UserPlus aria-hidden className="h-4 w-4" />
+            Registrieren
+          </Link>
         </div>
       </section>
     </main>
@@ -89,6 +98,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
 function getSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function normalizeAppNextPath(value: string | undefined) {
+  if (
+    value &&
+    value.startsWith("/") &&
+    !value.startsWith("//") &&
+    !value.startsWith("/admin") &&
+    !value.startsWith("/api")
+  ) {
+    return value;
+  }
+
+  return "/profile";
 }
 
 function StatusMessage({

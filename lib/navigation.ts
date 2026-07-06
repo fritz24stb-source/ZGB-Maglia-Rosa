@@ -31,6 +31,11 @@ export const adminSections = [
     description: "Status, Rollen und Strava-Verbindungen pruefen.",
   },
   {
+    href: "/admin/invitations",
+    label: "Einladungen",
+    description: "Einmalige Links und Gruppenlinks verwalten.",
+  },
+  {
     href: "/admin/activities",
     label: "Aktivitaeten",
     description: "Bewertungen pruefen, neu bewerten oder ausschliessen.",
