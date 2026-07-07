@@ -293,11 +293,11 @@ function WednesdayParticipationChart({
 
       {points.length === 0 ? (
         <p className="mt-4 rounded-md bg-asphalt-50 p-4 text-sm text-asphalt-600">
-          Keine Daten fuer den Graph vorhanden.
+          Keine Daten für den Graph vorhanden.
         </p>
       ) : (
         <svg
-          aria-label="Teilnahme der Mittwochsfahrten ueber die Saison"
+          aria-label="Teilnahme der Mittwochsfahrten über die Saison"
           className="mt-4 h-auto w-full overflow-visible"
           role="img"
           viewBox={`0 0 ${width} ${height}`}

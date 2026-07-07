@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (payload.type !== "public-key") {
-      throw new Error("Ungueltiger Passkey-Typ.");
+      throw new Error("Ungültiger Passkey-Typ.");
     }
 
     validateClientData({
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       !parsedAuthenticatorData.userPresent ||
       !parsedAuthenticatorData.userVerified
     ) {
-      throw new Error("Passkey wurde nicht per Geraetefreigabe bestaetigt.");
+      throw new Error("Passkey wurde nicht per Gerätefreigabe bestätigt.");
     }
 
     const serviceClient = createSupabaseServiceRoleClient();
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       parsedAuthenticatorData.signCount > 0 &&
       parsedAuthenticatorData.signCount <= credential.sign_count
     ) {
-      throw new Error("Passkey-Signaturzaehler ist ungueltig.");
+      throw new Error("Passkey-Signaturzähler ist ungültig.");
     }
 
     const signatureValid = verifyPasskeySignature({
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!signatureValid) {
-      throw new Error("Passkey-Signatur ist ungueltig.");
+      throw new Error("Passkey-Signatur ist ungültig.");
     }
 
     const updateResult = await serviceClient

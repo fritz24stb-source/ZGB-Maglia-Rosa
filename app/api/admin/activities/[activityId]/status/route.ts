@@ -42,13 +42,13 @@ export async function POST(
 
       if (before.status === "deleted") {
         throw new Error(
-          "Geloeschte Strava-Aktivitaeten koennen nicht zur Wertung hinzugefuegt werden.",
+          "Gelöschte Strava-Aktivitäten können nicht zur Wertung hinzugefügt werden.",
         );
       }
 
       if (before.source !== "strava") {
         throw new Error(
-          "Diese Aktion ist nur fuer synchronisierte Strava-Aktivitaeten vorgesehen.",
+          "Diese Aktion ist nur für synchronisierte Strava-Aktivitäten vorgesehen.",
         );
       }
 
@@ -66,7 +66,7 @@ export async function POST(
       );
 
       if (!isScoreResultScored(score)) {
-        throw new Error("Ausgewaehlte Regel konnte nicht angewendet werden.");
+        throw new Error("Ausgewählte Regel konnte nicht angewendet werden.");
       }
 
       const { data, error } = await supabase
@@ -93,7 +93,7 @@ export async function POST(
       });
 
       return redirectWithAdminFlash(request, "/admin/activities", {
-        status: "Aktivitaet wurde zur Wertung hinzugefuegt.",
+        status: "Aktivität wurde zur Wertung hinzugefügt.",
       });
     }
 
@@ -109,7 +109,7 @@ export async function POST(
           scoring_override_rule_id: null,
           points: 0,
           scored_at: new Date().toISOString(),
-          scoring_reason: "Admin: Aktivitaet aus Wertung ausgeschlossen.",
+          scoring_reason: "Admin: Aktivität aus Wertung ausgeschlossen.",
           status: "ignored",
         })
         .eq("id", activityId)
@@ -129,14 +129,14 @@ export async function POST(
       });
 
       return redirectWithAdminFlash(request, "/admin/activities", {
-        status: "Aktivitaet wurde aus der Wertung ausgeschlossen.",
+        status: "Aktivität wurde aus der Wertung ausgeschlossen.",
       });
     }
 
     if (action === "reactivate") {
       if (before.status === "deleted") {
         throw new Error(
-          "Geloeschte Strava-Aktivitaeten koennen nicht reaktiviert werden.",
+          "Gelöschte Strava-Aktivitäten können nicht reaktiviert werden.",
         );
       }
 
@@ -167,11 +167,11 @@ export async function POST(
       });
 
       return redirectWithAdminFlash(request, "/admin/activities", {
-        status: "Aktivitaet wurde reaktiviert und neu bewertet.",
+        status: "Aktivität wurde reaktiviert und neu bewertet.",
       });
     }
 
-    throw new Error("Unbekannte Aktivitaets-Aktion.");
+    throw new Error("Unbekannte Aktivitäts-Aktion.");
   } catch (error) {
     return redirectWithAdminFlash(request, "/admin/activities", {
       error: formatAdminError(error),
@@ -219,7 +219,7 @@ function ensureRuleCanScoreActivity(
   activity: ActivityRow,
 ) {
   if (rule.season_id && rule.season_id !== activity.season_id) {
-    throw new Error("Scoring-Regel gehoert nicht zur Saison der Aktivitaet.");
+    throw new Error("Scoring-Regel gehört nicht zur Saison der Aktivität.");
   }
 }
 

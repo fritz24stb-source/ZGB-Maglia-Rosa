@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
     const passwordConfirm = getFormText(
       formData,
       "passwordConfirm",
-      "Passwortbestaetigung fehlt.",
+      "Passwortbestätigung fehlt.",
     );
 
     if (password !== passwordConfirm) {
-      throw new Error("Passwoerter stimmen nicht ueberein.");
+      throw new Error("Passwörter stimmen nicht überein.");
     }
 
     validatePasswordPolicy(password, displayName);
@@ -125,7 +125,7 @@ function validateOrigin(request: NextRequest) {
   }
 
   if (origin !== new URL(getAppBaseUrl()).origin) {
-    throw new Error("Ungueltiger Request-Origin.");
+    throw new Error("Ungültiger Request-Origin.");
   }
 }
 

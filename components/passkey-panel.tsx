@@ -42,7 +42,7 @@ export function PasskeyPanel({ passkeyCount }: PasskeyPanelProps) {
     setStatus(null);
 
     if (!window.PublicKeyCredential) {
-      setError("Dieses Geraet unterstuetzt keine Passkeys.");
+      setError("Dieses Gerät unterstützt keine Passkeys.");
       return;
     }
 

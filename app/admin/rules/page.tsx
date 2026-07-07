@@ -32,7 +32,7 @@ export default async function AdminRulesPage({
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Regelverwaltung"
-        description="Standardregeln pruefen, Sonderevents konfigurieren und manuelle Eingabefenster steuern."
+        description="Standardregeln prüfen, Sonderevents konfigurieren und manuelle Eingabefenster steuern."
       />
       <AdminFlash
         error={getSingleParam(params.adminError)}
@@ -95,7 +95,7 @@ function RuleDetails({
             </StatusBadge>
           </div>
           <p className="mt-1 text-sm text-asphalt-600">
-            {rule.points} Punkte - Kategorie {rule.category} - Prioritaet{" "}
+            {rule.points} Punkte - Kategorie {rule.category} - Priorität{" "}
             {rule.priority}
           </p>
         </div>
@@ -183,7 +183,7 @@ function RuleForm({
         />
         <NumberField
           defaultValue={String(rule?.priority ?? 200)}
-          label="Prioritaet"
+          label="Priorität"
           name="priority"
         />
         <TextField
@@ -210,12 +210,12 @@ function RuleForm({
       <div className="grid gap-4 md:grid-cols-2">
         <DateTimeField
           defaultValue={toDateTimeLocal(rule?.valid_from)}
-          label="Gueltig von"
+          label="Gültig von"
           name="validFrom"
         />
         <DateTimeField
           defaultValue={toDateTimeLocal(rule?.valid_until)}
-          label="Gueltig bis"
+          label="Gültig bis"
           name="validUntil"
         />
       </div>

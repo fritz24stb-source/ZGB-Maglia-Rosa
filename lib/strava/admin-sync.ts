@@ -254,14 +254,14 @@ async function syncDetailedActivity(input: {
 
   if (athleteId !== null && athleteId !== input.connection.strava_athlete_id) {
     throw new Error(
-      `Strava-Aktivitaet gehoert zu Athlete ${athleteId}, erwartet ${input.connection.strava_athlete_id}.`,
+      `Strava-Aktivität gehört zu Athlete ${athleteId}, erwartet ${input.connection.strava_athlete_id}.`,
     );
   }
 
   const activityDate = getStravaActivityLocalDate(input.activity);
 
   if (!activityDate) {
-    throw new Error("Aktivitaet hat kein verwertbares Startdatum.");
+    throw new Error("Aktivität hat kein verwertbares Startdatum.");
   }
 
   const season = input.requestedSeason
@@ -350,7 +350,7 @@ async function findSeasonForActivity(
   const activityDate = getStravaActivityLocalDate(activity);
 
   if (!activityDate) {
-    throw new Error("Aktivitaet hat kein verwertbares Startdatum.");
+    throw new Error("Aktivität hat kein verwertbares Startdatum.");
   }
 
   if (cache?.has(activityDate)) {
@@ -385,7 +385,7 @@ async function upsertStravaActivity(
 
   if (stravaActivityId === undefined || stravaActivityId === null) {
     throw new Error(
-      "Strava-Aktivitaet ohne Strava-ID kann nicht synchronisiert werden.",
+      "Strava-Aktivität ohne Strava-ID kann nicht synchronisiert werden.",
     );
   }
 

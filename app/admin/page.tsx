@@ -3,6 +3,7 @@ import { AdminFlash } from "@/components/admin-flash";
 import { AdminSectionGrid } from "@/components/admin-section-grid";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
+import { addWebhookOwnerLabels } from "@/lib/admin/webhook-events";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -14,6 +15,15 @@ type NotificationRow =
   Database["public"]["Tables"]["admin_notifications"]["Row"];
 type SeasonRow = Database["public"]["Tables"]["seasons"]["Row"];
 type WebhookEventRow = Database["public"]["Tables"]["webhook_events"]["Row"];
+type WebhookEventDisplayRow = WebhookEventRow & { ownerLabel: string };
+type WebhookConnectionRow = Pick<
+  Database["public"]["Tables"]["strava_connections"]["Row"],
+  "strava_athlete_id" | "user_id"
+>;
+type WebhookProfileRow = Pick<
+  Database["public"]["Tables"]["profiles"]["Row"],
+  "display_name" | "id"
+>;
 
 type DashboardState =
   | {
@@ -25,7 +35,7 @@ type DashboardState =
       pendingWebhookEvents: number;
       seasons: SeasonRow[];
       unreadNotifications: number;
-      webhookEvents: WebhookEventRow[];
+      webhookEvents: WebhookEventDisplayRow[];
     }
   | { kind: "error"; message: string };
 
@@ -42,7 +52,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           title="Admin"
           description="Zentrale Verwaltung für Saisons, Regeln, Mitglieder, Sync und Export."
         />
-        <form action="/api/admin/logout" method="post">
+        <form action="/api/auth/logout" method="post">
           <button
             type="submit"
             className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
@@ -82,11 +92,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     className="h-5 w-5 text-signal-blue"
                   />
                   <h2 className="text-base font-semibold text-asphalt-900">
-                    Resync fuer aktive Mitglieder
+                    Resync für aktive Mitglieder
                   </h2>
                 </div>
                 <p className="mt-2 text-sm leading-6 text-asphalt-600">
-                  Laedt Strava-Aktivitaeten im gewaehlten Saisonfenster nach und
+                  Lädt Strava-Aktivitäten im gewählten Saisonfenster nach und
                   bewertet sie neu.
                 </p>
               </div>
@@ -200,7 +210,7 @@ function NotificationsPanel({
   );
 }
 
-function WebhookPanel({ events }: { events: WebhookEventRow[] }) {
+function WebhookPanel({ events }: { events: WebhookEventDisplayRow[] }) {
   return (
     <section className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
       <div className="flex items-center gap-2">
@@ -224,8 +234,7 @@ function WebhookPanel({ events }: { events: WebhookEventRow[] }) {
                     {event.object_type}/{event.aspect_type} #{event.object_id}
                   </p>
                   <p className="mt-1 text-xs text-asphalt-500">
-                    Athlete {event.owner_id} -{" "}
-                    {formatDateTime(event.created_at)}
+                    {event.ownerLabel} - {formatDateTime(event.created_at)}
                   </p>
                   {event.processing_error ? (
                     <p className="mt-1 text-xs text-red-700">
@@ -309,6 +318,16 @@ async function loadDashboardState(): Promise<DashboardState> {
       throw firstError;
     }
 
+    const webhookEvents = (webhookEventsResult.data ?? []) as WebhookEventRow[];
+    const webhookConnections = await loadWebhookConnections(
+      supabase,
+      webhookEvents,
+    );
+    const webhookProfiles = await loadWebhookProfiles(
+      supabase,
+      webhookConnections,
+    );
+
     return {
       kind: "ready",
       activeActivities: activeActivitiesResult.count ?? 0,
@@ -318,7 +337,11 @@ async function loadDashboardState(): Promise<DashboardState> {
       pendingWebhookEvents: pendingWebhookEventsResult.count ?? 0,
       seasons: (seasonsResult.data ?? []) as SeasonRow[],
       unreadNotifications: unreadNotificationsResult.count ?? 0,
-      webhookEvents: (webhookEventsResult.data ?? []) as WebhookEventRow[],
+      webhookEvents: addWebhookOwnerLabels(
+        webhookEvents,
+        webhookConnections,
+        webhookProfiles,
+      ),
     };
   } catch (error) {
     return {
@@ -329,6 +352,50 @@ async function loadDashboardState(): Promise<DashboardState> {
           : "Admin-Dashboard konnte nicht geladen werden.",
     };
   }
+}
+
+async function loadWebhookConnections(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  events: WebhookEventRow[],
+) {
+  const ownerIds = [...new Set(events.map((event) => event.owner_id))];
+
+  if (ownerIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("strava_connections")
+    .select("user_id, strava_athlete_id")
+    .in("strava_athlete_id", ownerIds);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as WebhookConnectionRow[];
+}
+
+async function loadWebhookProfiles(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  connections: WebhookConnectionRow[],
+) {
+  const profileIds = [...new Set(connections.map((entry) => entry.user_id))];
+
+  if (profileIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", profileIds);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as WebhookProfileRow[];
 }
 
 function webhookTone(status: WebhookEventRow["processing_status"]) {

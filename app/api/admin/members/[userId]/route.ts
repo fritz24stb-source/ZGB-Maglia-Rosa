@@ -15,9 +15,16 @@ import {
   assertDisplayNameAvailable,
   isUniqueViolation,
 } from "@/lib/auth/app-auth";
+import {
+  LAST_ACTIVE_ADMIN_MESSAGE,
+  removesActiveAdminAccess,
+} from "@/lib/auth/admin-access";
 import { normalizeDisplayName } from "@/lib/auth/names";
 import { isUserRole } from "@/lib/auth/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
+
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,11 +52,15 @@ export async function POST(
     const isActive = getFormCheckbox(formData, "isActive");
 
     if (!isUserRole(role)) {
-      throw new Error("Ungueltige Rolle.");
+      throw new Error("Ungültige Rolle.");
     }
 
     const supabase = createSupabaseServiceRoleClient();
     const before = await getProfile(supabase, userId);
+    await assertKeepsActiveAdmin(supabase, before, {
+      is_active: isActive,
+      role,
+    });
     await assertDisplayNameAvailable(supabase, displayName, {
       exceptUserId: userId,
     });
@@ -93,6 +104,7 @@ export async function POST(
 async function deleteMember(request: NextRequest, userId: string) {
   const supabase = createSupabaseServiceRoleClient();
   const before = await getProfile(supabase, userId);
+  await assertKeepsActiveAdmin(supabase, before, null);
   const { error } = await supabase.auth.admin.deleteUser(userId);
 
   if (error) {
@@ -108,7 +120,7 @@ async function deleteMember(request: NextRequest, userId: string) {
   });
 
   return redirectWithAdminFlash(request, "/admin/members", {
-    status: "Profil wurde geloescht.",
+    status: "Profil wurde gelöscht.",
   });
 }
 
@@ -127,6 +139,30 @@ async function getProfile(
   }
 
   return data;
+}
+
+async function assertKeepsActiveAdmin(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  before: ProfileRow,
+  after: Pick<ProfileRow, "is_active" | "role"> | null,
+) {
+  if (!removesActiveAdminAccess(before, after)) {
+    return;
+  }
+
+  const { count, error } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "admin")
+    .eq("is_active", true);
+
+  if (error) {
+    throw error;
+  }
+
+  if ((count ?? 0) <= 1) {
+    throw new Error(LAST_ACTIVE_ADMIN_MESSAGE);
+  }
 }
 
 export function GET() {

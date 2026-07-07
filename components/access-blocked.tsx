@@ -9,7 +9,7 @@ export function AccessBlocked() {
           <div>
             <h1 className="text-base font-semibold">Profil gesperrt</h1>
             <p className="mt-1 text-sm leading-6">
-              Dieses Profil ist aktuell nicht fuer die App freigegeben.
+              Dieses Profil ist aktuell nicht für die App freigegeben.
             </p>
           </div>
         </div>

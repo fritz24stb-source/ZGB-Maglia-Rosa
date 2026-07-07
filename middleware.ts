@@ -5,10 +5,6 @@ import {
   readAppSessionToken,
   setAppSessionCookie,
 } from "@/lib/auth/app-session";
-import {
-  ADMIN_SESSION_COOKIE,
-  hasValidAdminSession,
-} from "@/lib/auth/admin-session";
 
 const protectedAppPaths = ["/leaderboard", "/analyse", "/manual", "/profile"];
 const protectedAppApiPaths = [
@@ -23,23 +19,34 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login" || pathname.startsWith("/admin/login/")) {
-      return NextResponse.next();
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      loginUrl.search = "";
+      loginUrl.searchParams.set("next", "/admin");
+
+      return NextResponse.redirect(loginUrl);
     }
 
-    const hasSession = await hasValidAdminSession(
-      request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
+    const appSession = await readAppSessionToken(
+      request.cookies.get(APP_SESSION_COOKIE)?.value,
     );
 
-    if (hasSession) {
-      return NextResponse.next();
+    if (appSession) {
+      const response = NextResponse.next();
+      await setAppSessionCookie(response, appSession.userId, request.url);
+
+      return response;
     }
 
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/admin/login";
+    loginUrl.pathname = "/login";
     loginUrl.search = "";
     loginUrl.searchParams.set("next", `${pathname}${search}`);
 
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    clearAppSessionCookie(response);
+
+    return response;
   }
 
   if (!isProtectedAppPath(pathname)) {

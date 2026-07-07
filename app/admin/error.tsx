@@ -19,7 +19,7 @@ export default function AdminError({
                 Adminbereich konnte nicht geladen werden
               </h1>
               <p className="mt-1 text-sm leading-6">
-                Bitte Sitzung und Server-Konfiguration pruefen.
+                Bitte Sitzung und Server-Konfiguration prüfen.
               </p>
             </div>
           </div>

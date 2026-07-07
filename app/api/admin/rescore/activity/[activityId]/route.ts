@@ -47,7 +47,7 @@ export async function POST(
     });
 
     return redirectWithAdminFlash(request, "/admin/activities", {
-      status: "Aktivitaet wurde neu bewertet.",
+      status: "Aktivität wurde neu bewertet.",
     });
   } catch (error) {
     return redirectWithAdminFlash(request, "/admin/activities", {

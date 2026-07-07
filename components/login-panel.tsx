@@ -33,7 +33,7 @@ export function LoginPanel({ nextPath }: LoginPanelProps) {
     }
 
     if (!window.PublicKeyCredential) {
-      setPasskeyError("Dieses Geraet unterstuetzt keine Passkeys.");
+      setPasskeyError("Dieses Gerät unterstützt keine Passkeys.");
       return;
     }
 
@@ -150,7 +150,7 @@ export function LoginPanel({ nextPath }: LoginPanelProps) {
             type="button"
           >
             <Fingerprint aria-hidden className="h-4 w-4" />
-            {passkeyLoading ? "Pruefe Passkey" : "Mit Passkey anmelden"}
+            {passkeyLoading ? "Prüfe Passkey" : "Mit Passkey anmelden"}
           </button>
           <a
             className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#fc4c02] px-4 text-sm font-semibold text-white"

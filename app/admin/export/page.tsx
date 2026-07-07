@@ -33,7 +33,7 @@ export default async function AdminExportPage({
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="CSV Export"
-        description="Gefilterte Leaderboard- und Aktivitaetsdaten als CSV herunterladen."
+        description="Gefilterte Leaderboard- und Aktivitätsdaten als CSV herunterladen."
       />
       <AdminFlash
         error={getSingleParam(params.adminError)}
@@ -57,7 +57,7 @@ export default async function AdminExportPage({
             action="/api/admin/export/activities"
             profiles={state.profiles}
             seasons={state.seasons}
-            title="Aktivitaeten CSV"
+            title="Aktivitäten CSV"
             withStatus
           />
         </section>

@@ -201,7 +201,7 @@ function getUnavailableReason(status: ManualEntryOption["status"]) {
     case "closed":
       return "Zeitfenster geschlossen.";
     case "used":
-      return "Eintrag fuer dieses Zeitfenster bereits vorhanden.";
+      return "Eintrag für dieses Zeitfenster bereits vorhanden.";
     case "open":
       return null;
   }

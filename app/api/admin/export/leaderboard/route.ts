@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         "Mittwoch",
         "Sonderevents",
         "Manuell Punkte",
-        "Letzte Aktivitaet",
+        "Letzte Aktivität",
       ],
       ...(result.data ?? []).map((row) => [
         String(row.place),

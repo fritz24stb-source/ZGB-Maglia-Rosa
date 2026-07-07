@@ -47,7 +47,7 @@ const sortOptions: { key: LeaderboardSortKey; label: string }[] = [
   { key: "mittwochsFahrten", label: "Mittwoch" },
   { key: "sonderevents", label: "Sonderevents" },
   { key: "displayName", label: "Name" },
-  { key: "lastActivityAt", label: "Letzte Aktivitaet" },
+  { key: "lastActivityAt", label: "Letzte Aktivität" },
   { key: "place", label: "Platz" },
 ];
 
@@ -408,7 +408,7 @@ function LeaderboardFilterFields({
           onClick={onReset}
         >
           <RotateCcw aria-hidden className="h-4 w-4" />
-          Zuruecksetzen
+          Zurücksetzen
         </button>
       </div>
     </>
@@ -678,7 +678,7 @@ function UnauthorizedState() {
               Anmeldung erforderlich
             </h2>
             <p className="mt-1 text-sm leading-6 text-asphalt-600">
-              Das Leaderboard ist fuer angemeldete Vereinsmitglieder sichtbar.
+              Das Leaderboard ist für angemeldete Vereinsmitglieder sichtbar.
             </p>
           </div>
         </div>
@@ -708,10 +708,10 @@ function EmptyState() {
         <SearchX aria-hidden className="mt-0.5 h-5 w-5 text-asphalt-500" />
         <div>
           <h2 className="text-base font-semibold text-asphalt-900">
-            Keine Eintraege gefunden
+            Keine Einträge gefunden
           </h2>
           <p className="mt-1 leading-6">
-            Fuer die aktuellen Filter gibt es keine gewerteten Aktivitaeten.
+            Für die aktuellen Filter gibt es keine gewerteten Aktivitäten.
           </p>
         </div>
       </div>

@@ -146,7 +146,7 @@ export function verifyPasskeySignature(input: {
   signature: string;
 }) {
   if (input.algorithm !== -7 && input.algorithm !== -257) {
-    throw new Error("Passkey-Algorithmus wird nicht unterstuetzt.");
+    throw new Error("Passkey-Algorithmus wird nicht unterstützt.");
   }
 
   const clientData = Buffer.from(input.clientDataJSON, "base64url");

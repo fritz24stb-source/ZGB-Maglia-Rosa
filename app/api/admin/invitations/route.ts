@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       return await createGroupInvite(request, formData);
     }
 
-    throw new Error("Ungueltige Einladungsaktion.");
+    throw new Error("Ungültige Einladungsaktion.");
   } catch (error) {
     return redirectWithAdminFlash(request, "/admin/invitations", {
       error: formatAdminError(error),
@@ -189,7 +189,7 @@ function normalizeEmail(value: string | null) {
   const normalized = value.trim().toLowerCase();
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-    throw new Error("E-Mail-Adresse ist ungueltig.");
+    throw new Error("E-Mail-Adresse ist ungültig.");
   }
 
   return normalized;
@@ -203,7 +203,7 @@ function parseExpiresAt(value: string | null) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    throw new Error("Ablaufdatum ist ungueltig.");
+    throw new Error("Ablaufdatum ist ungültig.");
   }
 
   if (date.getTime() <= Date.now()) {

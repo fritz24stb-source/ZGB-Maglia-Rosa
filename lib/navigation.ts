@@ -28,7 +28,7 @@ export const adminSections = [
   {
     href: "/admin/members",
     label: "Mitglieder",
-    description: "Status, Rollen und Strava-Verbindungen pruefen.",
+    description: "Status, Rollen und Strava-Verbindungen prüfen.",
   },
   {
     href: "/admin/invitations",
@@ -37,12 +37,12 @@ export const adminSections = [
   },
   {
     href: "/admin/activities",
-    label: "Aktivitaeten",
-    description: "Bewertungen pruefen, neu bewerten oder ausschliessen.",
+    label: "Aktivitäten",
+    description: "Bewertungen prüfen, neu bewerten oder ausschließen.",
   },
   {
     href: "/admin/export",
     label: "Export",
-    description: "CSV-Ausgaben fuer Ranglisten und Aktivitaeten erstellen.",
+    description: "CSV-Ausgaben für Ranglisten und Aktivitäten erstellen.",
   },
 ] as const;

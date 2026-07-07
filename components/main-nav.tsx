@@ -67,7 +67,7 @@ export function MainNav() {
           type="button"
           className="focus-ring inline-flex h-10 w-10 items-center justify-center rounded-md border border-asphalt-300 bg-white/70 text-asphalt-800 md:hidden"
           aria-label={
-            mobileNavOpen ? "Navigation schliessen" : "Navigation oeffnen"
+            mobileNavOpen ? "Navigation schließen" : "Navigation öffnen"
           }
           aria-controls="mobile-navigation"
           aria-expanded={mobileNavOpen}

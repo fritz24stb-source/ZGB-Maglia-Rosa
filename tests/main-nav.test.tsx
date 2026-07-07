@@ -28,7 +28,7 @@ describe("MainNav", () => {
     render(React.createElement(MainNav));
 
     const button = screen.getByRole("button", {
-      name: "Navigation oeffnen",
+      name: "Navigation öffnen",
     });
     const mobileNavigation = document.getElementById("mobile-navigation");
 
@@ -38,7 +38,7 @@ describe("MainNav", () => {
 
     fireEvent.click(button);
 
-    expect(screen.getByRole("button", { name: "Navigation schliessen" })).toBe(
+    expect(screen.getByRole("button", { name: "Navigation schließen" })).toBe(
       button,
     );
     expect(button.getAttribute("aria-expanded")).toBe("true");

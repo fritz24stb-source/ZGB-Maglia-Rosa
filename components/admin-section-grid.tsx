@@ -70,7 +70,7 @@ export function AdminSectionGrid({
           {activeMembers}/{activeActivities}
         </p>
         <p className="mt-1 text-sm text-asphalt-600">
-          aktive Mitglieder/Aktivitaeten.
+          aktive Mitglieder/Aktivitäten.
         </p>
       </article>
       {adminSections.map((section) => {

@@ -55,8 +55,8 @@ export default async function AdminActivitiesPage({
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
-        title="Aktivitaetspruefung"
-        description="Aktivitaeten filtern, manuelle Eintraege pruefen, neu bewerten oder aus der Wertung ausschliessen."
+        title="Aktivitätsprüfung"
+        description="Aktivitäten filtern, manuelle Einträge prüfen, neu bewerten oder aus der Wertung ausschließen."
       />
       <AdminFlash
         error={getSingleParam(params.adminError)}
@@ -206,7 +206,7 @@ function ActivityFilterFields({
           href="/admin/activities"
         >
           <RotateCcw aria-hidden className="h-4 w-4" />
-          Zuruecksetzen
+          Zurücksetzen
         </a>
       </div>
     </form>
@@ -238,7 +238,7 @@ function AdminManualActivityForm({
       <summary className="focus-ring flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-lg px-5 text-sm font-semibold text-asphalt-900 [&::-webkit-details-marker]:hidden">
         <span className="inline-flex items-center gap-2">
           <PlusCircle aria-hidden className="h-4 w-4" />
-          Manuelle-Aktivitaet
+          Manuelle-Aktivität
         </span>
         <ChevronDown
           aria-hidden
@@ -251,7 +251,7 @@ function AdminManualActivityForm({
         method="post"
       >
         <SelectField label="Mitglied" name="userId" value={defaultUserId}>
-          <option value="">Mitglied waehlen</option>
+          <option value="">Mitglied wählen</option>
           {profiles.map((profile) => (
             <option key={profile.id} value={profile.id}>
               {profile.display_name}
@@ -271,7 +271,7 @@ function AdminManualActivityForm({
           name="ruleId"
           value={defaultRule?.id ?? ""}
         >
-          <option value="">Regel waehlen</option>
+          <option value="">Regel wählen</option>
           {rules.map((rule) => (
             <option key={rule.id} value={rule.id}>
               {formatRuleOption(rule)}
@@ -289,7 +289,7 @@ function AdminManualActivityForm({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
-          Aktivitaetsname
+          Aktivitätsname
           <input
             className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
             maxLength={120}
@@ -332,7 +332,7 @@ function AdminManualActivityForm({
           }
         >
           <PlusCircle aria-hidden className="h-4 w-4" />
-          Hinzufuegen
+          Hinzufügen
         </button>
       </form>
     </details>
@@ -363,7 +363,7 @@ function SeasonActions({
           <p className="mt-2 text-sm leading-6 text-asphalt-600">
             {selectedSeason
               ? `Aktive Filter-Saison: ${selectedSeason.name}`
-              : "Waehle eine einzelne Saison, um alle aktiven Aktivitaeten neu zu bewerten."}
+              : "Wähle eine einzelne Saison, um alle aktiven Aktivitäten neu zu bewerten."}
           </p>
         </div>
         <form
@@ -402,7 +402,7 @@ function ActivityList({
   if (activities.length === 0) {
     return (
       <section className="rounded-lg border border-asphalt-200 bg-white p-5 text-sm leading-6 text-asphalt-600 shadow-line">
-        Keine Aktivitaeten fuer die aktuellen Filter.
+        Keine Aktivitäten für die aktuellen Filter.
       </section>
     );
   }
@@ -496,7 +496,7 @@ function ActivityList({
                       name="ruleId"
                       required
                     >
-                      <option value="">Regel waehlen</option>
+                      <option value="">Regel wählen</option>
                       {scoringRules.map((rule) => (
                         <option key={rule.id} value={rule.id}>
                           {formatRuleOption(rule)}
@@ -536,7 +536,7 @@ function ActivityList({
                       className="focus-ring inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-red-300 px-3 text-sm font-medium text-red-900"
                     >
                       <Ban aria-hidden className="h-4 w-4" />
-                      Ausschliessen
+                      Ausschließen
                     </button>
                   </form>
                 ) : null}
@@ -667,7 +667,7 @@ async function loadActivitiesState(
       message:
         error instanceof Error
           ? error.message
-          : "Aktivitaeten konnten nicht geladen werden.",
+          : "Aktivitäten konnten nicht geladen werden.",
     };
   }
 }

@@ -6,11 +6,11 @@ import type {
 } from "@/lib/scoring/types";
 
 const NO_MATCH_REASON =
-  "Keine aktive Scoring-Regel passt zu Aktivitaet, Datum, Sportart und Quelle.";
+  "Keine aktive Scoring-Regel passt zu Aktivität, Datum, Sportart und Quelle.";
 const INACTIVE_ACTIVITY_REASON =
-  "Aktivitaet ist nicht aktiv und erhaelt 0 Punkte.";
+  "Aktivität ist nicht aktiv und erhält 0 Punkte.";
 const INVALID_DATE_REASON =
-  "Aktivitaet hat keinen gueltigen Startzeitpunkt und erhaelt 0 Punkte.";
+  "Aktivität hat keinen gültigen Startzeitpunkt und erhält 0 Punkte.";
 const INVALID_OVERRIDE_REASON =
   "Admin-Override verweist auf keine aktive passende Scoring-Regel.";
 

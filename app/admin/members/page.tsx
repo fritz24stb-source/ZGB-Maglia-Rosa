@@ -30,6 +30,7 @@ type MembersState =
   | {
       kind: "ready";
       activityStats: Map<string, MemberStats>;
+      activeAdminCount: number;
       connections: Map<string, ConnectionRow>;
       profiles: ProfileRow[];
       seasons: SeasonRow[];
@@ -65,6 +66,11 @@ export default async function AdminMembersPage({
             <MemberCard
               key={profile.id}
               connection={state.connections.get(profile.id) ?? null}
+              isLastActiveAdmin={
+                profile.role === "admin" &&
+                profile.is_active &&
+                state.activeAdminCount <= 1
+              }
               profile={profile}
               seasons={state.seasons}
               stats={state.activityStats.get(profile.id) ?? emptyStats}
@@ -78,11 +84,13 @@ export default async function AdminMembersPage({
 
 function MemberCard({
   connection,
+  isLastActiveAdmin,
   profile,
   seasons,
   stats,
 }: {
   connection: ConnectionRow | null;
+  isLastActiveAdmin: boolean;
   profile: ProfileRow;
   seasons: SeasonRow[];
   stats: MemberStats;
@@ -153,9 +161,15 @@ function MemberCard({
 
                 <div className="flex flex-wrap items-center gap-2 md:col-span-3">
                   <span className="text-xs text-asphalt-500">
-                    {stats.activeActivities} aktive Aktivitaeten,{" "}
+                    {stats.activeActivities} aktive Aktivitäten,{" "}
                     {stats.ignoredActivities} ignoriert, {stats.points} P
                   </span>
+                  {isLastActiveAdmin ? (
+                    <span className="text-xs font-medium text-amber-700">
+                      Letzter aktiver Admin: Rolle und Aktivstatus bleiben
+                      serverseitig geschützt.
+                    </span>
+                  ) : null}
                   <button
                     type="submit"
                     className="focus-ring inline-flex min-h-9 items-center gap-2 rounded-md border border-asphalt-300 px-3 text-xs font-medium text-asphalt-800"
@@ -177,7 +191,7 @@ function MemberCard({
                   className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-red-200 px-3 text-sm font-medium text-red-800"
                 >
                   <Trash2 aria-hidden className="h-4 w-4" />
-                  Profil loeschen
+                  Profil löschen
                 </button>
               </form>
 
@@ -239,7 +253,7 @@ function MemberCard({
           href={`/admin/activities?userId=${profile.id}`}
         >
           <Users aria-hidden className="h-4 w-4" />
-          Aktivitaeten
+          Aktivitäten
         </a>
       </div>
     </article>
@@ -302,6 +316,9 @@ async function loadMembersState(): Promise<MembersState> {
       activityStats: buildActivityStats(
         (activitiesResult.data ?? []) as ActivityMiniRow[],
       ),
+      activeAdminCount: ((profilesResult.data ?? []) as ProfileRow[]).filter(
+        (profile) => profile.role === "admin" && profile.is_active,
+      ).length,
       connections,
       profiles: (profilesResult.data ?? []) as ProfileRow[],
       seasons: (seasonsResult.data ?? []) as SeasonRow[],

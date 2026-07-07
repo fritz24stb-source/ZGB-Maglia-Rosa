@@ -167,7 +167,7 @@ async function getSeason(
 
 function validateDateRange(startsOn: string, endsOn: string) {
   if (!isDateInput(startsOn) || !isDateInput(endsOn)) {
-    throw new Error("Saisondaten muessen im Format YYYY-MM-DD vorliegen.");
+    throw new Error("Saisondaten müssen im Format YYYY-MM-DD vorliegen.");
   }
 
   if (endsOn < startsOn) {

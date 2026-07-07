@@ -13,9 +13,7 @@ import { PasskeyPanel } from "@/components/passkey-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
-import {
-  createSupabaseServiceRoleClient,
-} from "@/lib/supabase/server";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 type ProfilePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -81,12 +79,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Profil"
-        description="Eigener Verbindungsstatus und letzte gewertete Aktivitaeten."
+        description="Eigener Verbindungsstatus und letzte gewertete Aktivitäten."
       />
 
       {connected ? (
         <section className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-          Strava wurde verbunden. Neue Aktivitaeten werden anschliessend per
+          Strava wurde verbunden. Neue Aktivitäten werden anschließend per
           Webhook verarbeitet.
         </section>
       ) : null}
@@ -94,13 +92,13 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       {registered ? (
         <section className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
           Registrierung abgeschlossen. Strava kann jetzt verknuepft und ein
-          Passkey fuer schnelle Anmeldung erstellt werden.
+          Passkey für schnelle Anmeldung erstellt werden.
         </section>
       ) : null}
 
       {error === "disconnect_failed" ? (
         <section className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-          Strava konnte nicht getrennt werden. Bitte spaeter erneut versuchen.
+          Strava konnte nicht getrennt werden. Bitte später erneut versuchen.
         </section>
       ) : null}
 
@@ -156,7 +154,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
             <div className="flex items-center gap-2">
               <Activity aria-hidden className="h-5 w-5 text-signal-blue" />
               <h2 className="text-base font-semibold text-asphalt-900">
-                Letzte Aktivitaeten
+                Letzte Aktivitäten
               </h2>
             </div>
             <ActivityList activities={state.activities} />
@@ -278,7 +276,7 @@ function ActivityList({
   if (activities.length === 0) {
     return (
       <p className="mt-4 text-sm leading-6 text-asphalt-600">
-        Noch keine gespeicherten Aktivitaeten vorhanden.
+        Noch keine gespeicherten Aktivitäten vorhanden.
       </p>
     );
   }

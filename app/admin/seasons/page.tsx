@@ -27,7 +27,7 @@ export default async function AdminSeasonsPage({
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Saisonverwaltung"
-        description="Saisons anlegen, Zeitraeume pflegen und genau eine aktive Saison setzen."
+        description="Saisons anlegen, Zeiträume pflegen und genau eine aktive Saison setzen."
       />
       <AdminFlash
         error={getSingleParam(params.adminError)}

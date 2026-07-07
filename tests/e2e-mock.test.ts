@@ -155,7 +155,7 @@ describe("Strava API error handling", () => {
       ),
     ).rejects.toMatchObject({
       message:
-        "Strava Rate-Limit erreicht. Bitte Sync spaeter erneut ausfuehren (Retry-After: ca. 60 Sekunden).",
+        "Strava Rate-Limit erreicht. Bitte Sync später erneut ausführen (Retry-After: ca. 60 Sekunden).",
       status: 429,
     });
   });
@@ -178,7 +178,7 @@ function scoreMockStravaActivity(input: {
   });
   const scorableActivity = {
     id: `mock-${input.activity.id}`,
-    activity_name: activityWrite.activity_name ?? "Mock Aktivitaet",
+    activity_name: activityWrite.activity_name ?? "Mock Aktivität",
     activity_started_at:
       activityWrite.activity_started_at ?? "2026-01-01T00:00:00.000Z",
     activity_started_local_at: activityWrite.activity_started_local_at ?? null,

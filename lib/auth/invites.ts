@@ -70,7 +70,7 @@ export function assertInviteCanBeUsed(
   now = new Date(),
 ) {
   if (!invite) {
-    throw new Error("Einladung ist ungueltig.");
+    throw new Error("Einladung ist ungültig.");
   }
 
   if (invite.revoked_at) {

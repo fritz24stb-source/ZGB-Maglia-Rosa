@@ -45,7 +45,7 @@ export default async function RegisterPage({
       {inviteState.kind === "valid" ? (
         <StatusMessage
           icon={<CheckCircle2 aria-hidden className="h-5 w-5" />}
-          message="Einladung ist gueltig."
+          message="Einladung ist gültig."
           tone="success"
         />
       ) : null}
@@ -97,7 +97,7 @@ export default async function RegisterPage({
             />
           </label>
           <label className="grid gap-1 text-sm font-medium text-asphalt-800">
-            Passwort bestaetigen
+            Passwort bestätigen
             <input
               autoComplete="new-password"
               className="focus-ring min-h-11 rounded-md border border-asphalt-300 bg-white px-3 text-base text-asphalt-900"
@@ -150,7 +150,7 @@ async function loadInviteState(
     return {
       kind: "invalid",
       message:
-        error instanceof Error ? error.message : "Einladung ist ungueltig.",
+        error instanceof Error ? error.message : "Einladung ist ungültig.",
       token,
     };
   }

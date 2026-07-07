@@ -67,7 +67,7 @@ function validateOrigin(request: NextRequest) {
   }
 
   if (origin !== new URL(getAppBaseUrl()).origin) {
-    throw new Error("Ungueltiger Request-Origin.");
+    throw new Error("Ungültiger Request-Origin.");
   }
 }
 
@@ -92,7 +92,6 @@ function normalizeAppNextPath(value: string | null) {
     value &&
     value.startsWith("/") &&
     !value.startsWith("//") &&
-    !value.startsWith("/admin") &&
     !value.startsWith("/api")
   ) {
     return value;

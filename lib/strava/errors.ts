@@ -12,8 +12,8 @@ export function formatStravaRateLimitMessage(retryAfter: string | null) {
   const retryHint = formatRetryAfter(retryAfter);
 
   return retryHint
-    ? `Strava Rate-Limit erreicht. Bitte Sync spaeter erneut ausfuehren (${retryHint}).`
-    : "Strava Rate-Limit erreicht. Bitte Sync spaeter erneut ausfuehren.";
+    ? `Strava Rate-Limit erreicht. Bitte Sync später erneut ausführen (${retryHint}).`
+    : "Strava Rate-Limit erreicht. Bitte Sync später erneut ausführen.";
 }
 
 function formatRetryAfter(retryAfter: string | null) {

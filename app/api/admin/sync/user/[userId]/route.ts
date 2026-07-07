@@ -79,7 +79,7 @@ function formatSyncSummary(summary: {
     `${summary.users} User`,
     `${summary.synced} synchronisiert`,
     `${summary.activitiesFetched} von Strava geladen`,
-    `${summary.skipped} uebersprungen`,
+    `${summary.skipped} übersprungen`,
     `${summary.failed} fehlgeschlagen`,
   ].join(", ");
 }

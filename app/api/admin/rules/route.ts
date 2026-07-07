@@ -194,7 +194,7 @@ function parseOptionalLocalDateTime(value: string | null) {
   const parsed = parseManualLocalDateTime(value, MANUAL_ENTRY_TIME_ZONE);
 
   if (!parsed) {
-    throw new Error("Datum/Zeit muss gueltig sein.");
+    throw new Error("Datum/Zeit muss gültig sein.");
   }
 
   return parsed.utcDate.toISOString();

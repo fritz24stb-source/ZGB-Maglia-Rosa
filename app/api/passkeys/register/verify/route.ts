@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       : null;
 
     if (payload.type !== "public-key") {
-      throw new Error("Ungueltiger Passkey-Typ.");
+      throw new Error("Ungültiger Passkey-Typ.");
     }
 
     validateClientData({

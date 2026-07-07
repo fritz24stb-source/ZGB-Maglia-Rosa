@@ -9,14 +9,14 @@ type LoginPageProps = {
 
 const messageByError: Record<string, string> = {
   config:
-    "Server-Konfiguration unvollstaendig. Bitte Environment Variables pruefen.",
+    "Server-Konfiguration unvollstaendig. Bitte Environment Variables prüfen.",
   invalid_oauth_state:
-    "OAuth-Status ungueltig. Bitte Strava-Verbindung erneut starten.",
+    "OAuth-Status ungültig. Bitte Strava-Verbindung erneut starten.",
   missing_strava_scope:
-    "Strava-Berechtigungen fehlen. Bitte read und activity:read bestaetigen.",
+    "Strava-Berechtigungen fehlen. Bitte read und activity:read bestätigen.",
   strava_callback_failed:
     "Strava-Callback konnte nicht verarbeitet werden. Bitte erneut versuchen.",
-  strava_denied: "Strava-Zugriff wurde nicht bestaetigt.",
+  strava_denied: "Strava-Zugriff wurde nicht bestätigt.",
   strava_error: "Strava hat den Login abgebrochen.",
   strava_not_linked:
     "Dieses Strava-Konto ist noch mit keinem Profil verknuepft.",
@@ -35,7 +35,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Anmelden"
-        description="Zugang fuer registrierte Mitglieder per Passwort, Passkey oder verknuepftem Strava-Konto."
+        description="Zugang für registrierte Mitglieder per Passwort, Passkey oder verknuepftem Strava-Konto."
       />
 
       {error ? (
@@ -61,7 +61,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           tone="warning"
           icon={<AlertTriangle aria-hidden className="h-5 w-5" />}
           title="Hinweis zur Trennung"
-          message="Der lokale Status wurde getrennt. Die Strava-Revoke-Anfrage sollte administrativ geprueft werden."
+          message="Der lokale Status wurde getrennt. Die Strava-Revoke-Anfrage sollte administrativ geprüft werden."
         />
       ) : null}
 
@@ -78,8 +78,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 Noch kein Profil
               </h2>
               <p className="mt-1 text-sm leading-6 text-asphalt-600">
-                Registrierung ist nur mit gueltigem Einladungslink oder
-                Gruppencode moeglich.
+                Registrierung ist nur mit gültigem Einladungslink oder
+                Gruppencode möglich.
               </p>
             </div>
           </div>
@@ -105,7 +105,6 @@ function normalizeAppNextPath(value: string | undefined) {
     value &&
     value.startsWith("/") &&
     !value.startsWith("//") &&
-    !value.startsWith("/admin") &&
     !value.startsWith("/api")
   ) {
     return value;

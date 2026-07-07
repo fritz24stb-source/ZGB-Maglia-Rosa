@@ -173,7 +173,7 @@ export function getStravaActivityAthleteId(activity: StravaDetailedActivity) {
 function normalizeActivityName(name: string | null | undefined, id: number) {
   const normalizedName = name?.trim();
 
-  return normalizedName || `Strava Aktivitaet ${id}`;
+  return normalizedName || `Strava Aktivität ${id}`;
 }
 
 async function buildStravaActivityFetchError(

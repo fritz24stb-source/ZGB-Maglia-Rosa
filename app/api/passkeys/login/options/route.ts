@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const profile = await findProfileByDisplayName(serviceClient, displayName);
 
     if (!profile || !profile.is_active) {
-      throw new Error("Kein aktiver Passkey fuer diesen Namen gefunden.");
+      throw new Error("Kein aktiver Passkey für diesen Namen gefunden.");
     }
 
     const { data, error } = await serviceClient
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data || data.length === 0) {
-      throw new Error("Kein aktiver Passkey fuer diesen Namen gefunden.");
+      throw new Error("Kein aktiver Passkey für diesen Namen gefunden.");
     }
 
     const challenge = generateWebAuthnChallenge();

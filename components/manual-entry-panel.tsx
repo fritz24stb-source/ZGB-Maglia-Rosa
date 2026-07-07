@@ -156,7 +156,7 @@ export function ManualEntryPanel() {
     if (!selectedOption) {
       setSubmitState({
         kind: "error",
-        message: "Keine offene manuelle Kategorie ausgewaehlt.",
+        message: "Keine offene manuelle Kategorie ausgewählt.",
       });
       return;
     }
@@ -214,7 +214,7 @@ export function ManualEntryPanel() {
       <MessageBox
         icon={<AlertTriangle aria-hidden className="h-5 w-5" />}
         tone="danger"
-        title="Manuelle Eingabe nicht verfuegbar"
+        title="Manuelle Eingabe nicht verfügbar"
         message={errorMessage ?? "Status konnte nicht geladen werden."}
         action={
           <button
@@ -247,7 +247,7 @@ export function ManualEntryPanel() {
         <MessageBox
           icon={<Lock aria-hidden className="h-5 w-5" />}
           tone="warning"
-          title="Aktuell keine manuelle Eingabe moeglich"
+          title="Aktuell keine manuelle Eingabe möglich"
           message={manualState.reason}
         />
         <WindowSummary state={manualState} />
@@ -300,7 +300,7 @@ export function ManualEntryPanel() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-asphalt-900">
-              Manuelle Aktivitaet erfassen
+              Manuelle Aktivität erfassen
             </h2>
             <p className="mt-1 text-sm text-asphalt-600">
               Saison: {readyState.season.name}
@@ -350,7 +350,7 @@ export function ManualEntryPanel() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <SelectField
-              label="Aktivitaetstyp"
+              label="Aktivitätstyp"
               value={sportType}
               onChange={setSportType}
               disabled={!selectedOption}
@@ -484,7 +484,7 @@ function WindowSummary({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-asphalt-900">
-            Naechstes Zeitfenster
+            Nächstes Zeitfenster
           </p>
           <p className="mt-1 text-sm text-asphalt-600">
             {state.nextOpensAt
@@ -571,7 +571,7 @@ function UnauthorizedState() {
       icon={<Lock aria-hidden className="h-5 w-5" />}
       tone="neutral"
       title="Anmeldung erforderlich"
-      message="Manuelle Eingaben sind nur fuer angemeldete Vereinsmitglieder moeglich."
+      message="Manuelle Eingaben sind nur für angemeldete Vereinsmitglieder möglich."
       action={
         <Link
           href="/login"

@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         "Kategorie",
         "Punkte",
         "Regel",
-        "Begruendung",
+        "Begründung",
         "Strava URL",
         "Manueller Kommentar",
       ],
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
       entityType: "export",
     });
 
-    return csvResponse(`aktivitaeten-${dateStamp()}.csv`, rows);
+    return csvResponse(`aktivitäten-${dateStamp()}.csv`, rows);
   } catch (error) {
     return NextResponse.json(
       { error: formatAdminError(error) },

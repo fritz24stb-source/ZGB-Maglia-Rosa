@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     );
 
     if (!context) {
-      throw new HttpError(400, "Ungueltige manuelle Kategorie.");
+      throw new HttpError(400, "Ungültige manuelle Kategorie.");
     }
 
     ensureContextCanBeSubmitted(context);
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     );
 
     if (!localActivityTime) {
-      throw new HttpError(400, "Ungueltiger Aktivitaetszeitpunkt.");
+      throw new HttpError(400, "Ungültiger Aktivitätszeitpunkt.");
     }
 
     if (
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     ) {
       throw new HttpError(
         400,
-        "Aktivitaetszeitpunkt liegt ausserhalb der aktiven Saison.",
+        "Aktivitätszeitpunkt liegt außerhalb der aktiven Saison.",
       );
     }
 
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     ) {
       throw new HttpError(
         400,
-        "Aktivitaetszeitpunkt darf nicht in der Zukunft liegen.",
+        "Aktivitätszeitpunkt darf nicht in der Zukunft liegen.",
       );
     }
 
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     if (score.matchedRuleId !== context.rule.id || score.points <= 0) {
       throw new HttpError(
         400,
-        "Aktivitaet passt nicht zur gewaehlten Wertungsregel.",
+        "Aktivität passt nicht zur gewählten Wertungsregel.",
       );
     }
 
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
       if (isUniqueViolation(activityError)) {
         throw new HttpError(
           409,
-          "Eintrag fuer dieses Zeitfenster ist bereits vorhanden.",
+          "Eintrag für dieses Zeitfenster ist bereits vorhanden.",
         );
       }
 
@@ -204,7 +204,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       activityId: activity.id,
       points: score.points,
-      message: "Manuelle Aktivitaet wurde erfasst.",
+      message: "Manuelle Aktivität wurde erfasst.",
       state: updatedEvaluation.state,
     });
   } catch (error) {
@@ -269,7 +269,7 @@ function normalizeManualEntryPayload(payload: ManualEntryPayload) {
   const ruleId = normalizeRequiredText(payload.ruleId, "Kategorie fehlt.");
   const activityStartedLocal = normalizeRequiredText(
     payload.activityStartedLocal,
-    "Aktivitaetszeitpunkt fehlt.",
+    "Aktivitätszeitpunkt fehlt.",
   );
   const comment = normalizeOptionalText(payload.comment);
   const sportType = normalizeOptionalText(payload.sportType) ?? "Ride";
@@ -300,7 +300,7 @@ function ensureContextCanBeSubmitted(context: ManualEntryContext) {
   if (context.status === "used" || context.remainingEntries <= 0) {
     throw new HttpError(
       409,
-      "Eintrag fuer dieses Zeitfenster ist bereits vorhanden.",
+      "Eintrag für dieses Zeitfenster ist bereits vorhanden.",
     );
   }
 }
@@ -328,7 +328,7 @@ function buildAdminNotificationMessage(input: {
   points: number;
   profileName: string;
 }) {
-  const baseMessage = `${input.profileName} hat ${input.context.label} fuer ${input.localActivityTime} manuell eingetragen (${input.points} Punkte).`;
+  const baseMessage = `${input.profileName} hat ${input.context.label} für ${input.localActivityTime} manuell eingetragen (${input.points} Punkte).`;
 
   if (!input.comment) {
     return baseMessage;

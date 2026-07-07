@@ -136,7 +136,10 @@ async function connectStravaToCurrentUser(input: {
     throw new StravaUserError("invalid_oauth_state");
   }
 
-  const profile = await getActiveProfile(input.serviceClient, accessState.userId);
+  const profile = await getActiveProfile(
+    input.serviceClient,
+    accessState.userId,
+  );
   const athleteId = input.tokenResponse.athlete?.id;
 
   if (!profile || !athleteId) {

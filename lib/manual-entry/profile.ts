@@ -34,7 +34,7 @@ export async function findOrCreateManualParticipantProfile(
   );
 
   if (inactiveProfile) {
-    throw new Error("Fuer diesen Namen existiert ein inaktives Profil.");
+    throw new Error("Für diesen Namen existiert ein inaktives Profil.");
   }
 
   const env = getSupabaseServiceEnv();

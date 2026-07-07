@@ -118,7 +118,7 @@ export function parseIntegerList(
     const parsed = Number(entry);
 
     if (!Number.isInteger(parsed)) {
-      throw new Error(`Ungueltige Zahl in Liste: ${entry}`);
+      throw new Error(`Ungültige Zahl in Liste: ${entry}`);
     }
 
     if (options.min !== undefined && parsed < options.min) {

@@ -66,7 +66,7 @@ function formatRescoreSummary(summary: {
   updated: number;
 }) {
   return [
-    `${summary.updated}/${summary.total} Aktivitaeten neu bewertet`,
+    `${summary.updated}/${summary.total} Aktivitäten neu bewertet`,
     `${summary.matched} Treffer`,
     `${summary.unmatched} ohne Regel`,
     `${summary.failed} Fehler`,

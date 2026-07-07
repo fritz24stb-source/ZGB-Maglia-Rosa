@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const activityStartedLocal = getFormText(
       formData,
       "activityStartedLocal",
-      "Aktivitaetszeitpunkt fehlt.",
+      "Aktivitätszeitpunkt fehlt.",
     );
     const sportType = getOptionalFormText(formData, "sportType") ?? "Ride";
     const comment = getOptionalFormText(formData, "comment");
@@ -67,13 +67,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (rule.season_id && rule.season_id !== season.id) {
-      throw new Error("Scoring-Regel gehoert nicht zur gewaehlten Saison.");
+      throw new Error("Scoring-Regel gehört nicht zur gewählten Saison.");
     }
 
     const localActivityTime = parseManualLocalDateTime(activityStartedLocal);
 
     if (!localActivityTime) {
-      throw new Error("Ungueltiger Aktivitaetszeitpunkt.");
+      throw new Error("Ungültiger Aktivitätszeitpunkt.");
     }
 
     if (
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       localActivityTime.localDate > season.ends_on
     ) {
       throw new Error(
-        "Aktivitaetszeitpunkt liegt ausserhalb der gewaehlten Saison.",
+        "Aktivitätszeitpunkt liegt außerhalb der gewählten Saison.",
       );
     }
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       localActivityTime.utcDate.getTime() >
       now.getTime() + FUTURE_TOLERANCE_MS
     ) {
-      throw new Error("Aktivitaetszeitpunkt darf nicht in der Zukunft liegen.");
+      throw new Error("Aktivitätszeitpunkt darf nicht in der Zukunft liegen.");
     }
 
     const activityName =
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     const score = scoreActivity(activityDraft, [rule], { scoredAt: now });
 
     if (!isScoreResultScored(score)) {
-      throw new Error("Ausgewaehlte Regel konnte nicht angewendet werden.");
+      throw new Error("Ausgewählte Regel konnte nicht angewendet werden.");
     }
 
     const activityInsert: ActivityInsert = {
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     });
 
     return redirectWithAdminFlash(request, "/admin/activities", {
-      status: "Manuelle Admin-Aktivitaet wurde hinzugefuegt.",
+      status: "Manuelle Admin-Aktivität wurde hinzugefügt.",
     });
   } catch (error) {
     return redirectWithAdminFlash(request, "/admin/activities", {
