@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildManualEntryContexts } from "@/lib/manual-entry/options";
+import {
+  buildManualEntryContexts,
+  getNextManualEntryOpening,
+} from "@/lib/manual-entry/options";
 import {
   getWeeklyWindowStatus,
   parseManualLocalDateTime,
@@ -127,6 +130,8 @@ describe("manual entry options", () => {
           name_keywords: ["sommer", "classic"],
           valid_from: "2026-08-15T08:00:00.000Z",
           valid_until: "2026-08-15T18:00:00.000Z",
+          manual_entry_valid_from_rule: null,
+          manual_entry_valid_until_rule: null,
         }),
       ],
     });
@@ -139,6 +144,39 @@ describe("manual entry options", () => {
       manualEntryKey: "rule:rule-special:2026-08-15T08:00:00.000Z",
       points: 250,
     });
+  });
+
+  it("does not report a past fixed window as the next opening", () => {
+    const contexts = buildManualEntryContexts({
+      now: new Date("2026-08-16T10:00:00.000Z"),
+      existingEntryCounts: new Map(),
+      windows: [],
+      rules: [
+        rule({
+          id: "rule-special",
+          name: "Sommer Classic",
+          category: "sonderevent",
+          points: 250,
+          rule_type: "special",
+          priority: 200,
+          name_keywords: ["sommer", "classic"],
+          valid_from: "2026-08-15T08:00:00.000Z",
+          valid_until: "2026-08-15T18:00:00.000Z",
+          manual_entry_valid_from_rule: null,
+          manual_entry_valid_until_rule: null,
+        }),
+      ],
+    });
+
+    expect(contexts).toHaveLength(1);
+    expect(contexts[0].status).toBe("closed");
+    expect(contexts[0].nextOpensAt).toBeNull();
+    expect(
+      getNextManualEntryOpening(
+        contexts.map((context) => ({ nextOpensAt: context.nextOpensAt })),
+        new Date("2026-08-16T10:00:00.000Z"),
+      ),
+    ).toBeNull();
   });
 });
 

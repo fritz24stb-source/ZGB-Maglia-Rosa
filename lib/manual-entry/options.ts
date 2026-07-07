@@ -91,11 +91,15 @@ export function buildManualEntryContexts({
 
 export function getNextManualEntryOpening(
   options: Pick<ManualEntryOption, "nextOpensAt">[],
+  referenceDate = new Date(),
 ) {
+  const referenceTime = referenceDate.getTime();
+
   return (
     options
       .map((option) => option.nextOpensAt)
       .filter((value): value is string => Boolean(value))
+      .filter((value) => new Date(value).getTime() > referenceTime)
       .sort()[0] ?? null
   );
 }
@@ -129,11 +133,7 @@ function buildContext(input: {
     status,
     opensAt: input.windowStatus.opensAt.toISOString(),
     closesAt: input.windowStatus.closesAt.toISOString(),
-    nextOpensAt:
-      input.windowStatus.nextOpensAt?.toISOString() ??
-      (input.windowStatus.isOpen
-        ? null
-        : input.windowStatus.opensAt.toISOString()),
+    nextOpensAt: getFutureOpening(input.windowStatus, input.now),
     maxEntries,
     existingEntries,
     remainingEntries,
@@ -142,6 +142,18 @@ function buildContext(input: {
     rule: input.rule,
     timeZone: input.windowStatus.timeZone,
   };
+}
+
+function getFutureOpening(windowStatus: WindowStatus, now: Date) {
+  const candidates = [windowStatus.nextOpensAt, windowStatus.opensAt];
+
+  return (
+    candidates
+      .filter((value): value is Date => Boolean(value))
+      .filter((value) => value.getTime() > now.getTime())
+      .sort((left, right) => left.getTime() - right.getTime())[0]
+      ?.toISOString() ?? null
+  );
 }
 
 function getRuleWindowStatus(rule: ScoringRuleRow, now: Date) {

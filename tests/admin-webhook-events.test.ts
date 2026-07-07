@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addWebhookOwnerLabels,
+  dedupeWebhookEventsForDisplay,
   getWebhookOwnerLabel,
 } from "@/lib/admin/webhook-events";
 
@@ -46,4 +47,46 @@ describe("admin webhook event display", () => {
       },
     ]);
   });
+
+  it("keeps only the latest duplicate-looking webhook event per object", () => {
+    const events = [
+      webhookEvent({
+        id: "older-update",
+        created_at: "2026-07-07T08:00:00.000Z",
+      }),
+      webhookEvent({
+        id: "newer-update",
+        created_at: "2026-07-07T08:05:00.000Z",
+      }),
+      webhookEvent({
+        id: "create-event",
+        aspect_type: "create",
+        created_at: "2026-07-07T08:03:00.000Z",
+      }),
+    ];
+
+    expect(dedupeWebhookEventsForDisplay(events, 8).map((event) => event.id))
+      .toEqual(["newer-update", "create-event"]);
+  });
 });
+
+function webhookEvent(
+  overrides: Partial<{
+    aspect_type: string;
+    created_at: string;
+    id: string;
+    object_id: number;
+    object_type: string;
+    owner_id: number;
+  }> = {},
+) {
+  return {
+    aspect_type: "update",
+    created_at: "2026-07-07T08:00:00.000Z",
+    id: "event",
+    object_id: 123,
+    object_type: "activity",
+    owner_id: 456,
+    ...overrides,
+  };
+}

@@ -11,6 +11,12 @@ type StravaConnectionRow = Pick<
 type WebhookEventOwner = {
   owner_id: number;
 };
+type WebhookDisplayEvent = WebhookEventOwner & {
+  aspect_type: string;
+  created_at: string;
+  object_id: number;
+  object_type: string;
+};
 
 export function getWebhookOwnerLabel(
   ownerId: number,
@@ -51,6 +57,34 @@ export function addWebhookOwnerLabels<Event extends WebhookEventOwner>(
       ownerLabel: displayName ?? formatAthleteFallback(event.owner_id),
     };
   });
+}
+
+export function dedupeWebhookEventsForDisplay<Event extends WebhookDisplayEvent>(
+  events: Event[],
+  limit: number,
+) {
+  const latestEventsByKey = new Map<string, Event>();
+
+  for (const event of events) {
+    const key = [
+      event.object_type,
+      event.object_id,
+      event.aspect_type,
+      event.owner_id,
+    ].join(":");
+    const existingEvent = latestEventsByKey.get(key);
+
+    if (
+      !existingEvent ||
+      event.created_at.localeCompare(existingEvent.created_at) > 0
+    ) {
+      latestEventsByKey.set(key, event);
+    }
+  }
+
+  return [...latestEventsByKey.values()]
+    .sort((left, right) => right.created_at.localeCompare(left.created_at))
+    .slice(0, limit);
 }
 
 function formatAthleteFallback(ownerId: number) {

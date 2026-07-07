@@ -3,7 +3,10 @@ import { AdminFlash } from "@/components/admin-flash";
 import { AdminSectionGrid } from "@/components/admin-section-grid";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
-import { addWebhookOwnerLabels } from "@/lib/admin/webhook-events";
+import {
+  addWebhookOwnerLabels,
+  dedupeWebhookEventsForDisplay,
+} from "@/lib/admin/webhook-events";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 
@@ -276,7 +279,7 @@ async function loadDashboardState(): Promise<DashboardState> {
         .select("*")
         .is("read_at", null)
         .order("created_at", { ascending: false })
-        .limit(8),
+        .limit(24),
       supabase
         .from("webhook_events")
         .select("*")
@@ -318,7 +321,10 @@ async function loadDashboardState(): Promise<DashboardState> {
       throw firstError;
     }
 
-    const webhookEvents = (webhookEventsResult.data ?? []) as WebhookEventRow[];
+    const webhookEvents = dedupeWebhookEventsForDisplay(
+      (webhookEventsResult.data ?? []) as WebhookEventRow[],
+      8,
+    );
     const webhookConnections = await loadWebhookConnections(
       supabase,
       webhookEvents,

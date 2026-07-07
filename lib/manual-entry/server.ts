@@ -154,7 +154,7 @@ export async function loadManualEntryEvaluation(
     profileName: profile?.display_name ?? null,
     season: toManualEntrySeason(season),
     options,
-    nextOpensAt: getNextManualEntryOpening(options),
+    nextOpensAt: getNextManualEntryOpening(options, now),
     defaultActivityStartedLocal: toLocalInputValue(now, MANUAL_ENTRY_TIME_ZONE),
   };
 

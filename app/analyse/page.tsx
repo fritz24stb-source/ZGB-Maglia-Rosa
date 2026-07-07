@@ -10,6 +10,7 @@ import {
   type WednesdayParticipationPoint,
 } from "@/lib/analysis/rides";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/ui";
 import type { Database } from "@/types/database";
 
 type SeasonRow = Pick<
@@ -408,11 +409,17 @@ function RideTable({
         <p className="p-4 text-sm text-asphalt-600">{emptyText}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-[640px] w-full border-collapse text-left text-sm">
+          <table className="w-auto min-w-max border-collapse text-left text-sm">
             <thead className="bg-asphalt-50 text-xs uppercase text-asphalt-500">
               <tr>
                 {columns.map((column) => (
-                  <th className="whitespace-nowrap px-4 py-3" key={column.key}>
+                  <th
+                    className={cn(
+                      "whitespace-nowrap px-3 py-3",
+                      getRideTableColumnClass(column.key),
+                    )}
+                    key={column.key}
+                  >
                     {column.label}
                   </th>
                 ))}
@@ -423,10 +430,27 @@ function RideTable({
                 <tr key={`${row.type}-${row.date}`}>
                   {columns.map((column) => (
                     <td
-                      className="whitespace-nowrap px-4 py-4 text-asphalt-800"
+                      className={cn(
+                        "whitespace-nowrap px-3 py-4 text-asphalt-800",
+                        getRideTableColumnClass(column.key),
+                        isRideTableCountColumn(column.key) && "text-right",
+                      )}
                       key={column.key}
+                      title={
+                        column.key === "title"
+                          ? formatRideTableValue(row, column.key)
+                          : undefined
+                      }
                     >
-                      {formatRideTableValue(row, column.key)}
+                      <span
+                        className={
+                          column.key === "title"
+                            ? "block max-w-[28rem] truncate"
+                            : undefined
+                        }
+                      >
+                        {formatRideTableValue(row, column.key)}
+                      </span>
                     </td>
                   ))}
                 </tr>
@@ -436,6 +460,45 @@ function RideTable({
         </div>
       )}
     </section>
+  );
+}
+
+function getRideTableColumnClass(
+  key:
+    | "date"
+    | "participantCount"
+    | "scuderiaCount"
+    | "scuolaCount"
+    | "title"
+    | "zugCount",
+) {
+  switch (key) {
+    case "date":
+      return "w-[9rem]";
+    case "participantCount":
+    case "scuderiaCount":
+    case "scuolaCount":
+    case "zugCount":
+      return "w-[7rem]";
+    case "title":
+      return "w-[28rem]";
+  }
+}
+
+function isRideTableCountColumn(
+  key:
+    | "date"
+    | "participantCount"
+    | "scuderiaCount"
+    | "scuolaCount"
+    | "title"
+    | "zugCount",
+) {
+  return (
+    key === "participantCount" ||
+    key === "scuderiaCount" ||
+    key === "scuolaCount" ||
+    key === "zugCount"
   );
 }
 
