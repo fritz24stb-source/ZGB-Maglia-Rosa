@@ -409,14 +409,14 @@ function RideTable({
         <p className="p-4 text-sm text-asphalt-600">{emptyText}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-auto min-w-max border-collapse text-left text-sm">
+          <table className="w-max border-collapse text-left text-sm">
             <thead className="bg-asphalt-50 text-xs uppercase text-asphalt-500">
               <tr>
                 {columns.map((column) => (
                   <th
                     className={cn(
-                      "whitespace-nowrap px-3 py-3",
-                      getRideTableColumnClass(column.key),
+                      "whitespace-nowrap px-2 py-3",
+                      getRideTableCellClass(column.key),
                     )}
                     key={column.key}
                   >
@@ -431,8 +431,8 @@ function RideTable({
                   {columns.map((column) => (
                     <td
                       className={cn(
-                        "whitespace-nowrap px-3 py-4 text-asphalt-800",
-                        getRideTableColumnClass(column.key),
+                        "whitespace-nowrap px-2 py-4 text-asphalt-800",
+                        getRideTableCellClass(column.key),
                         isRideTableCountColumn(column.key) && "text-right",
                       )}
                       key={column.key}
@@ -445,7 +445,7 @@ function RideTable({
                       <span
                         className={
                           column.key === "title"
-                            ? "block max-w-[28rem] truncate"
+                            ? "block max-w-[18rem] truncate"
                             : undefined
                         }
                       >
@@ -463,7 +463,7 @@ function RideTable({
   );
 }
 
-function getRideTableColumnClass(
+function getRideTableCellClass(
   key:
     | "date"
     | "participantCount"
@@ -472,17 +472,7 @@ function getRideTableColumnClass(
     | "title"
     | "zugCount",
 ) {
-  switch (key) {
-    case "date":
-      return "w-[9rem]";
-    case "participantCount":
-    case "scuderiaCount":
-    case "scuolaCount":
-    case "zugCount":
-      return "w-[7rem]";
-    case "title":
-      return "w-[28rem]";
-  }
+  return key === "title" ? "max-w-[18rem]" : "w-px";
 }
 
 function isRideTableCountColumn(
