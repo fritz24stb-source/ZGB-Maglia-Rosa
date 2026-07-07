@@ -409,7 +409,7 @@ function RideTable({
         <p className="p-4 text-sm text-asphalt-600">{emptyText}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-max border-collapse text-left text-sm">
+          <table className="min-w-full table-auto border-collapse text-left text-sm">
             <thead className="bg-asphalt-50 text-xs uppercase text-asphalt-500">
               <tr>
                 {columns.map((column) => (
@@ -472,7 +472,7 @@ function getRideTableCellClass(
     | "title"
     | "zugCount",
 ) {
-  return key === "title" ? "max-w-[18rem]" : "w-px";
+  return key === "title" ? "w-auto max-w-[18rem]" : "w-px";
 }
 
 function isRideTableCountColumn(
