@@ -65,8 +65,9 @@ describe("admin webhook event display", () => {
       }),
     ];
 
-    expect(dedupeWebhookEventsForDisplay(events, 8).map((event) => event.id))
-      .toEqual(["newer-update", "create-event"]);
+    expect(
+      dedupeWebhookEventsForDisplay(events, 8).map((event) => event.id),
+    ).toEqual(["newer-update", "create-event"]);
   });
 });
 

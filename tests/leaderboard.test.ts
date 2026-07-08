@@ -41,13 +41,14 @@ describe("leaderboard query parsing", () => {
   it("drops invalid filters instead of passing them to the database", () => {
     const query = parseLeaderboardSearchParams(
       new URLSearchParams(
-        "seasonId=bad&source=email&from=2026-99-99&sort=missing&direction=sideways",
+        "seasonId=bad&source=email&from=2026-99-99&sportType=Ride&sort=missing&direction=sideways",
       ),
     );
 
     expect(query.filters.seasonId).toBeNull();
     expect(query.filters.source).toBeNull();
     expect(query.filters.from).toBeNull();
+    expect(query.filters.sportType).toBeNull();
     expect(query.sortKey).toBe("totalPoints");
     expect(query.sortDirection).toBe("desc");
   });
@@ -74,7 +75,6 @@ describe("leaderboard response sorting", () => {
         seasons: [],
         categories: [],
         sources: [],
-        sportTypes: [],
       },
       sortKey: "totalPoints",
       sortDirection: "desc",
@@ -89,15 +89,11 @@ describe("leaderboard response sorting", () => {
     expect(response.generatedAt).toBe("2026-06-26T10:00:00.000Z");
   });
 
-  it("keeps rows without last activity at the end", () => {
+  it("sorts names ascending", () => {
     const response = buildLeaderboardResponse({
       rows: [
-        row({ place: 1, displayName: "Anna", lastActivityAt: null }),
-        row({
-          place: 2,
-          displayName: "Bernd",
-          lastActivityAt: "2026-06-20T10:00:00.000Z",
-        }),
+        row({ place: 2, displayName: "Bernd" }),
+        row({ place: 1, displayName: "Anna" }),
       ],
       filters: {
         seasonId: activeSeasonId,
@@ -112,16 +108,15 @@ describe("leaderboard response sorting", () => {
         seasons: [],
         categories: [],
         sources: [],
-        sportTypes: [],
       },
-      sortKey: "lastActivityAt",
-      sortDirection: "desc",
+      sortKey: "displayName",
+      sortDirection: "asc",
       generatedAt: new Date("2026-06-26T10:00:00.000Z"),
     });
 
     expect(response.rows.map((item) => item.displayName)).toEqual([
-      "Bernd",
       "Anna",
+      "Bernd",
     ]);
   });
 });
@@ -139,7 +134,6 @@ function row(overrides: Partial<LeaderboardRow> = {}): LeaderboardRow {
     mittwochsFahrten: 0,
     sonderevents: 0,
     manualPoints: 0,
-    lastActivityAt: "2026-06-20T10:00:00.000Z",
     ...overrides,
   };
 }

@@ -11,8 +11,7 @@ export type LeaderboardSortKey =
   | "samstagsFahrten"
   | "mittwochsFahrten"
   | "sonderevents"
-  | "manualPoints"
-  | "lastActivityAt";
+  | "manualPoints";
 
 export type LeaderboardSortDirection = "asc" | "desc";
 
@@ -45,7 +44,6 @@ export type LeaderboardRow = {
   mittwochsFahrten: number;
   sonderevents: number;
   manualPoints: number;
-  lastActivityAt: string | null;
 };
 
 export type LeaderboardOption = {
@@ -61,7 +59,6 @@ export type LeaderboardOptions = {
   })[];
   categories: LeaderboardOption[];
   sources: LeaderboardOption[];
-  sportTypes: LeaderboardOption[];
 };
 
 export type LeaderboardResponse = {

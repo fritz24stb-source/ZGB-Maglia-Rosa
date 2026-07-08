@@ -39,9 +39,9 @@ export function MainNav() {
             />
           </span>
           <span className="flex flex-col leading-none">
-            <span className="zgb-app-page-title text-sm">ZGB Rangliste</span>
+            <span className="zgb-app-page-title text-sm">ZGB-Maglia-Rosa</span>
             <span className="mt-1 text-xs font-medium text-asphalt-500">
-              Strava-Wertung
+              Vereinswertung
             </span>
           </span>
         </Link>

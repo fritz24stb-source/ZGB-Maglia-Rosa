@@ -22,6 +22,8 @@ describe("MainNav", () => {
     render(React.createElement(MainNav));
 
     expect(document.querySelector('img[src="/pwa-icon.svg"]')).not.toBeNull();
+    expect(screen.getByText("ZGB-Maglia-Rosa")).not.toBeNull();
+    expect(screen.queryByText(["Strava", "Wertung"].join("-"))).toBeNull();
   });
 
   it("toggles the mobile navigation from the menu button", () => {

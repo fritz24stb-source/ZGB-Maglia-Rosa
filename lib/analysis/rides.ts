@@ -5,7 +5,6 @@ type ScoringRuleRow = Database["public"]["Tables"]["scoring_rules"]["Row"];
 
 export type AnalysisActivity = Pick<
   ActivityRow,
-  | "activity_name"
   | "activity_started_at"
   | "activity_started_local_at"
   | "category"
@@ -278,7 +277,7 @@ function getEventName(
     ? rulesById.get(activity.matched_rule_id)
     : null;
 
-  return activity.matched_rule_name ?? rule?.name ?? activity.activity_name;
+  return activity.matched_rule_name ?? rule?.name ?? null;
 }
 
 function formatEventTitle(eventNames: string[]) {

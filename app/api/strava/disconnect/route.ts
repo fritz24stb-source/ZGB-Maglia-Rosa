@@ -7,6 +7,7 @@ import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
 } from "@/lib/supabase/server";
+import { disconnectStravaForUser } from "@/lib/strava/data-retention";
 import { revokeStravaToken } from "@/lib/strava/oauth";
 
 export const runtime = "nodejs";
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
 
     let revokeWarning = false;
 
-    if (connection && !connection.revoked) {
+    if (connection && !connection.revoked && connection.refresh_token) {
       try {
         await revokeStravaToken({
           clientId: env.stravaClientId,
@@ -54,18 +55,10 @@ export async function POST(request: Request) {
         });
         revokeWarning = true;
       }
+    }
 
-      const { error: updateError } = await serviceClient
-        .from("strava_connections")
-        .update({
-          access_token: null,
-          revoked: true,
-        })
-        .eq("id", connection.id);
-
-      if (updateError) {
-        throw updateError;
-      }
+    if (connection) {
+      await disconnectStravaForUser(serviceClient, access.userId);
     }
 
     await supabase.auth.signOut();

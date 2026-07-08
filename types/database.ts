@@ -67,7 +67,7 @@ type StravaConnectionRow = {
   user_id: string;
   strava_athlete_id: number;
   access_token: string | null;
-  refresh_token: string;
+  refresh_token: string | null;
   expires_at: string | null;
   scope: string | null;
   revoked: boolean;
@@ -134,6 +134,7 @@ type ActivityRow = {
   manual_comment: string | null;
   manual_entry_key: string | null;
   strava_url: string | null;
+  strava_erased_at: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -6,6 +6,7 @@ import {
   LogOut,
   PlugZap,
   RefreshCw,
+  Trash2,
   UserRound,
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -102,6 +103,20 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         </section>
       ) : null}
 
+      {error === "purge_failed" ? (
+        <section className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          Strava-Daten konnten nicht bereinigt werden. Bitte spaeter erneut
+          versuchen.
+        </section>
+      ) : null}
+
+      {getSingleParam(params.purged) ? (
+        <section className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+          Strava-bezogene Detaildaten wurden bereinigt. Aggregierte
+          Wertungsdaten bleiben erhalten.
+        </section>
+      ) : null}
+
       {state.kind === "unconfigured" ? (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <div className="flex gap-3">
@@ -138,6 +153,27 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
             </div>
 
             <PasskeyPanel passkeyCount={state.passkeyCount} />
+
+            <p className="mt-6 text-sm text-asphalt-500">
+              Hinweise zu Strava-Daten und Loeschung stehen unter{" "}
+              <Link
+                className="focus-ring rounded-sm text-signal-blue"
+                href="/datenschutz"
+              >
+                Datenschutz
+              </Link>
+              .
+            </p>
+
+            <form action="/api/strava/purge" className="mt-4" method="post">
+              <button
+                type="submit"
+                className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-md border border-red-200 px-3 text-sm font-medium text-red-800"
+              >
+                <Trash2 aria-hidden className="h-4 w-4" />
+                Strava-Daten bereinigen
+              </button>
+            </form>
 
             <form action="/api/auth/logout" className="mt-6" method="post">
               <button

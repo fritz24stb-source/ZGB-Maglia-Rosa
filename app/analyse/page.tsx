@@ -562,7 +562,6 @@ function buildActivitiesQuery(
     .from("activities")
     .select(
       [
-        "activity_name",
         "activity_started_at",
         "activity_started_local_at",
         "category",

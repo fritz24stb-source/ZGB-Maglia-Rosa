@@ -467,7 +467,7 @@ function ActivityList({
                       rel="noreferrer"
                       target="_blank"
                     >
-                      Strava
+                      View on Strava
                     </a>
                   ) : null}
                 </div>

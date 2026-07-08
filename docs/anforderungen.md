@@ -1,4 +1,4 @@
-# Anforderungen: ZGB Strava Rangliste
+# Anforderungen: ZGB-Maglia-Rosa
 
 Stand: 2026-06-26
 
@@ -97,7 +97,7 @@ Es dürfen keine detaillierten Leistungs- oder GPS-Daten veröffentlicht werden.
 - Saison
 - Status: active/deleted/ignored
 - Zeitstempel der Erfassung/Aktualisierung
-- optional Strava-Link intern, aber nicht zwingend öffentlich
+- optionaler Originalaktivitaetslink intern, aber nicht zwingend öffentlich
 
 Nicht speichern oder anzeigen:
 
@@ -214,7 +214,7 @@ Es muss eine manuelle Eingabe als Backup geben.
 - Es muss aber eine Benachrichtigung an Admins geben.
 - Benachrichtigung kann im MVP als Eintrag in einer Admin-Notification-Tabelle erfolgen.
 - Optional später E-Mail/Discord/Slack.
-- Strava-Link ist nicht erforderlich.
+- Originalaktivitaetslink ist nicht erforderlich.
 - Trotzdem sollen manuelle Eingaben auditierbar sein.
 
 ### Manuelle Eingabe speichern

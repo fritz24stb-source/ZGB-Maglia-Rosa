@@ -12,6 +12,7 @@ const protectedAppApiPaths = [
   "/api/manual-entry",
   "/api/passkeys/register",
   "/api/strava/disconnect",
+  "/api/strava/purge",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -96,6 +97,7 @@ export const config = {
     "/api/manual-entry/:path*",
     "/api/passkeys/register/:path*",
     "/api/strava/disconnect",
+    "/api/strava/purge",
   ],
 };
 

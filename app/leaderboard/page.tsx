@@ -17,6 +17,10 @@ export default async function LeaderboardPage() {
         title="Leaderboard"
         description="Mobile-first Auswertung mit Saison-, Quellen- und Kategorie-Filtern."
       />
+      <section className="rounded-lg border border-asphalt-200 bg-white p-4 text-sm leading-6 text-asphalt-600 shadow-line">
+        Angezeigt werden nur vereinsinterne Wertungsdaten, keine
+        Strava-Aktivitätsdetails anderer Mitglieder.
+      </section>
       <LeaderboardPreview />
     </main>
   );

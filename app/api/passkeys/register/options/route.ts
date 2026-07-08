@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       ],
       rp: {
         id: getWebAuthnRpId(),
-        name: "ZGB Rangliste",
+        name: "ZGB-Maglia-Rosa",
       },
       timeout: 60000,
       user: {

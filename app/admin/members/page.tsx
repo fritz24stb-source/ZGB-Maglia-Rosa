@@ -1,4 +1,11 @@
-import { ChevronDown, RefreshCcw, Save, Trash2, Users } from "lucide-react";
+import {
+  ChevronDown,
+  RefreshCcw,
+  Save,
+  ShieldX,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { AdminFlash } from "@/components/admin-flash";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
@@ -192,6 +199,21 @@ function MemberCard({
                 >
                   <Trash2 aria-hidden className="h-4 w-4" />
                   Profil löschen
+                </button>
+              </form>
+
+              <form
+                action={`/api/admin/members/${profile.id}`}
+                method="post"
+                className="flex lg:min-w-56"
+              >
+                <input name="action" type="hidden" value="purge-strava" />
+                <button
+                  type="submit"
+                  className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-amber-200 px-3 text-sm font-medium text-amber-800"
+                >
+                  <ShieldX aria-hidden className="h-4 w-4" />
+                  Strava-Daten bereinigen
                 </button>
               </form>
 

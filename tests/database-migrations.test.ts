@@ -58,6 +58,13 @@ const zugCategorySql = readFileSync(
   ),
   "utf8",
 );
+const stravaRetentionSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260707160000_strava_data_retention.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -164,5 +171,15 @@ describe("database migrations", () => {
     expect(zugCategorySql).not.toContain(
       "where filtered.category in ('zgb_zug', 'scuola', 'scuderia')",
     );
+  });
+
+  it("supports Strava detail erasure while retaining aggregate scoring rows", () => {
+    expect(stravaRetentionSql).toContain(
+      "alter column refresh_token drop not null",
+    );
+    expect(stravaRetentionSql).toContain(
+      "add column if not exists strava_erased_at timestamptz",
+    );
+    expect(stravaRetentionSql).toContain("or strava_erased_at is not null");
   });
 });

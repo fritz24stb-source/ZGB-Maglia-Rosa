@@ -50,6 +50,10 @@ export async function getValidStravaAccessToken(connection: StravaConnection) {
     return connection.access_token;
   }
 
+  if (!connection.refresh_token) {
+    throw new StravaConnectionError("No Strava refresh token available.");
+  }
+
   const env = getServerEnv();
   const refreshed = await refreshStravaToken({
     clientId: env.stravaClientId,

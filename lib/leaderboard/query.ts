@@ -25,7 +25,6 @@ const sortKeys = new Set<LeaderboardSortKey>([
   "mittwochsFahrten",
   "sonderevents",
   "manualPoints",
-  "lastActivityAt",
 ]);
 
 const defaultQuery: LeaderboardQuery = {
@@ -56,7 +55,7 @@ export function parseLeaderboardSearchParams(
       from: parseDateFilter(searchParams.get("from")),
       to: parseDateFilter(searchParams.get("to")),
       memberId: parseUuidFilter(searchParams.get("memberId")),
-      sportType: parseTextFilter(searchParams.get("sportType")),
+      sportType: null,
     },
     sortKey: parseSortKey(searchParams.get("sort")),
     sortDirection: parseSortDirection(searchParams.get("direction")),
@@ -110,7 +109,6 @@ export function normalizeLeaderboardRow(
     mittwochsFahrten: toNumber(row.mittwochs_fahrten),
     sonderevents: toNumber(row.sonderevents),
     manualPoints: toNumber(row.manual_points),
-    lastActivityAt: row.last_activity_at,
   };
 }
 
@@ -232,8 +230,6 @@ function getSortableValue(
       return row.sonderevents;
     case "manualPoints":
       return row.manualPoints;
-    case "lastActivityAt":
-      return row.lastActivityAt;
   }
 }
 

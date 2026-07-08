@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         "Punkte",
         "Regel",
         "Begründung",
-        "Strava URL",
+        "View on Strava",
         "Manueller Kommentar",
       ],
       ...activities.map((activity) => [

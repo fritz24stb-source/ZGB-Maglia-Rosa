@@ -109,11 +109,51 @@ describe("ride analysis aggregation", () => {
     expect(analysis.summary.fondoParticipantAverage).toBe(2);
     expect(analysis.summary.eventParticipantAverage).toBe(2);
   });
+
+  it("does not use raw activity names as event titles", () => {
+    const rawActivityName = "Private Strava Titel";
+    const analysis = buildRideAnalysis(
+      [
+        {
+          ...activity({
+            category: "sonderevent",
+            matched_rule_id: null,
+            matched_rule_name: null,
+            user_id: "user-1",
+          }),
+          activity_name: rawActivityName,
+        } as unknown as AnalysisActivity,
+      ],
+      [],
+    );
+
+    expect(JSON.stringify(analysis)).not.toContain(rawActivityName);
+    expect(analysis.eventRides[0]).toMatchObject({
+      title: "Sonderevent",
+    });
+  });
+
+  it("uses rule names for event titles", () => {
+    const analysis = buildRideAnalysis(
+      [
+        activity({
+          category: "sonderevent",
+          matched_rule_id: "rule-special",
+          matched_rule_name: null,
+          user_id: "user-1",
+        }),
+      ],
+      [rule({ id: "rule-special", name: "Regelname", rule_type: "special" })],
+    );
+
+    expect(analysis.eventRides[0]).toMatchObject({
+      title: "Regelname",
+    });
+  });
 });
 
 function activity(overrides: Partial<AnalysisActivity>): AnalysisActivity {
   return {
-    activity_name: "Testfahrt",
     activity_started_at: "2026-07-01T16:00:00.000Z",
     activity_started_local_at: null,
     category: "zug",

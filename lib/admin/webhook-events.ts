@@ -59,10 +59,9 @@ export function addWebhookOwnerLabels<Event extends WebhookEventOwner>(
   });
 }
 
-export function dedupeWebhookEventsForDisplay<Event extends WebhookDisplayEvent>(
-  events: Event[],
-  limit: number,
-) {
+export function dedupeWebhookEventsForDisplay<
+  Event extends WebhookDisplayEvent,
+>(events: Event[], limit: number) {
   const latestEventsByKey = new Map<string, Event>();
 
   for (const event of events) {

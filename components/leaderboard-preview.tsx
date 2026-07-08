@@ -24,7 +24,6 @@ type DraftFilters = {
   seasonId: string;
   category: string;
   source: string;
-  sportType: string;
   from: string;
   to: string;
 };
@@ -35,7 +34,6 @@ const initialFilters: DraftFilters = {
   seasonId: "",
   category: "all",
   source: "all",
-  sportType: "all",
   from: "",
   to: "",
 };
@@ -47,7 +45,6 @@ const sortOptions: { key: LeaderboardSortKey; label: string }[] = [
   { key: "mittwochsFahrten", label: "Mittwoch" },
   { key: "sonderevents", label: "Sonderevents" },
   { key: "displayName", label: "Name" },
-  { key: "lastActivityAt", label: "Letzte Aktivität" },
   { key: "place", label: "Platz" },
 ];
 
@@ -305,7 +302,7 @@ function LeaderboardFilterFields({
 }) {
   return (
     <>
-      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-5">
         <SelectField
           label="Saison"
           value={selectedSeasonValue}
@@ -342,19 +339,6 @@ function LeaderboardFilterFields({
           {data?.options.sources.map((source) => (
             <option key={source.value} value={source.value}>
               {source.label}
-            </option>
-          ))}
-        </SelectField>
-
-        <SelectField
-          label="Sportart"
-          value={draftFilters.sportType}
-          onChange={(value) => onDraftFilterChange("sportType", value)}
-        >
-          <option value="all">Alle</option>
-          {data?.options.sportTypes.map((sportType) => (
-            <option key={sportType.value} value={sportType.value}>
-              {sportType.label}
             </option>
           ))}
         </SelectField>
@@ -729,7 +713,6 @@ function buildSearchParams(input: {
   appendFilter(params, "seasonId", input.filters.seasonId);
   appendFilter(params, "category", input.filters.category);
   appendFilter(params, "source", input.filters.source);
-  appendFilter(params, "sportType", input.filters.sportType);
   appendFilter(params, "from", input.filters.from);
   appendFilter(params, "to", input.filters.to);
   params.set("sort", input.sortKey);

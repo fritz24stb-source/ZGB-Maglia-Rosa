@@ -1,6 +1,6 @@
-# ZGB Strava Rangliste
+# ZGB-Maglia-Rosa
 
-Mobile-first PWA für eine vereinsinterne Rennrad-Wertung auf Basis von Strava-Aktivitäten.
+Mobile-first PWA für die vereinsinterne Rennrad-Wertung von ZGB Cycling.
 
 ## Phase 1 Umfang
 

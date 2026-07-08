@@ -3,15 +3,14 @@ import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ZGB Strava Rangliste",
-  description:
-    "Vereinsinterne Rennrad-Wertung auf Basis von Strava-Aktivitäten.",
-  applicationName: "ZGB Rangliste",
+  title: "ZGB-Maglia-Rosa",
+  description: "Vereinsinterne Rennrad-Wertung fuer ZGB Cycling.",
+  applicationName: "ZGB-Maglia-Rosa",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "ZGB Rangliste",
+    title: "ZGB-Maglia-Rosa",
   },
   icons: {
     icon: [

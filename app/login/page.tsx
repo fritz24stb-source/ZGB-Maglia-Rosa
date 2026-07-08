@@ -67,6 +67,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
       <LoginPanel nextPath={nextPath} />
 
+      <p className="text-sm text-asphalt-500">
+        Hinweise zur Datenverarbeitung stehen unter{" "}
+        <Link
+          className="focus-ring rounded-sm text-signal-blue"
+          href="/datenschutz"
+        >
+          Datenschutz
+        </Link>
+        .
+      </p>
+
       <section className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">

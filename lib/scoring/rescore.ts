@@ -161,7 +161,11 @@ async function fetchActivities(
     includeInactive,
   }: Pick<RescoreSeasonInput, "seasonId" | "activityIds" | "includeInactive">,
 ) {
-  let query = client.from("activities").select("*").eq("season_id", seasonId);
+  let query = client
+    .from("activities")
+    .select("*")
+    .eq("season_id", seasonId)
+    .is("strava_erased_at", null);
 
   if (!includeInactive) {
     query = query.eq("status", "active");

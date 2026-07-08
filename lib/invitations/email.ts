@@ -31,8 +31,8 @@ export async function sendInvitationEmail(input: {
     const response = await fetch(webhookUrl, {
       body: JSON.stringify({
         inviteLink: input.inviteLink,
-        subject: "Einladung zur ZGB Rangliste",
-        text: `Du wurdest zur ZGB Rangliste eingeladen: ${input.inviteLink}`,
+        subject: "Einladung zu ZGB-Maglia-Rosa",
+        text: `Du wurdest zu ZGB-Maglia-Rosa eingeladen: ${input.inviteLink}`,
         to: input.to,
       }),
       headers,

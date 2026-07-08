@@ -22,6 +22,7 @@ import {
 import { normalizeDisplayName } from "@/lib/auth/names";
 import { isUserRole } from "@/lib/auth/roles";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { purgeStravaDataForUser } from "@/lib/strava/data-retention";
 import type { Database } from "@/types/database";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -43,6 +44,10 @@ export async function POST(
 
     if (action === "delete") {
       return await deleteMember(request, userId);
+    }
+
+    if (action === "purge-strava") {
+      return await purgeMemberStravaData(request, userId);
     }
 
     const displayName = normalizeDisplayName(
@@ -105,6 +110,7 @@ async function deleteMember(request: NextRequest, userId: string) {
   const supabase = createSupabaseServiceRoleClient();
   const before = await getProfile(supabase, userId);
   await assertKeepsActiveAdmin(supabase, before, null);
+  const purgeSummary = await purgeStravaDataForUser(supabase, userId);
   const { error } = await supabase.auth.admin.deleteUser(userId);
 
   if (error) {
@@ -113,7 +119,7 @@ async function deleteMember(request: NextRequest, userId: string) {
 
   await writeAdminAuditLog(supabase, {
     action: "member.delete",
-    after: null,
+    after: { stravaPurge: purgeSummary },
     before,
     entityId: userId,
     entityType: "profile",
@@ -121,6 +127,24 @@ async function deleteMember(request: NextRequest, userId: string) {
 
   return redirectWithAdminFlash(request, "/admin/members", {
     status: "Profil wurde gelöscht.",
+  });
+}
+
+async function purgeMemberStravaData(request: NextRequest, userId: string) {
+  const supabase = createSupabaseServiceRoleClient();
+  const before = await getProfile(supabase, userId);
+  const summary = await purgeStravaDataForUser(supabase, userId);
+
+  await writeAdminAuditLog(supabase, {
+    action: "member.strava_purge",
+    after: summary,
+    before,
+    entityId: userId,
+    entityType: "profile",
+  });
+
+  return redirectWithAdminFlash(request, "/admin/members", {
+    status: `Strava-Daten bereinigt (${summary.activitiesErased} Aktivitaeten).`,
   });
 }
 

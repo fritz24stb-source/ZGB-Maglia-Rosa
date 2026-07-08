@@ -78,7 +78,6 @@ describe("security hardening", () => {
         categories: [],
         seasons: [],
         sources: [],
-        sportTypes: [],
       },
       rows: [leaderboardRow()],
       sortDirection: "desc",
@@ -92,7 +91,6 @@ describe("security hardening", () => {
     expect(Object.keys(response.rows[0]).sort()).toEqual(
       [
         "displayName",
-        "lastActivityAt",
         "manualPoints",
         "mittwochsFahrten",
         "place",
@@ -125,7 +123,6 @@ function leaderboardRow(
 ): LeaderboardRow {
   return {
     displayName: "Mock Mitglied",
-    lastActivityAt: "2026-06-27T08:00:00.000Z",
     manualPoints: 0,
     mittwochsFahrten: 0,
     place: 1,

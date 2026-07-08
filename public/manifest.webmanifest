@@ -1,7 +1,7 @@
 {
-  "name": "ZGB Strava Rangliste",
-  "short_name": "ZGB Wertung",
-  "description": "Vereinsinterne Rennrad-Wertung auf Basis von Strava-Aktivitaeten.",
+  "name": "ZGB-Maglia-Rosa",
+  "short_name": "Maglia Rosa",
+  "description": "Vereinsinterne Rennrad-Wertung fuer ZGB Cycling.",
   "start_url": "/leaderboard",
   "scope": "/",
   "display": "standalone",

@@ -104,7 +104,6 @@ describe("mocked end-to-end scoring and leaderboard flow", () => {
           },
         ],
         sources: [{ label: "Strava", value: "strava" }],
-        sportTypes: [{ label: "Ride", value: "Ride" }],
       },
       rows: [
         aggregateRpcRow({

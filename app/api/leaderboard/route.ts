@@ -29,10 +29,6 @@ type RuleOptionRow = {
   rule_type: "standard" | "special";
 };
 
-type ActivityOptionRow = {
-  sport_type: string | null;
-};
-
 type LeaderboardRpcClient = {
   rpc(
     functionName: "get_leaderboard",
@@ -62,35 +58,20 @@ export async function GET(request: Request) {
     const query = parseLeaderboardSearchParams(requestUrl.searchParams);
     const supabase = createSupabaseServiceRoleClient();
 
-    const [seasonsResult, rulesResult, activityOptionsResult] =
-      await Promise.all([
-        supabase
-          .from("seasons")
-          .select("id, name, starts_on, ends_on, is_active")
-          .order("starts_on", { ascending: false }),
-        supabase
-          .from("scoring_rules")
-          .select("category, name, rule_type")
-          .eq("is_active", true)
-          .order("priority", { ascending: false }),
-        supabase
-          .from("activities")
-          .select("sport_type")
-          .eq("status", "active")
-          .gt("points", 0)
-          .not("matched_rule_id", "is", null)
-          .not("sport_type", "is", null)
-          .limit(5000),
-      ]);
+    const [seasonsResult, rulesResult] = await Promise.all([
+      supabase
+        .from("seasons")
+        .select("id, name, starts_on, ends_on, is_active")
+        .order("starts_on", { ascending: false }),
+      supabase
+        .from("scoring_rules")
+        .select("category, name, rule_type")
+        .eq("is_active", true)
+        .order("priority", { ascending: false }),
+    ]);
 
-    if (
-      seasonsResult.error ||
-      rulesResult.error ||
-      activityOptionsResult.error
-    ) {
-      throw (
-        seasonsResult.error ?? rulesResult.error ?? activityOptionsResult.error
-      );
+    if (seasonsResult.error || rulesResult.error) {
+      throw seasonsResult.error ?? rulesResult.error;
     }
 
     const seasons = (seasonsResult.data ?? []) as SeasonOptionRow[];
@@ -108,7 +89,6 @@ export async function GET(request: Request) {
     const options = buildOptions({
       seasons,
       rules: (rulesResult.data ?? []) as RuleOptionRow[],
-      activities: (activityOptionsResult.data ?? []) as ActivityOptionRow[],
     });
     const rows = (leaderboardResult.data ?? []).map(normalizeLeaderboardRow);
     const response = buildLeaderboardResponse({
@@ -140,7 +120,6 @@ export async function GET(request: Request) {
 function buildOptions(input: {
   seasons: SeasonOptionRow[];
   rules: RuleOptionRow[];
-  activities: ActivityOptionRow[];
 }): LeaderboardOptions {
   return {
     seasons: input.seasons.map((season) => ({
@@ -155,7 +134,6 @@ function buildOptions(input: {
       { value: "strava", label: "Strava" },
       { value: "manual", label: "Manuell" },
     ],
-    sportTypes: buildSportTypeOptions(input.activities),
   };
 }
 
@@ -178,22 +156,6 @@ function buildCategoryOptions(rules: RuleOptionRow[]): LeaderboardOption[] {
   return [...options.entries()]
     .map(([value, label]) => ({ value, label }))
     .sort((left, right) => left.label.localeCompare(right.label, "de"));
-}
-
-function buildSportTypeOptions(
-  activities: ActivityOptionRow[],
-): LeaderboardOption[] {
-  const sportTypes = new Set<string>();
-
-  for (const activity of activities) {
-    if (activity.sport_type) {
-      sportTypes.add(activity.sport_type);
-    }
-  }
-
-  return [...sportTypes]
-    .sort((left, right) => left.localeCompare(right, "de"))
-    .map((sportType) => ({ value: sportType, label: sportType }));
 }
 
 function formatLeaderboardError(error: unknown) {
