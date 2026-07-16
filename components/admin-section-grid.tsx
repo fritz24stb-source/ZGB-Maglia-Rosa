@@ -12,7 +12,6 @@ import {
 import { adminSections } from "@/lib/navigation";
 
 type AdminSectionGridProps = {
-  activeActivities?: number;
   activeMembers?: number;
   failedWebhookEvents?: number;
   pendingWebhookEvents?: number;
@@ -29,7 +28,6 @@ const iconByHref = {
 } satisfies Record<string, React.ComponentType<{ className?: string }>>;
 
 export function AdminSectionGrid({
-  activeActivities = 0,
   activeMembers = 0,
   failedWebhookEvents = 0,
   pendingWebhookEvents = 0,
@@ -49,7 +47,11 @@ export function AdminSectionGrid({
           ungelesene Admin-Notifications.
         </p>
       </article>
-      <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
+      <Link
+        href="/admin#failed-webhook-events"
+        className="focus-ring rounded-lg border border-asphalt-200 bg-white p-5 shadow-line transition hover:border-asphalt-400"
+        aria-label="Fehlgeschlagene Webhook Events anzeigen"
+      >
         <div className="flex items-center gap-2 text-asphalt-900">
           <RefreshCcw aria-hidden className="h-5 w-5 text-signal-blue" />
           <h2 className="text-base font-semibold">Sync Status</h2>
@@ -60,17 +62,17 @@ export function AdminSectionGrid({
         <p className="mt-1 text-sm text-asphalt-600">
           pending/failed Webhook Events.
         </p>
-      </article>
+      </Link>
       <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
         <div className="flex items-center gap-2 text-asphalt-900">
           <Users aria-hidden className="h-5 w-5 text-signal-blue" />
           <h2 className="text-base font-semibold">Aktive Daten</h2>
         </div>
         <p className="mt-3 text-2xl font-semibold text-asphalt-900">
-          {activeMembers}/{activeActivities}
+          {activeMembers}
         </p>
         <p className="mt-1 text-sm text-asphalt-600">
-          aktive Mitglieder/Aktivitäten.
+          aktive Mitglieder.
         </p>
       </article>
       {adminSections.map((section) => {

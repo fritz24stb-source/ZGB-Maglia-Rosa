@@ -31,9 +31,9 @@ type WebhookProfileRow = Pick<
 type DashboardState =
   | {
       kind: "ready";
-      activeActivities: number;
       activeMembers: number;
-      failedWebhookEvents: number;
+      failedWebhookEventCount: number;
+      failedWebhookEvents: WebhookEventDisplayRow[];
       notifications: NotificationRow[];
       pendingWebhookEvents: number;
       seasons: SeasonRow[];
@@ -79,12 +79,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       {state.kind === "ready" ? (
         <>
           <AdminSectionGrid
-            activeActivities={state.activeActivities}
             activeMembers={state.activeMembers}
-            failedWebhookEvents={state.failedWebhookEvents}
+            failedWebhookEvents={state.failedWebhookEventCount}
             pendingWebhookEvents={state.pendingWebhookEvents}
             unreadNotifications={state.unreadNotifications}
           />
+
+          <FailedWebhookEventsPanel events={state.failedWebhookEvents} />
 
           <section className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -142,6 +143,64 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </>
       ) : null}
     </main>
+  );
+}
+
+function FailedWebhookEventsPanel({
+  events,
+}: {
+  events: WebhookEventDisplayRow[];
+}) {
+  return (
+    <section
+      id="failed-webhook-events"
+      className="scroll-mt-6 rounded-lg border border-red-200 bg-red-50 p-5 shadow-line"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-asphalt-900">
+            Fehlgeschlagene Webhook Events
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-asphalt-600">
+            Nach Behebung der Ursache erneut verarbeiten. Erfolgreich
+            verarbeitete Events verschwinden anschliessend aus dieser Anzeige.
+          </p>
+        </div>
+        {events.length > 0 ? (
+          <form action="/api/admin/webhooks/retry-failed" method="post">
+            <button
+              type="submit"
+              className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white"
+            >
+              <RefreshCcw aria-hidden className="h-4 w-4" />
+              Erneut verarbeiten
+            </button>
+          </form>
+        ) : null}
+      </div>
+
+      {events.length === 0 ? (
+        <p className="mt-4 text-sm leading-6 text-asphalt-600">
+          Keine fehlgeschlagenen Webhook Events. Der Sync-Status ist bereinigt.
+        </p>
+      ) : (
+        <ul className="mt-4 divide-y divide-red-200">
+          {events.map((event) => (
+            <li key={event.id} className="py-3">
+              <p className="text-sm font-medium text-asphalt-900">
+                {event.object_type}/{event.aspect_type} #{event.object_id}
+              </p>
+              <p className="mt-1 text-xs text-asphalt-600">
+                {event.ownerLabel} - {formatDateTime(event.created_at)}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-red-800">
+                {event.processing_error ?? "Unbekannte Fehlerursache."}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -264,11 +323,11 @@ async function loadDashboardState(): Promise<DashboardState> {
       seasonsResult,
       notificationsResult,
       webhookEventsResult,
+      failedWebhookEventDetailsResult,
       unreadNotificationsResult,
       pendingWebhookEventsResult,
       failedWebhookEventsResult,
       activeMembersResult,
-      activeActivitiesResult,
     ] = await Promise.all([
       supabase
         .from("seasons")
@@ -286,6 +345,12 @@ async function loadDashboardState(): Promise<DashboardState> {
         .order("created_at", { ascending: false })
         .limit(8),
       supabase
+        .from("webhook_events")
+        .select("*")
+        .eq("processing_status", "failed")
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
         .from("admin_notifications")
         .select("id", { count: "exact", head: true })
         .is("read_at", null),
@@ -301,21 +366,17 @@ async function loadDashboardState(): Promise<DashboardState> {
         .from("profiles")
         .select("id", { count: "exact", head: true })
         .eq("is_active", true),
-      supabase
-        .from("activities")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "active"),
     ]);
 
     const firstError =
       seasonsResult.error ??
       notificationsResult.error ??
       webhookEventsResult.error ??
+      failedWebhookEventDetailsResult.error ??
       unreadNotificationsResult.error ??
       pendingWebhookEventsResult.error ??
       failedWebhookEventsResult.error ??
-      activeMembersResult.error ??
-      activeActivitiesResult.error;
+      activeMembersResult.error;
 
     if (firstError) {
       throw firstError;
@@ -325,9 +386,12 @@ async function loadDashboardState(): Promise<DashboardState> {
       (webhookEventsResult.data ?? []) as WebhookEventRow[],
       8,
     );
+    const failedWebhookEvents =
+      (failedWebhookEventDetailsResult.data ?? []) as WebhookEventRow[];
+    const eventsWithOwners = [...webhookEvents, ...failedWebhookEvents];
     const webhookConnections = await loadWebhookConnections(
       supabase,
-      webhookEvents,
+      eventsWithOwners,
     );
     const webhookProfiles = await loadWebhookProfiles(
       supabase,
@@ -336,9 +400,13 @@ async function loadDashboardState(): Promise<DashboardState> {
 
     return {
       kind: "ready",
-      activeActivities: activeActivitiesResult.count ?? 0,
       activeMembers: activeMembersResult.count ?? 0,
-      failedWebhookEvents: failedWebhookEventsResult.count ?? 0,
+      failedWebhookEventCount: failedWebhookEventsResult.count ?? 0,
+      failedWebhookEvents: addWebhookOwnerLabels(
+        failedWebhookEvents,
+        webhookConnections,
+        webhookProfiles,
+      ),
       notifications: (notificationsResult.data ?? []) as NotificationRow[],
       pendingWebhookEvents: pendingWebhookEventsResult.count ?? 0,
       seasons: (seasonsResult.data ?? []) as SeasonRow[],

@@ -116,6 +116,23 @@ export async function findConnectionByAthleteId(
   return data;
 }
 
+export async function findConnectionByUserId(
+  serviceClient: ServiceClient,
+  userId: string,
+) {
+  const { data, error } = await serviceClient
+    .from("strava_connections")
+    .select("user_id, revoked")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 async function getAuthUserById(serviceClient: ServiceClient, userId: string) {
   const { data, error } = await serviceClient.auth.admin.getUserById(userId);
 

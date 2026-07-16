@@ -76,6 +76,7 @@ export type ProcessPendingStravaWebhookInput = {
   fetchImpl?: FetchLike;
   limit?: number;
   now?: Date;
+  statuses?: Array<Extract<ProcessingStatus, "pending" | "failed">>;
 };
 
 export type ProcessPendingStravaWebhookSummary = {
@@ -205,11 +206,12 @@ export async function processPendingStravaWebhookEvents({
   fetchImpl = fetch,
   limit = DEFAULT_PENDING_WEBHOOK_LIMIT,
   now = new Date(),
+  statuses = ["pending", "failed"],
 }: ProcessPendingStravaWebhookInput = {}): Promise<ProcessPendingStravaWebhookSummary> {
   const { data, error } = await client
     .from("webhook_events")
     .select("id")
-    .in("processing_status", ["pending", "failed"])
+    .in("processing_status", statuses)
     .order("created_at", { ascending: true })
     .limit(limit);
 

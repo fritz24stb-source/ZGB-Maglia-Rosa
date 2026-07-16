@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getServerEnv } from "@/lib/env";
 import { signInSupabaseAsAppUser } from "@/lib/auth/app-auth";
@@ -13,8 +13,11 @@ import {
   exchangeStravaAuthorizationCode,
   hasRequiredStravaScopes,
 } from "@/lib/strava/oauth";
+import { runAutomaticUserResync } from "@/lib/strava/automatic-resync";
+import { shouldRunAutomaticUserResync } from "@/lib/strava/resync-policy";
 import {
   findConnectionByAthleteId,
+  findConnectionByUserId,
   upsertStravaConnectionForUser,
 } from "@/lib/strava/user-bridge";
 
@@ -77,7 +80,7 @@ export async function GET(request: Request) {
     }
 
     if (oauthState.mode === "connect") {
-      const connectedUserId = await connectStravaToCurrentUser({
+      const connectionResult = await connectStravaToCurrentUser({
         acceptedScope: acceptedScope || tokenResponse.scope || "",
         oauthState,
         request,
@@ -85,11 +88,20 @@ export async function GET(request: Request) {
         tokenResponse,
       });
 
+      if (connectionResult.runAutomaticResync) {
+        after(() =>
+          runAutomaticUserResync({
+            client: serviceClient,
+            userId: connectionResult.userId,
+          }),
+        );
+      }
+
       return await redirectWithClearedState(
         request,
         "/profile",
         { connected: "1" },
-        connectedUserId,
+        connectionResult.userId,
       );
     }
 
@@ -146,10 +158,10 @@ async function connectStravaToCurrentUser(input: {
     throw new StravaUserError("account_blocked");
   }
 
-  const existingConnection = await findConnectionByAthleteId(
-    input.serviceClient,
-    athleteId,
-  );
+  const [existingConnection, existingUserConnection] = await Promise.all([
+    findConnectionByAthleteId(input.serviceClient, athleteId),
+    findConnectionByUserId(input.serviceClient, accessState.userId),
+  ]);
 
   if (
     existingConnection &&
@@ -166,7 +178,10 @@ async function connectStravaToCurrentUser(input: {
     input.acceptedScope,
   );
 
-  return accessState.userId;
+  return {
+    runAutomaticResync: shouldRunAutomaticUserResync(existingUserConnection),
+    userId: accessState.userId,
+  };
 }
 
 async function signInWithLinkedStrava(input: {

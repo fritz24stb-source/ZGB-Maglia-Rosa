@@ -8,6 +8,7 @@ import {
   validateAdminOrigin,
 } from "@/lib/admin/http";
 import { syncStravaActivitiesForUser } from "@/lib/strava/admin-sync";
+import { formatUserSyncSummary } from "@/lib/strava/sync-summary";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -38,7 +39,7 @@ export async function POST(
       .insert({
         type: "admin_sync_user",
         title: "User-Resync abgeschlossen",
-        message: formatSyncSummary(summary),
+        message: formatUserSyncSummary(summary),
         user_id: userId,
         activity_id: null,
       });
@@ -55,7 +56,7 @@ export async function POST(
     });
 
     return redirectWithAdminFlash(request, "/admin/members", {
-      status: formatSyncSummary(summary),
+      status: formatUserSyncSummary(summary),
     });
   } catch (error) {
     return redirectWithAdminFlash(request, "/admin/members", {
@@ -66,22 +67,6 @@ export async function POST(
 
 function normalizeSeasonId(value: string | null) {
   return value && value !== "all" ? value : null;
-}
-
-function formatSyncSummary(summary: {
-  activitiesFetched: number;
-  failed: number;
-  skipped: number;
-  synced: number;
-  users: number;
-}) {
-  return [
-    `${summary.users} User`,
-    `${summary.synced} synchronisiert`,
-    `${summary.activitiesFetched} von Strava geladen`,
-    `${summary.skipped} übersprungen`,
-    `${summary.failed} fehlgeschlagen`,
-  ].join(", ");
 }
 
 export function GET() {
