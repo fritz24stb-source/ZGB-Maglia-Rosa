@@ -46,6 +46,8 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const params = searchParams ? await searchParams : {};
+  const showFailedWebhookEvents =
+    getSingleParam(params.showFailedWebhookEvents) === "1";
   const state = await loadDashboardState();
 
   return (
@@ -85,7 +87,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             unreadNotifications={state.unreadNotifications}
           />
 
-          <FailedWebhookEventsPanel events={state.failedWebhookEvents} />
+          {showFailedWebhookEvents ? (
+            <FailedWebhookEventsPanel events={state.failedWebhookEvents} />
+          ) : null}
 
           <section className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -166,17 +170,25 @@ function FailedWebhookEventsPanel({
             verarbeitete Events verschwinden anschliessend aus dieser Anzeige.
           </p>
         </div>
-        {events.length > 0 ? (
-          <form action="/api/admin/webhooks/retry-failed" method="post">
-            <button
-              type="submit"
-              className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white"
-            >
-              <RefreshCcw aria-hidden className="h-4 w-4" />
-              Erneut verarbeiten
-            </button>
-          </form>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {events.length > 0 ? (
+            <form action="/api/admin/webhooks/retry-failed" method="post">
+              <button
+                type="submit"
+                className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white"
+              >
+                <RefreshCcw aria-hidden className="h-4 w-4" />
+                Erneut verarbeiten
+              </button>
+            </form>
+          ) : null}
+          <a
+            href="/admin"
+            className="focus-ring inline-flex min-h-10 items-center justify-center rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
+          >
+            Schliessen
+          </a>
+        </div>
       </div>
 
       {events.length === 0 ? (
@@ -196,6 +208,19 @@ function FailedWebhookEventsPanel({
               <p className="mt-1 text-sm leading-6 text-red-800">
                 {event.processing_error ?? "Unbekannte Fehlerursache."}
               </p>
+              <form
+                action="/api/admin/webhooks/ignore"
+                method="post"
+                className="mt-3"
+              >
+                <input type="hidden" name="eventId" value={event.id} />
+                <button
+                  type="submit"
+                  className="focus-ring inline-flex min-h-9 items-center justify-center rounded-md border border-red-300 px-3 text-xs font-medium text-red-800"
+                >
+                  Event ignorieren
+                </button>
+              </form>
             </li>
           ))}
         </ul>
