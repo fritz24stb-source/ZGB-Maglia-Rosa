@@ -29,13 +29,15 @@ describe("automatic Strava user resync", () => {
     expect(
       formatUserSyncSummary({
         activitiesFetched: 4,
+        apiRequests: 2,
+        completionStatus: "partial_rate_budget",
         failed: 1,
         skipped: 2,
         synced: 3,
         users: 1,
       }),
     ).toBe(
-      "1 User, 3 synchronisiert, 4 von Strava geladen, 2 übersprungen, 1 fehlgeschlagen",
+      "1 User, 3 synchronisiert, 4 von Strava geladen, 2 API-Anfragen, 2 übersprungen, 1 fehlgeschlagen, unvollständig: API-Reserve erreicht",
     );
   });
 });

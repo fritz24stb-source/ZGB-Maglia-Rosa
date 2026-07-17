@@ -8,7 +8,10 @@ import {
   validateAdminOrigin,
 } from "@/lib/admin/http";
 import { syncStravaActivitiesForUser } from "@/lib/strava/admin-sync";
-import { formatUserSyncSummary } from "@/lib/strava/sync-summary";
+import {
+  formatUserSyncSummary,
+  isCompletedSync,
+} from "@/lib/strava/sync-summary";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -38,7 +41,9 @@ export async function POST(
       .from("admin_notifications")
       .insert({
         type: "admin_sync_user",
-        title: "User-Resync abgeschlossen",
+        title: isCompletedSync(summary)
+          ? "User-Resync abgeschlossen"
+          : "User-Resync unvollständig",
         message: formatUserSyncSummary(summary),
         user_id: userId,
         activity_id: null,

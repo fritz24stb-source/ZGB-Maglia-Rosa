@@ -2,8 +2,14 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logError } from "@/lib/logger";
-import { syncStravaActivitiesForUser } from "@/lib/strava/admin-sync";
-import { formatUserSyncSummary } from "@/lib/strava/sync-summary";
+import {
+  syncStravaActivitiesForUser,
+  type AdminSyncSummary,
+} from "@/lib/strava/admin-sync";
+import {
+  formatUserSyncSummary,
+  isCompletedSync,
+} from "@/lib/strava/sync-summary";
 import type { Database } from "@/types/database";
 
 type ServiceClient = SupabaseClient<Database>;
@@ -13,14 +19,20 @@ export async function runAutomaticUserResync(input: {
   userId: string;
 }) {
   try {
-    const summary = await syncStravaActivitiesForUser({
-      client: input.client,
-      userId: input.userId,
-    });
+    const activeSeasonId = await findActiveSeasonId(input.client);
+    const summary = activeSeasonId
+      ? await syncStravaActivitiesForUser({
+          client: input.client,
+          seasonId: activeSeasonId,
+          userId: input.userId,
+        })
+      : noActiveSeasonSummary();
 
     await insertNotification(input.client, {
       message: formatUserSyncSummary(summary),
-      title: "Automatischer User-Resync abgeschlossen",
+      title: isCompletedSync(summary)
+        ? "Automatischer User-Resync abgeschlossen"
+        : "Automatischer User-Resync unvollständig",
       type: "strava_auto_resync_completed",
       userId: input.userId,
     });
@@ -44,6 +56,36 @@ export async function runAutomaticUserResync(input: {
       );
     }
   }
+}
+
+async function findActiveSeasonId(client: ServiceClient) {
+  const { data, error } = await client
+    .from("seasons")
+    .select("id")
+    .eq("is_active", true)
+    .order("starts_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.id ?? null;
+}
+
+function noActiveSeasonSummary(): AdminSyncSummary {
+  return {
+    activitiesFetched: 0,
+    apiRequests: 0,
+    completionStatus: "no_active_season",
+    errors: [],
+    failed: 0,
+    scored: 0,
+    skipped: 1,
+    synced: 0,
+    users: 1,
+  };
 }
 
 async function insertNotification(

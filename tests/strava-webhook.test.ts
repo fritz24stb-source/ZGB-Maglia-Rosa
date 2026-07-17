@@ -138,4 +138,22 @@ describe("strava activity mapping", () => {
     expect(getStravaActivityLocalDate(activity)).toBe("2026-06-27");
     expect(getStravaActivityAthleteId(activity)).toBe(456);
   });
+
+  it("omits detail-only timestamps from summary updates", () => {
+    const activityWrite = mapStravaActivityToActivityWrite({
+      activity: {
+        id: 124,
+        name: "ZGB Mittwoch",
+        sport_type: "Ride",
+        distance: 42000,
+        start_date: "2026-07-01T16:00:00Z",
+        start_date_local: "2026-07-01T18:00:00",
+        athlete: { id: 456 },
+      },
+      userId: "user-1",
+      seasonId: "season-2026",
+    });
+
+    expect(activityWrite).not.toHaveProperty("uploaded_or_created_at");
+  });
 });

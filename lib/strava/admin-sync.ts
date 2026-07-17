@@ -8,13 +8,15 @@ import {
 } from "@/lib/scoring";
 import type { ScorableActivity, ScoringRuleRow } from "@/lib/scoring";
 import {
-  fetchStravaActivity,
-  fetchStravaAthleteActivities,
   getStravaActivityAthleteId,
   getStravaActivityLocalDate,
   mapStravaActivityToActivityWrite,
-  type StravaDetailedActivity,
+  type StravaActivitySummary,
 } from "@/lib/strava/activity";
+import {
+  fetchStravaActivitySummariesForRange,
+  type SyncCompletionStatus,
+} from "@/lib/strava/resync-pages";
 import { getValidStravaAccessToken } from "@/lib/strava/token";
 import type { Database } from "@/types/database";
 
@@ -29,7 +31,6 @@ type StravaConnectionRow =
 type FetchLike = typeof fetch;
 type SyncCaches = {
   rulesBySeasonId: Map<string, ScoringRuleRow[]>;
-  seasonsByActivityDate: Map<string, SeasonRow | null>;
 };
 
 export type AdminSyncError = {
@@ -39,6 +40,8 @@ export type AdminSyncError = {
 
 export type AdminSyncSummary = {
   activitiesFetched: number;
+  apiRequests: number;
+  completionStatus: SyncCompletionStatus;
   failed: number;
   scored: number;
   skipped: number;
@@ -75,9 +78,9 @@ export async function syncStravaActivitiesForUser({
   summary.users = 1;
   const caches = createSyncCaches();
 
-  const [connection, season] = await Promise.all([
+  const [connection, seasons] = await Promise.all([
     findConnectionForUser(client, userId),
-    seasonId ? findSeasonById(client, seasonId) : Promise.resolve(null),
+    findSeasonsForSync(client, seasonId),
   ]);
 
   if (!connection) {
@@ -98,43 +101,60 @@ export async function syncStravaActivitiesForUser({
     return summary;
   }
 
-  const accessToken = await getValidStravaAccessToken(connection);
-  const range: { after?: number; before?: number } = season
-    ? seasonToStravaRange(season)
-    : {};
+  if (seasons.length === 0) {
+    summary.skipped += 1;
+    summary.completionStatus = "no_active_season";
+    summary.errors.push({
+      scope: `user:${userId}`,
+      message: "Keine Saison für den Strava-Resync konfiguriert.",
+    });
+    return summary;
+  }
 
-  for (let page = 1; page <= maxPages; page += 1) {
-    const activities = await fetchStravaAthleteActivities(
-      {
-        accessToken,
-        after: range.after,
-        before: range.before,
-        page,
-        perPage,
-      },
+  const accessToken = await getValidStravaAccessToken(connection);
+  const seenActivityIds = new Set<number>();
+
+  for (const season of seasons) {
+    const range = seasonToStravaRange(season);
+    const fetchedRange = await fetchStravaActivitySummariesForRange({
+      accessToken,
+      after: range.after,
+      before: range.before,
       fetchImpl,
+      maxPages,
+      perPage,
+    });
+
+    summary.apiRequests += fetchedRange.apiRequests;
+    summary.completionStatus = mergeCompletionStatus(
+      summary.completionStatus,
+      fetchedRange.completionStatus,
     );
 
-    if (activities.length === 0) {
-      break;
+    if (fetchedRange.rateLimitError) {
+      summary.errors.push({
+        scope: `season:${season.id}`,
+        message: fetchedRange.rateLimitError,
+      });
     }
 
-    for (const activity of activities) {
+    for (const activity of fetchedRange.activities) {
       if (!Number.isFinite(activity.id)) {
         summary.skipped += 1;
         continue;
       }
 
-      try {
-        const detailedActivity = await fetchStravaActivity(
-          activity.id,
-          accessToken,
-          fetchImpl,
-        );
-        summary.activitiesFetched += 1;
+      if (seenActivityIds.has(activity.id)) {
+        summary.skipped += 1;
+        continue;
+      }
 
-        const result = await syncDetailedActivity({
-          activity: detailedActivity,
+      seenActivityIds.add(activity.id);
+      summary.activitiesFetched += 1;
+
+      try {
+        const result = await syncSummaryActivity({
+          activity,
           caches,
           client,
           connection,
@@ -159,7 +179,7 @@ export async function syncStravaActivitiesForUser({
       }
     }
 
-    if (activities.length < perPage) {
+    if (fetchedRange.completionStatus === "partial_rate_budget") {
       break;
     }
   }
@@ -200,6 +220,10 @@ export async function syncStravaActivitiesForActiveUsers({
       });
 
       mergeSummary(aggregate, userSummary);
+
+      if (userSummary.completionStatus === "partial_rate_budget") {
+        break;
+      }
     } catch (error) {
       aggregate.users += 1;
       aggregate.failed += 1;
@@ -216,6 +240,8 @@ export async function syncStravaActivitiesForActiveUsers({
 function emptySummary(): AdminSyncSummary {
   return {
     activitiesFetched: 0,
+    apiRequests: 0,
+    completionStatus: "completed",
     failed: 0,
     scored: 0,
     skipped: 0,
@@ -228,12 +254,16 @@ function emptySummary(): AdminSyncSummary {
 function createSyncCaches(): SyncCaches {
   return {
     rulesBySeasonId: new Map(),
-    seasonsByActivityDate: new Map(),
   };
 }
 
 function mergeSummary(target: AdminSyncSummary, source: AdminSyncSummary) {
   target.activitiesFetched += source.activitiesFetched;
+  target.apiRequests += source.apiRequests;
+  target.completionStatus = mergeCompletionStatus(
+    target.completionStatus,
+    source.completionStatus,
+  );
   target.failed += source.failed;
   target.scored += source.scored;
   target.skipped += source.skipped;
@@ -242,13 +272,27 @@ function mergeSummary(target: AdminSyncSummary, source: AdminSyncSummary) {
   target.errors.push(...source.errors);
 }
 
-async function syncDetailedActivity(input: {
-  activity: StravaDetailedActivity;
+function mergeCompletionStatus(
+  current: SyncCompletionStatus,
+  next: SyncCompletionStatus,
+) {
+  const priority: Record<SyncCompletionStatus, number> = {
+    completed: 0,
+    no_active_season: 1,
+    partial_page_limit: 2,
+    partial_rate_budget: 3,
+  };
+
+  return priority[next] > priority[current] ? next : current;
+}
+
+async function syncSummaryActivity(input: {
+  activity: StravaActivitySummary;
   caches: SyncCaches;
   client: ServiceClient;
   connection: StravaConnectionRow;
   now: Date;
-  requestedSeason: SeasonRow | null;
+  requestedSeason: SeasonRow;
 }) {
   const athleteId = getStravaActivityAthleteId(input.activity);
 
@@ -264,13 +308,7 @@ async function syncDetailedActivity(input: {
     throw new Error("Aktivität hat kein verwertbares Startdatum.");
   }
 
-  const season = input.requestedSeason
-    ? seasonForActivityDate(input.requestedSeason, activityDate)
-    : await findSeasonForActivity(
-        input.client,
-        input.activity,
-        input.caches.seasonsByActivityDate,
-      );
+  const season = seasonForActivityDate(input.requestedSeason, activityDate);
 
   if (!season) {
     return "skipped";
@@ -342,39 +380,25 @@ async function findSeasonById(client: ServiceClient, seasonId: string) {
   return data as SeasonRow;
 }
 
-async function findSeasonForActivity(
+async function findSeasonsForSync(
   client: ServiceClient,
-  activity: StravaDetailedActivity,
-  cache?: Map<string, SeasonRow | null>,
+  seasonId: string | null | undefined,
 ) {
-  const activityDate = getStravaActivityLocalDate(activity);
-
-  if (!activityDate) {
-    throw new Error("Aktivität hat kein verwertbares Startdatum.");
-  }
-
-  if (cache?.has(activityDate)) {
-    return cache.get(activityDate) ?? null;
+  if (seasonId) {
+    return [await findSeasonById(client, seasonId)];
   }
 
   const { data, error } = await client
     .from("seasons")
     .select("*")
-    .lte("starts_on", activityDate)
-    .gte("ends_on", activityDate)
     .order("is_active", { ascending: false })
-    .order("starts_on", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("starts_on", { ascending: false });
 
   if (error) {
     throw error;
   }
 
-  const season = data as SeasonRow | null;
-  cache?.set(activityDate, season);
-
-  return season;
+  return (data ?? []) as SeasonRow[];
 }
 
 async function upsertStravaActivity(

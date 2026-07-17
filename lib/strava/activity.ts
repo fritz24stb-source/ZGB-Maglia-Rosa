@@ -2,6 +2,7 @@ import {
   formatStravaRateLimitMessage,
   isStravaRateLimitStatus,
 } from "@/lib/strava/errors";
+import { parseStravaRateLimitHeaders } from "@/lib/strava/rate-limit";
 import type { Database } from "@/types/database";
 
 export const STRAVA_API_BASE_URL = "https://www.strava.com/api/v3";
@@ -26,7 +27,14 @@ export type StravaDetailedActivity = {
 
 export type StravaActivitySummary = Pick<
   StravaDetailedActivity,
-  "id" | "name" | "sport_type" | "start_date" | "start_date_local"
+  | "athlete"
+  | "distance"
+  | "id"
+  | "name"
+  | "sport_type"
+  | "start_date"
+  | "start_date_local"
+  | "type"
 >;
 
 export type ActivityMappingInput = {
@@ -112,7 +120,10 @@ export async function fetchStravaAthleteActivities(
     );
   }
 
-  return (await response.json()) as StravaActivitySummary[];
+  return {
+    activities: (await response.json()) as StravaActivitySummary[],
+    rateLimit: parseStravaRateLimitHeaders(response.headers),
+  };
 }
 
 export function mapStravaActivityToActivityWrite({
@@ -131,6 +142,8 @@ export function mapStravaActivityToActivityWrite({
     throw new Error("Cannot store Strava activity without start_date.");
   }
 
+  const uploadedOrCreatedAt = normalizeTimestamp(activity.created_at);
+
   return {
     user_id: userId,
     season_id: seasonId,
@@ -141,7 +154,9 @@ export function mapStravaActivityToActivityWrite({
     distance_m: normalizeFiniteNumber(activity.distance),
     activity_started_at: activityStartedAt,
     activity_started_local_at: normalizeTimestamp(activity.start_date_local),
-    uploaded_or_created_at: normalizeTimestamp(activity.created_at),
+    ...(uploadedOrCreatedAt
+      ? { uploaded_or_created_at: uploadedOrCreatedAt }
+      : {}),
     status: "active",
     manually_entered: false,
     manual_comment: null,
