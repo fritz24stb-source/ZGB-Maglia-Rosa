@@ -318,29 +318,37 @@ function ActivityList({
   }
 
   return (
-    <div className="mt-4 max-h-96 overflow-auto rounded-md border border-asphalt-100">
-      <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+    <div className="mt-4 max-h-96 overflow-y-auto overflow-x-hidden rounded-md border border-asphalt-100">
+      <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
         <thead className="sticky top-0 z-10 bg-asphalt-50 text-xs uppercase text-asphalt-600">
           <tr>
-            <th className="px-3 py-2 font-semibold">Aktivität</th>
-            <th className="px-3 py-2 font-semibold">Datum</th>
-            <th className="px-3 py-2 font-semibold">Status</th>
-            <th className="px-3 py-2 text-right font-semibold">Punkte</th>
+            <th className="w-[34%] px-2 py-2 font-semibold sm:px-3">
+              Aktivität
+            </th>
+            <th className="w-[28%] px-2 py-2 font-semibold sm:px-3">
+              Datum
+            </th>
+            <th className="w-[23%] px-2 py-2 font-semibold sm:px-3">
+              Status
+            </th>
+            <th className="w-[15%] px-2 py-2 text-right font-semibold sm:px-3">
+              Punkte
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-asphalt-100">
           {activities.map((activity) => (
             <tr key={activity.id}>
-              <td className="px-3 py-3 font-medium text-asphalt-900">
+              <td className="break-words px-2 py-3 font-medium text-asphalt-900 sm:px-3">
                 {activity.activity_name}
               </td>
-              <td className="whitespace-nowrap px-3 py-3 text-xs text-asphalt-500">
+              <td className="break-words px-2 py-3 text-xs leading-5 text-asphalt-500 sm:px-3">
                 {formatDate(
                   activity.activity_started_local_at ??
                     activity.activity_started_at,
                 )}
               </td>
-              <td className="px-3 py-3">
+              <td className="px-2 py-3 sm:px-3">
                 <StatusBadge
                   tone={
                     activity.status === "active"
@@ -353,7 +361,7 @@ function ActivityList({
                   {activity.status}
                 </StatusBadge>
               </td>
-              <td className="whitespace-nowrap px-3 py-3 text-right font-semibold text-asphalt-900">
+              <td className="whitespace-nowrap px-2 py-3 text-right font-semibold text-asphalt-900 sm:px-3">
                 {activity.points} P
               </td>
             </tr>
