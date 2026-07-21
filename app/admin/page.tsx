@@ -411,8 +411,8 @@ async function loadDashboardState(): Promise<DashboardState> {
       (webhookEventsResult.data ?? []) as WebhookEventRow[],
       8,
     );
-    const failedWebhookEvents =
-      (failedWebhookEventDetailsResult.data ?? []) as WebhookEventRow[];
+    const failedWebhookEvents = (failedWebhookEventDetailsResult.data ??
+      []) as WebhookEventRow[];
     const eventsWithOwners = [...webhookEvents, ...failedWebhookEvents];
     const webhookConnections = await loadWebhookConnections(
       supabase,

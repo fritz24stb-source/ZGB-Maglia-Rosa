@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { AppAccessError, requireActiveAppUser } from "@/lib/auth/guards";
 import { getAppBaseUrl } from "@/lib/env";
 import { logError } from "@/lib/logger";
-import { findOrCreateManualParticipantProfile } from "@/lib/manual-entry/profile";
 import { loadManualEntryEvaluation } from "@/lib/manual-entry/server";
 import { parseManualLocalDateTime } from "@/lib/manual-entry/time";
 import type { ManualEntryContext } from "@/lib/manual-entry/types";
@@ -15,7 +14,6 @@ type ManualEntryPayload = {
   activityStartedLocal?: unknown;
   comment?: unknown;
   distanceKm?: unknown;
-  participantName?: unknown;
   sportType?: unknown;
 };
 
@@ -57,25 +55,27 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     validateOrigin(request);
-    await requireActiveAppUser();
+    const access = await requireActiveAppUser();
 
     const now = new Date();
     const payload = await readPayload(request);
 
     const input = normalizeManualEntryPayload(payload);
     const serviceClient = createSupabaseServiceRoleClient();
-    const profile = await findOrCreateManualParticipantProfile(
-      serviceClient,
-      input.participantName,
-    );
     const evaluation = await loadManualEntryEvaluation(
       serviceClient,
-      { profile },
+      { userId: access.userId },
       now,
     );
 
     if (evaluation.kind !== "ready") {
       throw new HttpError(409, evaluation.state.reason);
+    }
+
+    const profile = evaluation.profile;
+
+    if (!profile) {
+      throw new HttpError(403, "Aktives Mitgliederprofil fehlt.");
     }
 
     const context = evaluation.contexts.find(
@@ -256,16 +256,11 @@ async function readPayload(request: Request): Promise<ManualEntryPayload> {
     activityStartedLocal: formData.get("activityStartedLocal"),
     comment: formData.get("comment"),
     distanceKm: formData.get("distanceKm"),
-    participantName: formData.get("participantName"),
     sportType: formData.get("sportType"),
   };
 }
 
 function normalizeManualEntryPayload(payload: ManualEntryPayload) {
-  const participantName = normalizeRequiredText(
-    payload.participantName,
-    "Name fehlt.",
-  );
   const ruleId = normalizeRequiredText(payload.ruleId, "Kategorie fehlt.");
   const activityStartedLocal = normalizeRequiredText(
     payload.activityStartedLocal,
@@ -283,7 +278,6 @@ function normalizeManualEntryPayload(payload: ManualEntryPayload) {
   }
 
   return {
-    participantName,
     ruleId,
     activityStartedLocal,
     comment,

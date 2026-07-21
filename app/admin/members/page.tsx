@@ -26,6 +26,8 @@ type ActivityMiniRow = Pick<
   Database["public"]["Tables"]["activities"]["Row"],
   "matched_rule_id" | "points" | "status" | "user_id"
 >;
+type PointAdjustmentRow =
+  Database["public"]["Tables"]["member_point_adjustments"]["Row"];
 
 type MemberStats = {
   activeActivities: number;
@@ -38,6 +40,7 @@ type MembersState =
       kind: "ready";
       activityStats: Map<string, MemberStats>;
       activeAdminCount: number;
+      adjustments: Map<string, PointAdjustmentRow[]>;
       connections: Map<string, ConnectionRow>;
       profiles: ProfileRow[];
       seasons: SeasonRow[];
@@ -73,6 +76,7 @@ export default async function AdminMembersPage({
             <MemberCard
               key={profile.id}
               connection={state.connections.get(profile.id) ?? null}
+              adjustments={state.adjustments.get(profile.id) ?? []}
               isLastActiveAdmin={
                 profile.role === "admin" &&
                 profile.is_active &&
@@ -90,18 +94,25 @@ export default async function AdminMembersPage({
 }
 
 function MemberCard({
+  adjustments,
   connection,
   isLastActiveAdmin,
   profile,
   seasons,
   stats,
 }: {
+  adjustments: PointAdjustmentRow[];
   connection: ConnectionRow | null;
   isLastActiveAdmin: boolean;
   profile: ProfileRow;
   seasons: SeasonRow[];
   stats: MemberStats;
 }) {
+  const adjustmentPoints = adjustments.reduce(
+    (sum, adjustment) => sum + adjustment.points,
+    0,
+  );
+
   return (
     <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -169,7 +180,9 @@ function MemberCard({
                 <div className="flex flex-wrap items-center gap-2 md:col-span-3">
                   <span className="text-xs text-asphalt-500">
                     {stats.activeActivities} aktive Aktivitäten,{" "}
-                    {stats.ignoredActivities} ignoriert, {stats.points} P
+                    {stats.ignoredActivities} ignoriert, {stats.points} P aus
+                    Aktivitäten, {formatSignedPoints(adjustmentPoints)}
+                    Korrektur, {stats.points + adjustmentPoints} P gesamt
                   </span>
                   {isLastActiveAdmin ? (
                     <span className="text-xs font-medium text-amber-700">
@@ -247,6 +260,70 @@ function MemberCard({
                 </button>
               </form>
             </div>
+
+            <form
+              action={`/api/admin/members/${profile.id}`}
+              method="post"
+              className="mt-4 grid gap-3 border-t border-asphalt-100 pt-4 sm:grid-cols-[1fr_0.7fr_1.4fr_auto] sm:items-end"
+            >
+              <input name="action" type="hidden" value="adjust-points" />
+              <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+                Saison
+                <select
+                  className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
+                  name="seasonId"
+                  defaultValue={
+                    seasons.find((season) => season.is_active)?.id ??
+                    seasons[0]?.id ??
+                    ""
+                  }
+                  required
+                >
+                  {seasons.map((season) => {
+                    const current = adjustments.find(
+                      (adjustment) => adjustment.season_id === season.id,
+                    );
+
+                    return (
+                      <option key={season.id} value={season.id}>
+                        {season.name}:{" "}
+                        {formatSignedPoints(current?.points ?? 0)}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+                Punkte +/−
+                <input
+                  className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
+                  max="10000"
+                  min="-10000"
+                  name="pointsDelta"
+                  placeholder="z. B. 80 oder -20"
+                  required
+                  step="1"
+                  type="number"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+                Begründung
+                <input
+                  className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm text-asphalt-900"
+                  maxLength={500}
+                  name="reason"
+                  placeholder="z. B. fehlende Aktivität"
+                />
+              </label>
+              <button
+                type="submit"
+                className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800 disabled:cursor-not-allowed disabled:bg-asphalt-100"
+                disabled={seasons.length === 0}
+              >
+                <Save aria-hidden className="h-4 w-4" />
+                Korrigieren
+              </button>
+            </form>
             {connection ? (
               <dl className="mt-4 grid gap-2 border-t border-asphalt-100 pt-4 text-xs text-asphalt-500 md:grid-cols-3">
                 <div>
@@ -297,30 +374,37 @@ function StravaBadge({ connection }: { connection: ConnectionRow | null }) {
 async function loadMembersState(): Promise<MembersState> {
   try {
     const supabase = createSupabaseServiceRoleClient();
-    const [profilesResult, connectionsResult, activitiesResult, seasonsResult] =
-      await Promise.all([
-        supabase
-          .from("profiles")
-          .select("*")
-          .order("display_name", { ascending: true }),
-        supabase
-          .from("strava_connections")
-          .select("user_id, strava_athlete_id, expires_at, scope, revoked"),
-        supabase
-          .from("activities")
-          .select("user_id, points, status, matched_rule_id")
-          .limit(10000),
-        supabase
-          .from("seasons")
-          .select("*")
-          .order("starts_on", { ascending: false }),
-      ]);
+    const [
+      profilesResult,
+      connectionsResult,
+      activitiesResult,
+      seasonsResult,
+      adjustmentsResult,
+    ] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("*")
+        .order("display_name", { ascending: true }),
+      supabase
+        .from("strava_connections")
+        .select("user_id, strava_athlete_id, expires_at, scope, revoked"),
+      supabase
+        .from("activities")
+        .select("user_id, points, status, matched_rule_id")
+        .limit(10000),
+      supabase
+        .from("seasons")
+        .select("*")
+        .order("starts_on", { ascending: false }),
+      supabase.from("member_point_adjustments").select("*"),
+    ]);
 
     const firstError =
       profilesResult.error ??
       connectionsResult.error ??
       activitiesResult.error ??
-      seasonsResult.error;
+      seasonsResult.error ??
+      adjustmentsResult.error;
 
     if (firstError) {
       throw firstError;
@@ -335,6 +419,9 @@ async function loadMembersState(): Promise<MembersState> {
 
     return {
       kind: "ready",
+      adjustments: buildAdjustmentsByUser(
+        (adjustmentsResult.data ?? []) as PointAdjustmentRow[],
+      ),
       activityStats: buildActivityStats(
         (activitiesResult.data ?? []) as ActivityMiniRow[],
       ),
@@ -383,6 +470,20 @@ const emptyStats: MemberStats = {
   ignoredActivities: 0,
   points: 0,
 };
+
+function buildAdjustmentsByUser(adjustments: PointAdjustmentRow[]) {
+  return adjustments.reduce((byUser, adjustment) => {
+    const current = byUser.get(adjustment.user_id) ?? [];
+
+    current.push(adjustment);
+    byUser.set(adjustment.user_id, current);
+    return byUser;
+  }, new Map<string, PointAdjustmentRow[]>());
+}
+
+function formatSignedPoints(points: number) {
+  return `${points > 0 ? "+" : ""}${points} P`;
+}
 
 function getSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;

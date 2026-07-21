@@ -10,6 +10,7 @@ import {
   Save,
 } from "lucide-react";
 import { AdminFlash } from "@/components/admin-flash";
+import { AdminActivitiesScrollReset } from "@/components/admin-activities-scroll-reset";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { toLocalInputValue } from "@/lib/manual-entry/time";
@@ -37,6 +38,7 @@ type ActivitiesState =
   | { kind: "error"; message: string };
 
 type ActivityFilters = {
+  category: string;
   search: string;
   seasonId: string;
   source: string;
@@ -51,9 +53,11 @@ export default async function AdminActivitiesPage({
 }: AdminActivitiesPageProps) {
   const params = searchParams ? await searchParams : {};
   const state = await loadActivitiesState(params);
+  const scrollResetKey = JSON.stringify(params);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <AdminActivitiesScrollReset resetKey={scrollResetKey} />
       <PageHeader
         title="Aktivitätsprüfung"
         description="Aktivitäten filtern, manuelle Einträge prüfen, neu bewerten oder aus der Wertung ausschließen."
@@ -70,6 +74,7 @@ export default async function AdminActivitiesPage({
       ) : (
         <>
           <FilterPanel
+            categories={getScoringCategories(state.rules)}
             filters={state.filters}
             profiles={state.profiles}
             seasons={state.seasons}
@@ -98,10 +103,12 @@ export default async function AdminActivitiesPage({
 }
 
 function FilterPanel({
+  categories,
   filters,
   profiles,
   seasons,
 }: {
+  categories: string[];
   filters: ActivityFilters;
   profiles: ProfileRow[];
   seasons: SeasonRow[];
@@ -121,6 +128,7 @@ function FilterPanel({
         </summary>
         <div className="border-t border-asphalt-100 p-4">
           <ActivityFilterFields
+            categories={categories}
             filters={filters}
             profiles={profiles}
             seasons={seasons}
@@ -135,6 +143,7 @@ function FilterPanel({
         </div>
         <div className="mt-4">
           <ActivityFilterFields
+            categories={categories}
             filters={filters}
             profiles={profiles}
             seasons={seasons}
@@ -146,16 +155,18 @@ function FilterPanel({
 }
 
 function ActivityFilterFields({
+  categories,
   filters,
   profiles,
   seasons,
 }: {
+  categories: string[];
   filters: ActivityFilters;
   profiles: ProfileRow[];
   seasons: SeasonRow[];
 }) {
   return (
-    <form className="grid gap-4 md:grid-cols-5" method="get">
+    <form className="grid gap-4 md:grid-cols-6" method="get">
       <SelectField label="Saison" name="seasonId" value={filters.seasonId}>
         <option value="all">Alle Saisons</option>
         {seasons.map((season) => (
@@ -184,6 +195,14 @@ function ActivityFilterFields({
         <option value="ignored">ignored</option>
         <option value="deleted">deleted</option>
       </SelectField>
+      <SelectField label="Wertung" name="category" value={filters.category}>
+        <option value="all">Alle Wertungen</option>
+        {categories.map((category) => (
+          <option key={category} value={category}>
+            {formatCategoryLabel(category)}
+          </option>
+        ))}
+      </SelectField>
       <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
         Suche
         <input
@@ -193,7 +212,7 @@ function ActivityFilterFields({
           placeholder="Name"
         />
       </label>
-      <div className="flex flex-col gap-3 md:col-span-5 sm:flex-row">
+      <div className="flex flex-col gap-3 md:col-span-6 sm:flex-row">
         <button
           type="submit"
           className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white"
@@ -616,7 +635,8 @@ async function loadActivitiesState(
     }
 
     const seasons = (seasonsResult.data ?? []) as SeasonRow[];
-    const filters = buildFilters(params, seasons);
+    const rules = (rulesResult.data ?? []) as ScoringRuleRow[];
+    const filters = buildFilters(params, seasons, rules);
     let query = supabase
       .from("activities")
       .select("*")
@@ -647,6 +667,10 @@ async function loadActivitiesState(
       query = query.ilike("activity_name", `%${filters.search}%`);
     }
 
+    if (filters.category !== "all") {
+      query = query.eq("category", filters.category);
+    }
+
     const activitiesResult = await query;
 
     if (activitiesResult.error) {
@@ -658,7 +682,7 @@ async function loadActivitiesState(
       filters,
       kind: "ready",
       profiles: (profilesResult.data ?? []) as ProfileRow[],
-      rules: (rulesResult.data ?? []) as ScoringRuleRow[],
+      rules,
       seasons,
     };
   } catch (error) {
@@ -675,16 +699,40 @@ async function loadActivitiesState(
 function buildFilters(
   params: Record<string, string | string[] | undefined>,
   seasons: SeasonRow[],
+  rules: ScoringRuleRow[],
 ): ActivityFilters {
   const activeSeason = seasons.find((season) => season.is_active);
+  const requestedCategory = getSingleParam(params.category) ?? "all";
+  const category = rules.some((rule) => rule.category === requestedCategory)
+    ? requestedCategory
+    : "all";
 
   return {
+    category,
     search: getSingleParam(params.search) ?? "",
     seasonId: getSingleParam(params.seasonId) ?? activeSeason?.id ?? "all",
     source: getSingleParam(params.source) ?? "all",
     status: getSingleParam(params.status) ?? "all",
     userId: getSingleParam(params.userId) ?? "all",
   };
+}
+
+function getScoringCategories(rules: ScoringRuleRow[]) {
+  return [...new Set(rules.map((rule) => rule.category))].sort((left, right) =>
+    formatCategoryLabel(left).localeCompare(formatCategoryLabel(right), "de"),
+  );
+}
+
+function formatCategoryLabel(category: string) {
+  const labels: Record<string, string> = {
+    fondo: "Fondo",
+    scuola: "Scuola",
+    scuderia: "Scuderia",
+    sonderevent: "Sonderevent",
+    zug: "Zug",
+  };
+
+  return labels[category] ?? category;
 }
 
 function getRulesForSeason(rules: ScoringRuleRow[], seasonId: string) {

@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/page-header";
 
 export const metadata: Metadata = {
   title: "FAQ | ZGB-Maglia-Rosa",
-  description: "Antworten zur Strava-Verbindung, Wertung und manuellen Eingabe.",
+  description:
+    "Antworten zur Strava-Verbindung, Wertung und manuellen Eingabe.",
 };
 
 const faqs = [
@@ -14,8 +15,9 @@ const faqs = [
     answer: (
       <p>
         Melde dich an und öffne <Link href="/profile">Profil</Link>. Unter
-        <strong> Strava-Verbindung</strong> wähle <strong>Strava verbinden</strong>
-         und bestätige die Berechtigung bei Strava. Danach werden neue passende
+        <strong> Strava-Verbindung</strong> wähle{" "}
+        <strong>Strava verbinden</strong>
+        und bestätige die Berechtigung bei Strava. Danach werden neue passende
         Aktivitäten automatisch für die Wertung synchronisiert.
       </p>
     ),
@@ -30,9 +32,18 @@ const faqs = [
           Aktivität passend zur Fahrt.
         </p>
         <ul className="list-disc space-y-1 pl-5">
-          <li><strong>Fondo:</strong> Der Name enthält <em>Samstags</em>, <em>Fondo</em> oder <em>ZGB</em>; Start am Samstag oder Sonntag.</li>
-          <li><strong>Zug:</strong> Der Name enthält <em>ZGB</em> oder <em>Zug</em>; Start am Mittwoch.</li>
-          <li><strong>Scuola / Scuderia:</strong> Der Name enthält jeweils <em>ZGB</em> oder den passenden Begriff; Start am Mittwoch.</li>
+          <li>
+            <strong>Fondo:</strong> Der Name enthält <em>Samstags</em>,{" "}
+            <em>Fondo</em> oder <em>ZGB</em>; Start am Samstag oder Sonntag.
+          </li>
+          <li>
+            <strong>Zug:</strong> Der Name enthält <em>ZGB</em> oder{" "}
+            <em>Zug</em>; Start am Mittwoch.
+          </li>
+          <li>
+            <strong>Scuola / Scuderia:</strong> Der Name enthält jeweils{" "}
+            <em>ZGB</em> oder den passenden Begriff; Start am Mittwoch.
+          </li>
         </ul>
         <p>
           Die Auswertung verwendet den in Strava gespeicherten Aktivitätsnamen
@@ -43,7 +54,8 @@ const faqs = [
     ),
   },
   {
-    question: "Wie kann ich einen Passkey (Face ID oder Fingerabdruck) erstellen?",
+    question:
+      "Wie kann ich einen Passkey (Face ID oder Fingerabdruck) erstellen?",
     answer: (
       <p>
         Melde dich an, gehe zu <Link href="/profile">Profil</Link> und wähle im
@@ -60,11 +72,11 @@ const faqs = [
       <p>
         Im Leaderboard sehen Mitglieder nur deinen Namen, Punkte, die Anzahl
         gewerteter Fahrten sowie deren Kategorie. Die Details deiner eigenen
-        Aktivitäten siehst nur du im Profil. Detaildaten anderer Mitglieder
-        sind ausschließlich für Admins sichtbar, wenn sie eine Wertung prüfen
-        oder korrigieren müssen. GPS-Tracks, Routen, Herzfrequenz- und
-        Leistungsdaten werden weder angezeigt noch für die Wertung benötigt.
-        Weitere Informationen stehen unter <Link href="/datenschutz">Datenschutz</Link>.
+        Aktivitäten siehst nur du im Profil. Detaildaten anderer Mitglieder sind
+        ausschließlich für Admins sichtbar, wenn sie eine Wertung prüfen oder
+        korrigieren müssen. GPS-Tracks, Routen, Herzfrequenz- und Leistungsdaten
+        werden weder angezeigt noch für die Wertung benötigt. Weitere
+        Informationen stehen unter <Link href="/datenschutz">Datenschutz</Link>.
       </p>
     ),
   },
@@ -78,8 +90,8 @@ const faqs = [
           <li>Sonderevents: Punktzahl gemäß der jeweiligen Eventregel</li>
         </ul>
         <p>
-          Pro Aktivität wird nur eine Regel gewertet. Treffen mehrere Regeln
-          zu, hat ein passendes Sonderevent Vorrang; ansonsten entscheidet die
+          Pro Aktivität wird nur eine Regel gewertet. Treffen mehrere Regeln zu,
+          hat ein passendes Sonderevent Vorrang; ansonsten entscheidet die
           hinterlegte Priorität. Nur Aktivitäten innerhalb der aktiven Saison
           erhalten Punkte.
         </p>
@@ -101,17 +113,18 @@ const faqs = [
     question: "Wie kann ich meine Aktivität manuell hinzufügen?",
     answer: (
       <p>
-        Öffne <Link href="/manual">Manuell</Link> und wähle eine aktuell
-        offene Kategorie. Gib die geforderten Angaben ein und sende den Eintrag
-        ab. Manuelle Einträge sind nur im jeweiligen Zeitfenster, innerhalb
-        der aktiven Saison und in der Regel einmal pro Kategorie und Zeitfenster
+        Öffne <Link href="/manual">Manuell</Link> und wähle eine aktuell offene
+        Kategorie. Gib die geforderten Angaben ein und sende den Eintrag ab.
+        Manuelle Einträge sind nur im jeweiligen Zeitfenster, innerhalb der
+        aktiven Saison und in der Regel einmal pro Kategorie und Zeitfenster
         möglich. Sie werden direkt gewertet und für die Administration
         nachvollziehbar protokolliert.
       </p>
     ),
   },
   {
-    question: "Meine Aktivität erscheint nicht im Leaderboard. Was kann ich tun?",
+    question:
+      "Meine Aktivität erscheint nicht im Leaderboard. Was kann ich tun?",
     answer: (
       <p>
         Prüfe zuerst, ob Strava im Profil verbunden ist, die Aktivität in der
@@ -129,8 +142,8 @@ const faqs = [
         Ja. Im <Link href="/profile">Profil</Link> kannst du die
         Strava-Verbindung trennen oder die Strava-Daten bereinigen. Nach dem
         Trennen werden keine neuen Aktivitäten mehr synchronisiert. Für die
-        Rangliste notwendige, aggregierte Wertungsdaten können erhalten
-        bleiben; Details dazu findest du im <Link href="/datenschutz">Datenschutz</Link>.
+        Rangliste notwendige, aggregierte Wertungsdaten können erhalten bleiben;
+        Details dazu findest du im <Link href="/datenschutz">Datenschutz</Link>.
       </p>
     ),
   },
@@ -146,7 +159,10 @@ export default function FaqPage() {
 
       <section className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
         <div className="flex items-start gap-3">
-          <CircleHelp aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-signal-blue" />
+          <CircleHelp
+            aria-hidden
+            className="mt-0.5 h-5 w-5 shrink-0 text-signal-blue"
+          />
           <p className="text-sm leading-6 text-asphalt-600">
             Die angezeigten Wertungsregeln können je Saison oder bei
             Sonderevents angepasst werden. Maßgebend sind die aktuell
@@ -157,10 +173,16 @@ export default function FaqPage() {
 
       <section className="grid gap-3">
         {faqs.map((faq) => (
-          <details key={faq.question} className="group rounded-lg border border-asphalt-200 bg-white shadow-line">
+          <details
+            key={faq.question}
+            className="group rounded-lg border border-asphalt-200 bg-white shadow-line"
+          >
             <summary className="focus-ring flex cursor-pointer list-none items-center justify-between gap-4 rounded-lg px-5 py-4 text-base font-semibold text-asphalt-900 [&::-webkit-details-marker]:hidden">
               {faq.question}
-              <ExternalLink aria-hidden className="h-4 w-4 shrink-0 text-asphalt-500 transition-transform group-open:rotate-45" />
+              <ExternalLink
+                aria-hidden
+                className="h-4 w-4 shrink-0 text-asphalt-500 transition-transform group-open:rotate-45"
+              />
             </summary>
             <div className="border-t border-asphalt-100 px-5 py-4 text-sm leading-6 text-asphalt-700">
               {faq.answer}

@@ -139,6 +139,15 @@ type ActivityRow = {
   updated_at: string;
 };
 
+type MemberPointAdjustmentRow = {
+  user_id: string;
+  season_id: string;
+  points: number;
+  last_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type ManualEntryWindowRow = {
   id: string;
   category: string;
@@ -204,6 +213,7 @@ export type Database = {
       seasons: Table<SeasonRow>;
       scoring_rules: Table<ScoringRuleRow>;
       activities: Table<ActivityRow>;
+      member_point_adjustments: Table<MemberPointAdjustmentRow>;
       manual_entry_windows: Table<ManualEntryWindowRow>;
       admin_notifications: Table<AdminNotificationRow>;
       webhook_events: Table<WebhookEventRow>;

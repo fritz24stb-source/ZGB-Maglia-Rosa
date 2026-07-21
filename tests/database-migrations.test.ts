@@ -65,6 +65,13 @@ const stravaRetentionSql = readFileSync(
   ),
   "utf8",
 );
+const memberPointAdjustmentsSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260721120000_member_point_adjustments.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -181,5 +188,22 @@ describe("database migrations", () => {
       "add column if not exists strava_erased_at timestamptz",
     );
     expect(stravaRetentionSql).toContain("or strava_erased_at is not null");
+  });
+
+  it("stores season-based point corrections and adds them to unfiltered rankings", () => {
+    expect(memberPointAdjustmentsSql).toContain(
+      "create table public.member_point_adjustments",
+    );
+    expect(memberPointAdjustmentsSql).toContain(
+      "primary key (user_id, season_id)",
+    );
+    expect(memberPointAdjustmentsSql).toContain(
+      "coalesce(activity.activity_points, 0) + coalesce(adjustment.points, 0)",
+    );
+    expect(memberPointAdjustmentsSql).toContain(
+      "and (p_category is null or p_category = 'all')",
+    );
+    expect(memberPointAdjustmentsSql).toContain("and p_from is null");
+    expect(memberPointAdjustmentsSql).toContain("and p_to is null");
   });
 });

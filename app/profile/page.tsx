@@ -318,41 +318,49 @@ function ActivityList({
   }
 
   return (
-    <ul className="mt-4 divide-y divide-asphalt-100">
-      {activities.map((activity) => (
-        <li key={activity.id} className="py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-asphalt-900">
+    <div className="mt-4 max-h-96 overflow-auto rounded-md border border-asphalt-100">
+      <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+        <thead className="sticky top-0 z-10 bg-asphalt-50 text-xs uppercase text-asphalt-600">
+          <tr>
+            <th className="px-3 py-2 font-semibold">Aktivität</th>
+            <th className="px-3 py-2 font-semibold">Datum</th>
+            <th className="px-3 py-2 font-semibold">Status</th>
+            <th className="px-3 py-2 text-right font-semibold">Punkte</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-asphalt-100">
+          {activities.map((activity) => (
+            <tr key={activity.id}>
+              <td className="px-3 py-3 font-medium text-asphalt-900">
                 {activity.activity_name}
-              </p>
-              <p className="mt-1 text-xs text-asphalt-500">
+              </td>
+              <td className="whitespace-nowrap px-3 py-3 text-xs text-asphalt-500">
                 {formatDate(
                   activity.activity_started_local_at ??
                     activity.activity_started_at,
                 )}
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <StatusBadge
-                tone={
-                  activity.status === "active"
-                    ? "success"
-                    : activity.status === "ignored"
-                      ? "warning"
-                      : "danger"
-                }
-              >
-                {activity.status}
-              </StatusBadge>
-              <span className="text-sm font-semibold text-asphalt-900">
+              </td>
+              <td className="px-3 py-3">
+                <StatusBadge
+                  tone={
+                    activity.status === "active"
+                      ? "success"
+                      : activity.status === "ignored"
+                        ? "warning"
+                        : "danger"
+                  }
+                >
+                  {activity.status}
+                </StatusBadge>
+              </td>
+              <td className="whitespace-nowrap px-3 py-3 text-right font-semibold text-asphalt-900">
                 {activity.points} P
-              </span>
-            </div>
-          </div>
-        </li>
-      ))}
-    </ul>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -366,30 +374,19 @@ async function loadProfileState(): Promise<ProfileState> {
 
     const supabase = createSupabaseServiceRoleClient();
     const userId = accessState.userId;
-    const [profileResult, connectionResult, activitiesResult] =
-      await Promise.all([
-        supabase
-          .from("profiles")
-          .select("display_name, role")
-          .eq("id", userId)
-          .maybeSingle(),
-        supabase
-          .from("strava_connections")
-          .select("strava_athlete_id, expires_at, scope, revoked")
-          .eq("user_id", userId)
-          .maybeSingle(),
-        supabase
-          .from("activities")
-          .select(
-            "id, activity_name, points, status, activity_started_local_at, activity_started_at",
-          )
-          .eq("user_id", userId)
-          .eq("status", "active")
-          .gt("points", 0)
-          .not("matched_rule_id", "is", null)
-          .order("activity_started_at", { ascending: false })
-          .limit(5),
-      ]);
+    const [profileResult, connectionResult, activities] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("display_name, role")
+        .eq("id", userId)
+        .maybeSingle(),
+      supabase
+        .from("strava_connections")
+        .select("strava_athlete_id, expires_at, scope, revoked")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      loadAllScoredActivities(supabase, userId),
+    ]);
     const passkeysResult = await supabase
       .from("app_passkey_credentials")
       .select("id", { count: "exact", head: true })
@@ -399,20 +396,12 @@ async function loadProfileState(): Promise<ProfileState> {
       throw passkeysResult.error;
     }
 
-    if (
-      profileResult.error ||
-      connectionResult.error ||
-      activitiesResult.error
-    ) {
-      throw (
-        profileResult.error ?? connectionResult.error ?? activitiesResult.error
-      );
+    if (profileResult.error || connectionResult.error) {
+      throw profileResult.error ?? connectionResult.error;
     }
 
     const profile = profileResult.data as ProfileSummary | null;
     const connection = connectionResult.data as ConnectionSummary | null;
-    const activities = (activitiesResult.data ?? []) as ActivitySummary[];
-
     return {
       kind: "authenticated",
       profileName:
@@ -434,6 +423,39 @@ async function loadProfileState(): Promise<ProfileState> {
       kind: "unconfigured",
       message: formatProfileLoadError(error),
     };
+  }
+}
+
+async function loadAllScoredActivities(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+  userId: string,
+) {
+  const pageSize = 1000;
+  const activities: ActivitySummary[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("activities")
+      .select(
+        "id, activity_name, points, status, activity_started_local_at, activity_started_at",
+      )
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .gt("points", 0)
+      .not("matched_rule_id", "is", null)
+      .order("activity_started_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const page = (data ?? []) as ActivitySummary[];
+    activities.push(...page);
+
+    if (page.length < pageSize) {
+      return activities;
+    }
   }
 }
 

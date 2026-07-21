@@ -71,9 +71,7 @@ export function AdminSectionGrid({
         <p className="mt-3 text-2xl font-semibold text-asphalt-900">
           {activeMembers}
         </p>
-        <p className="mt-1 text-sm text-asphalt-600">
-          aktive Mitglieder.
-        </p>
+        <p className="mt-1 text-sm text-asphalt-600">aktive Mitglieder.</p>
       </article>
       {adminSections.map((section) => {
         const Icon = iconByHref[section.href];
