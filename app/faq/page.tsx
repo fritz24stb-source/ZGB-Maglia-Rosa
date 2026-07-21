@@ -11,6 +11,18 @@ export const metadata: Metadata = {
 
 const faqs = [
   {
+    question: "Wie kann ich die Website als App herunterladen?",
+    answer: (
+      <p>
+        Die Website kann als App auf dem Startbildschirm installiert werden.
+        Öffne sie dazu im Browser und wähle je nach Gerät <strong>App
+        installieren</strong>, <strong>Zum Startbildschirm hinzufügen</strong>
+        oder <strong>Als App installieren</strong>. Anschließend lässt sich
+        ZGB-Maglia-Rosa wie eine normale App starten.
+      </p>
+    ),
+  },
+  {
     question: "Wie kann ich mein Strava verlinken?",
     answer: (
       <p>
@@ -132,6 +144,18 @@ const faqs = [
         Synchronisation nach dem Speichern in Strava etwas Zeit. Fehlt die Fahrt
         danach weiterhin, nutze bei offenem Zeitfenster die manuelle Eingabe
         oder wende dich an einen Admin.
+      </p>
+    ),
+  },
+  {
+    question: "Meine Punkte stimmen nicht. An wen kann ich mich wenden?",
+    answer: (
+      <p>
+        Prüfe unter <Link href="/profile">Profil</Link> deine gewerteten
+        Fahrten und gleiche sie im Zweifel mit der Excel-Liste ab. Wende dich
+        anschließend direkt an den Admin Martin Fritz, um Fahrten nachtragen zu
+        lassen. Höhere Punkte können auch durch vergessene Eintragungen in der
+        Excel-Liste entstehen.
       </p>
     ),
   },

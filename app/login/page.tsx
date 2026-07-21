@@ -35,7 +35,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Anmelden"
-        description="Zugang für registrierte Mitglieder per Passwort, Passkey oder verknuepftem Strava-Konto."
+        description="Zugang für registrierte Mitglieder per Passwort, Passkey oder verknüpftem Strava-Konto."
       />
 
       {error ? (
