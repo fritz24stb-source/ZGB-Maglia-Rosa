@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase/server";
 import {
   exchangeStravaAuthorizationCode,
+  hasLegacyStravaScopes,
   hasRequiredStravaScopes,
 } from "@/lib/strava/oauth";
 import { runAutomaticUserResync } from "@/lib/strava/automatic-resync";
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
     const env = getServerEnv();
     const code = requestUrl.searchParams.get("code");
     const returnedState = requestUrl.searchParams.get("state");
-    const acceptedScope = requestUrl.searchParams.get("scope") ?? "";
+    const callbackScope = requestUrl.searchParams.get("scope") ?? "";
     const cookieStore = await cookies();
     const oauthState = decodeOAuthState(cookieStore.get(STATE_COOKIE)?.value);
 
@@ -61,17 +62,22 @@ export async function GET(request: Request) {
       });
     }
 
-    if (!hasRequiredStravaScopes(acceptedScope)) {
-      return redirectWithClearedState(request, "/login", {
-        error: "missing_strava_scope",
-      });
-    }
-
     const tokenResponse = await exchangeStravaAuthorizationCode({
       clientId: env.stravaClientId,
       clientSecret: env.stravaClientSecret,
       code,
     });
+    const acceptedScope = callbackScope || tokenResponse.scope || "";
+
+    const hasAcceptedScopes =
+      hasRequiredStravaScopes(acceptedScope) ||
+      (oauthState.mode === "login" && hasLegacyStravaScopes(acceptedScope));
+
+    if (!hasAcceptedScopes) {
+      return redirectWithClearedState(request, "/login", {
+        error: "missing_strava_scope",
+      });
+    }
     const serviceClient = createSupabaseServiceRoleClient();
     const athleteId = tokenResponse.athlete?.id;
 
@@ -81,7 +87,7 @@ export async function GET(request: Request) {
 
     if (oauthState.mode === "connect") {
       const connectionResult = await connectStravaToCurrentUser({
-        acceptedScope: acceptedScope || tokenResponse.scope || "",
+        acceptedScope,
         oauthState,
         request,
         serviceClient,
@@ -107,9 +113,11 @@ export async function GET(request: Request) {
     }
 
     const signedInUserId = await signInWithLinkedStrava({
+      acceptedScope,
       athleteId,
       serviceClient,
       request,
+      tokenResponse,
     });
 
     return await redirectWithClearedState(
@@ -187,9 +195,11 @@ async function connectStravaToCurrentUser(input: {
 }
 
 async function signInWithLinkedStrava(input: {
+  acceptedScope: string;
   athleteId: number;
   request: Request;
   serviceClient: ReturnType<typeof createSupabaseServiceRoleClient>;
+  tokenResponse: Awaited<ReturnType<typeof exchangeStravaAuthorizationCode>>;
 }) {
   const connection = await findConnectionByAthleteId(
     input.serviceClient,
@@ -208,6 +218,15 @@ async function signInWithLinkedStrava(input: {
   if (!profile) {
     throw new StravaUserError("account_blocked");
   }
+
+  // A Strava login is also a fresh authorization. Persist its tokens and
+  // scopes so an existing connection is upgraded to activity:read_all.
+  await upsertStravaConnectionForUser(
+    input.serviceClient,
+    connection.user_id,
+    input.tokenResponse,
+    input.acceptedScope,
+  );
 
   const supabase = await createSupabaseServerClient();
   await signInSupabaseAsAppUser({

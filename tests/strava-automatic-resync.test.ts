@@ -14,15 +14,27 @@ describe("automatic Strava user resync", () => {
     expect(
       shouldRunAutomaticUserResync({
         revoked: false,
+        scope: "read,activity:read_all",
         user_id: "user-1",
       }),
     ).toBe(false);
+  });
+
+  it("runs once when an existing connection is upgraded to private activity access", () => {
+    expect(
+      shouldRunAutomaticUserResync({
+        revoked: false,
+        scope: "read,activity:read",
+        user_id: "user-1",
+      }),
+    ).toBe(true);
   });
 
   it("does not treat a disconnect as deleted Strava data", () => {
     expect(
       shouldRunAutomaticUserResync({
         revoked: true,
+        scope: null,
         user_id: "user-1",
       }),
     ).toBe(false);

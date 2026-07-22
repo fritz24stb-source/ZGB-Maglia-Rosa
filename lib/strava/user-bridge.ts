@@ -122,7 +122,7 @@ export async function findConnectionByUserId(
 ) {
   const { data, error } = await serviceClient
     .from("strava_connections")
-    .select("user_id, revoked")
+    .select("user_id, revoked, scope")
     .eq("user_id", userId)
     .maybeSingle();
 

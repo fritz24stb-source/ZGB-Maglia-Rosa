@@ -1,7 +1,7 @@
 export const STRAVA_AUTHORIZE_URL = "https://www.strava.com/oauth/authorize";
 export const STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
 export const STRAVA_REVOKE_URL = "https://www.strava.com/oauth/revoke";
-export const REQUIRED_STRAVA_SCOPES = ["read", "activity:read"] as const;
+export const REQUIRED_STRAVA_SCOPES = ["read", "activity:read_all"] as const;
 
 import {
   formatStravaRateLimitMessage,
@@ -102,6 +102,12 @@ export function hasRequiredStravaScopes(scope: string | null | undefined) {
   return REQUIRED_STRAVA_SCOPES.every((requiredScope) =>
     granted.has(requiredScope),
   );
+}
+
+export function hasLegacyStravaScopes(scope: string | null | undefined) {
+  const granted = parseStravaScopes(scope);
+
+  return granted.has("read") && granted.has("activity:read");
 }
 
 export async function exchangeStravaAuthorizationCode(

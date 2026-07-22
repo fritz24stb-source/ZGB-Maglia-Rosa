@@ -59,9 +59,10 @@ export default function DatenschutzPage() {
           <p>
             Die Verbindung erfolgt freiwillig ueber Strava OAuth. Nutzer stimmen
             dabei den angeforderten Scopes <code>read</code> und{" "}
-            <code>activity:read</code> zu. Nutzer koennen Strava jederzeit im
-            eigenen Profil trennen; danach wird keine weitere Synchronisation
-            durchgefuehrt.
+            <code>activity:read_all</code> zu. Dadurch koennen auch Aktivitaeten
+            mit der Strava-Sichtbarkeit &quot;Nur du&quot; synchronisiert
+            werden. Nutzer koennen Strava jederzeit im eigenen Profil trennen;
+            danach wird keine weitere Synchronisation durchgefuehrt.
           </p>
         </Article>
 

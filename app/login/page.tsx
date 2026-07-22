@@ -13,7 +13,7 @@ const messageByError: Record<string, string> = {
   invalid_oauth_state:
     "OAuth-Status ungültig. Bitte Strava-Verbindung erneut starten.",
   missing_strava_scope:
-    "Strava-Berechtigungen fehlen. Bitte read und activity:read bestätigen.",
+    "Strava-Berechtigungen fehlen. Bitte read und activity:read_all bestätigen.",
   strava_callback_failed:
     "Strava-Callback konnte nicht verarbeitet werden. Bitte erneut versuchen.",
   strava_denied: "Strava-Zugriff wurde nicht bestätigt.",

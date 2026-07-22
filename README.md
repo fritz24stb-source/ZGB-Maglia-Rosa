@@ -145,7 +145,7 @@ CRON_SECRET=<zufälliger-cron-secret>
 | Schritt    | Prüfung                                                                             |
 | ---------- | ----------------------------------------------------------------------------------- |
 | Supabase   | Migrationen aus `supabase/migrations` in Reihenfolge ausführen                      |
-| Strava App | Callback `/api/strava/callback`, Scopes `read,activity:read`                        |
+| Strava App | Callback `/api/strava/callback`, Scopes `read,activity:read_all`                    |
 | Webhook    | `STRAVA_WEBHOOK_CALLBACK_URL` zeigt auf `/api/strava/webhook`                       |
 | Cron       | `CRON_SECRET` setzen; `/api/cron/strava` wird über `vercel.json` täglich ausgeführt |
 | Admin      | Mit normalem Login anmelden; `profiles.role = 'admin'` für Adminprofile prüfen      |

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildStravaAuthorizeUrl,
+  hasLegacyStravaScopes,
   hasRequiredStravaScopes,
   parseStravaScopes,
 } from "@/lib/strava/oauth";
@@ -21,16 +22,19 @@ describe("strava oauth helpers", () => {
     expect(url.pathname).toBe("/oauth/authorize");
     expect(url.searchParams.get("client_id")).toBe("12345");
     expect(url.searchParams.get("response_type")).toBe("code");
-    expect(url.searchParams.get("scope")).toBe("read,activity:read");
+    expect(url.searchParams.get("scope")).toBe("read,activity:read_all");
     expect(url.searchParams.get("state")).toBe("abc");
   });
 
   it("accepts comma and space separated scope strings", () => {
-    expect([...parseStravaScopes("read activity:read")]).toEqual([
+    expect([...parseStravaScopes("read activity:read_all")]).toEqual([
       "read",
-      "activity:read",
+      "activity:read_all",
     ]);
-    expect(hasRequiredStravaScopes("read,activity:read")).toBe(true);
+    expect(hasRequiredStravaScopes("read,activity:read_all")).toBe(true);
+    expect(hasRequiredStravaScopes("read,activity:read")).toBe(false);
+    expect(hasLegacyStravaScopes("read,activity:read")).toBe(true);
+    expect(hasLegacyStravaScopes("read")).toBe(false);
     expect(hasRequiredStravaScopes("read")).toBe(false);
   });
 });

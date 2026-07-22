@@ -15,8 +15,9 @@ const faqs = [
     answer: (
       <p>
         Die Website kann als App auf dem Startbildschirm installiert werden.
-        Öffne sie dazu im Browser und wähle je nach Gerät <strong>App
-        installieren</strong>, <strong>Zum Startbildschirm hinzufügen</strong>
+        Öffne sie dazu im Browser und wähle je nach Gerät{" "}
+        <strong>App installieren</strong>,{" "}
+        <strong>Zum Startbildschirm hinzufügen</strong>
         oder <strong>Als App installieren</strong>. Anschließend lässt sich
         ZGB-Maglia-Rosa wie eine normale App starten.
       </p>
@@ -61,6 +62,13 @@ const faqs = [
           Die Auswertung verwendet den in Strava gespeicherten Aktivitätsnamen
           und den lokalen Startzeitpunkt. Änderungen an einer Aktivität werden
           bei einer erneuten Synchronisation berücksichtigt.
+        </p>
+        <p>
+          Bei neuen oder erneut autorisierten Strava-Verbindungen werden auch
+          Aktivitäten mit der Sichtbarkeit <strong>Nur du</strong>
+          synchronisiert. Bereits bestehende Verbindungen funktionieren weiter;
+          private Aktivitäten werden dort erst nach einer erneuten Autorisierung
+          erfasst.
         </p>
       </div>
     ),
@@ -151,8 +159,8 @@ const faqs = [
     question: "Meine Punkte stimmen nicht. An wen kann ich mich wenden?",
     answer: (
       <p>
-        Prüfe unter <Link href="/profile">Profil</Link> deine gewerteten
-        Fahrten und gleiche sie im Zweifel mit der Excel-Liste ab. Wende dich
+        Prüfe unter <Link href="/profile">Profil</Link> deine gewerteten Fahrten
+        und gleiche sie im Zweifel mit der Excel-Liste ab. Wende dich
         anschließend direkt an den Admin Martin Fritz, um Fahrten nachtragen zu
         lassen. Höhere Punkte können auch durch vergessene Eintragungen in der
         Excel-Liste entstehen.

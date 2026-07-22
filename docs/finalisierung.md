@@ -11,7 +11,7 @@ Stand: 2026-06-30
    - produktiv: `https://<vercel-domain>/api/strava/callback`
 4. Client ID als `STRAVA_CLIENT_ID` setzen.
 5. Client Secret nur serverseitig als `STRAVA_CLIENT_SECRET` setzen.
-6. Angeforderte Scopes bleiben minimal: `read`, `activity:read`.
+6. Angeforderte Scopes: `read`, `activity:read_all`. Damit werden auch Aktivitaeten mit Sichtbarkeit "Nur du" synchronisiert.
 
 ## Webhook Setup
 
@@ -83,7 +83,7 @@ Prüfung:
 
 1. `/login` öffnen.
 2. Mit Strava verbinden.
-3. Strava-Berechtigungen `read` und `activity:read` bestätigen.
+3. Strava-Berechtigungen `read` und `activity:read_all` bestätigen.
 4. Profil unter `/profile` prüfen.
 5. Gewertete Aktivitäten erscheinen nach Webhook-Verarbeitung im Leaderboard.
 6. Manuelle Eingabe:
