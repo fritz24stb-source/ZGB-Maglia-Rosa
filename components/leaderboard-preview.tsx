@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   ArrowDownUp,
@@ -511,8 +512,22 @@ function DesktopLeaderboard({
             <tr key={`${row.seasonId}-${row.userId}`}>
               <td className="whitespace-nowrap px-4 py-4 font-semibold text-asphalt-900">
                 <span className="inline-flex items-center gap-2">
-                  {row.place <= 3 ? (
-                    <Trophy aria-hidden className="h-4 w-4 text-signal-amber" />
+                  {row.place === 1 ? (
+                    <Image
+                      src="/maglia-rosa.png"
+                      alt="Maglia Rosa"
+                      width={24}
+                      height={24}
+                      className="h-6 w-6 rounded-sm object-contain"
+                    />
+                  ) : row.place <= 3 ? (
+                    <Trophy
+                      aria-hidden
+                      className={cn(
+                        "h-4 w-4",
+                        row.place === 2 ? "text-slate-400" : "text-amber-700",
+                      )}
+                    />
                   ) : null}
                   {row.place}
                 </span>
@@ -594,7 +609,26 @@ function MobileLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
           className="group border-b border-asphalt-100 last:border-b-0"
         >
           <summary className="focus-ring grid min-h-14 cursor-pointer list-none grid-cols-[3.5rem_minmax(0,1fr)_5.5rem_2.5rem] items-center gap-2 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
-            <span className="font-semibold text-asphalt-900">{row.place}</span>
+            <span className="inline-flex items-center gap-1.5 font-semibold text-asphalt-900">
+              {row.place === 1 ? (
+                <Image
+                  src="/maglia-rosa.png"
+                  alt="Maglia Rosa"
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 rounded-sm object-contain"
+                />
+              ) : row.place <= 3 ? (
+                <Trophy
+                  aria-hidden
+                  className={cn(
+                    "h-4 w-4",
+                    row.place === 2 ? "text-slate-400" : "text-amber-700",
+                  )}
+                />
+              ) : null}
+              {row.place}
+            </span>
             <span className="truncate font-medium text-asphalt-900">
               {row.displayName}
             </span>

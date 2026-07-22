@@ -319,7 +319,7 @@ function ActivityList({
 
   return (
     <div className="mt-4 max-h-96 overflow-auto rounded-md border border-asphalt-100">
-      <table className="min-w-[34rem] w-full table-fixed border-separate border-spacing-0 text-left text-xs sm:text-sm">
+      <table className="w-full table-fixed border-separate border-spacing-0 text-left text-xs sm:text-sm">
         <thead className="text-xs uppercase text-asphalt-600">
           <tr>
             <th className="sticky top-0 z-10 w-[34%] bg-asphalt-50 px-2 py-2 font-semibold sm:px-3">
