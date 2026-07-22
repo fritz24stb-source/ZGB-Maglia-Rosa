@@ -14,7 +14,9 @@ import {
 } from "@/lib/auth/invites";
 import { normalizeDisplayName } from "@/lib/auth/names";
 import { hashPassword, validatePasswordPolicy } from "@/lib/auth/password";
+import { buildRegistrationAdminNotification } from "@/lib/auth/registration-notification";
 import { getAppBaseUrl } from "@/lib/env";
+import { logError } from "@/lib/logger";
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
@@ -87,6 +89,23 @@ export async function POST(request: NextRequest) {
       }
 
       await consumeInvite(serviceClient, invite!.id, createdUserId);
+
+      const notificationResult = await serviceClient
+        .from("admin_notifications")
+        .insert(
+          buildRegistrationAdminNotification({
+            displayName,
+            userId: createdUserId,
+          }),
+        );
+
+      if (notificationResult.error) {
+        logError(
+          "auth.registration_admin_notification.failed",
+          notificationResult.error,
+          { userId: createdUserId },
+        );
+      }
 
       const serverClient = await createSupabaseServerClient();
       await signInSupabaseAsAppUser({

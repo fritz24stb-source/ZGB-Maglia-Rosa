@@ -7,6 +7,7 @@ import {
   type AdminSyncSummary,
 } from "@/lib/strava/admin-sync";
 import {
+  formatUserSyncNotificationMessage,
   formatUserSyncSummary,
   isCompletedSync,
 } from "@/lib/strava/sync-summary";
@@ -17,6 +18,7 @@ type ServiceClient = SupabaseClient<Database>;
 export async function runAutomaticUserResync(input: {
   client: ServiceClient;
   userId: string;
+  userName: string;
 }) {
   try {
     const activeSeasonId = await findActiveSeasonId(input.client);
@@ -29,7 +31,10 @@ export async function runAutomaticUserResync(input: {
       : noActiveSeasonSummary();
 
     await insertNotification(input.client, {
-      message: formatUserSyncSummary(summary),
+      message: formatUserSyncNotificationMessage(
+        input.userName,
+        formatUserSyncSummary(summary),
+      ),
       title: isCompletedSync(summary)
         ? "Automatischer User-Resync abgeschlossen"
         : "Automatischer User-Resync unvollständig",
@@ -43,7 +48,10 @@ export async function runAutomaticUserResync(input: {
 
     try {
       await insertNotification(input.client, {
-        message: getErrorMessage(error),
+        message: formatUserSyncNotificationMessage(
+          input.userName,
+          getErrorMessage(error),
+        ),
         title: "Automatischer User-Resync fehlgeschlagen",
         type: "strava_auto_resync_failed",
         userId: input.userId,

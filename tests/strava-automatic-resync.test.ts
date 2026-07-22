@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { shouldRunAutomaticUserResync } from "@/lib/strava/resync-policy";
-import { formatUserSyncSummary } from "@/lib/strava/sync-summary";
+import {
+  formatUserSyncNotificationMessage,
+  formatUserSyncSummary,
+} from "@/lib/strava/sync-summary";
 
 describe("automatic Strava user resync", () => {
   it("runs when no connection exists before connecting", () => {
@@ -39,5 +42,14 @@ describe("automatic Strava user resync", () => {
     ).toBe(
       "1 User, 3 synchronisiert, 4 von Strava geladen, 2 API-Anfragen, 2 übersprungen, 1 fehlgeschlagen, unvollständig: API-Reserve erreicht",
     );
+  });
+
+  it("includes the user name in automatic resync notifications", () => {
+    expect(
+      formatUserSyncNotificationMessage(
+        "Max Mustermann",
+        "1 User, 3 synchronisiert",
+      ),
+    ).toBe("Max Mustermann: 1 User, 3 synchronisiert");
   });
 });

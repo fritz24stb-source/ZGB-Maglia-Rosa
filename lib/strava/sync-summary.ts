@@ -24,6 +24,13 @@ export function formatUserSyncSummary(summary: UserSyncSummary) {
   ].join(", ");
 }
 
+export function formatUserSyncNotificationMessage(
+  userName: string,
+  message: string,
+) {
+  return `${userName}: ${message}`;
+}
+
 export function isCompletedSync(summary: UserSyncSummary) {
   return summary.completionStatus === "completed";
 }

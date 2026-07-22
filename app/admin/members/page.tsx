@@ -35,6 +35,8 @@ type MemberStats = {
   points: number;
 };
 
+const ACTIVITY_PAGE_SIZE = 1000;
+
 type MembersState =
   | {
       kind: "ready";
@@ -377,7 +379,7 @@ async function loadMembersState(): Promise<MembersState> {
     const [
       profilesResult,
       connectionsResult,
-      activitiesResult,
+      activities,
       seasonsResult,
       adjustmentsResult,
     ] = await Promise.all([
@@ -388,10 +390,7 @@ async function loadMembersState(): Promise<MembersState> {
       supabase
         .from("strava_connections")
         .select("user_id, strava_athlete_id, expires_at, scope, revoked"),
-      supabase
-        .from("activities")
-        .select("user_id, points, status, matched_rule_id")
-        .limit(10000),
+      loadAllActivities(supabase),
       supabase
         .from("seasons")
         .select("*")
@@ -402,7 +401,6 @@ async function loadMembersState(): Promise<MembersState> {
     const firstError =
       profilesResult.error ??
       connectionsResult.error ??
-      activitiesResult.error ??
       seasonsResult.error ??
       adjustmentsResult.error;
 
@@ -422,9 +420,7 @@ async function loadMembersState(): Promise<MembersState> {
       adjustments: buildAdjustmentsByUser(
         (adjustmentsResult.data ?? []) as PointAdjustmentRow[],
       ),
-      activityStats: buildActivityStats(
-        (activitiesResult.data ?? []) as ActivityMiniRow[],
-      ),
+      activityStats: buildActivityStats(activities),
       activeAdminCount: ((profilesResult.data ?? []) as ProfileRow[]).filter(
         (profile) => profile.role === "admin" && profile.is_active,
       ).length,
@@ -440,6 +436,31 @@ async function loadMembersState(): Promise<MembersState> {
           ? error.message
           : "Mitglieder konnten nicht geladen werden.",
     };
+  }
+}
+
+async function loadAllActivities(
+  supabase: ReturnType<typeof createSupabaseServiceRoleClient>,
+): Promise<ActivityMiniRow[]> {
+  const activities: ActivityMiniRow[] = [];
+
+  for (let from = 0; ; from += ACTIVITY_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("activities")
+      .select("user_id, points, status, matched_rule_id")
+      .order("id", { ascending: true })
+      .range(from, from + ACTIVITY_PAGE_SIZE - 1);
+
+    if (error) {
+      throw error;
+    }
+
+    const page = (data ?? []) as ActivityMiniRow[];
+    activities.push(...page);
+
+    if (page.length < ACTIVITY_PAGE_SIZE) {
+      return activities;
+    }
   }
 }
 

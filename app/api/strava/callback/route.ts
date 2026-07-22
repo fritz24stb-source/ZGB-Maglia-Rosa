@@ -93,6 +93,7 @@ export async function GET(request: Request) {
           runAutomaticUserResync({
             client: serviceClient,
             userId: connectionResult.userId,
+            userName: connectionResult.userName,
           }),
         );
       }
@@ -181,6 +182,7 @@ async function connectStravaToCurrentUser(input: {
   return {
     runAutomaticResync: shouldRunAutomaticUserResync(existingUserConnection),
     userId: accessState.userId,
+    userName: profile.display_name,
   };
 }
 
