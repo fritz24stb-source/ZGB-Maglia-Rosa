@@ -318,20 +318,20 @@ function ActivityList({
   }
 
   return (
-    <div className="mt-4 max-h-96 overflow-y-auto overflow-x-hidden rounded-md border border-asphalt-100">
-      <table className="w-full table-fixed border-collapse text-left text-xs sm:text-sm">
-        <thead className="sticky top-0 z-10 bg-asphalt-50 text-xs uppercase text-asphalt-600">
+    <div className="mt-4 max-h-96 overflow-auto rounded-md border border-asphalt-100">
+      <table className="min-w-[34rem] w-full table-fixed border-separate border-spacing-0 text-left text-xs sm:text-sm">
+        <thead className="text-xs uppercase text-asphalt-600">
           <tr>
-            <th className="w-[34%] px-2 py-2 font-semibold sm:px-3">
+            <th className="sticky top-0 z-10 w-[34%] bg-asphalt-50 px-2 py-2 font-semibold sm:px-3">
               Aktivität
             </th>
-            <th className="w-[28%] px-2 py-2 font-semibold sm:px-3">
+            <th className="sticky top-0 z-10 w-[28%] bg-asphalt-50 px-2 py-2 font-semibold sm:px-3">
               Datum
             </th>
-            <th className="w-[23%] px-2 py-2 font-semibold sm:px-3">
+            <th className="sticky top-0 z-10 w-[23%] bg-asphalt-50 px-2 py-2 font-semibold sm:px-3">
               Status
             </th>
-            <th className="w-[15%] px-2 py-2 text-right font-semibold sm:px-3">
+            <th className="sticky top-0 z-10 w-[15%] bg-asphalt-50 px-2 py-2 text-right font-semibold sm:px-3">
               Punkte
             </th>
           </tr>
