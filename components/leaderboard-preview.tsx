@@ -465,7 +465,6 @@ function DesktopLeaderboard({
           <tr>
             <SortableHeader
               active={sortKey === "place"}
-              alignRight
               direction={sortDirection}
               label="Platz"
               onSort={() => onSort("place")}
@@ -511,25 +510,27 @@ function DesktopLeaderboard({
         <tbody className="divide-y divide-asphalt-100">
           {rows.map((row) => (
             <tr key={`${row.seasonId}-${row.userId}`}>
-              <td className="whitespace-nowrap px-4 py-4 text-right font-semibold text-asphalt-900">
-                <span className="inline-flex min-w-12 items-center justify-end gap-2">
-                  {row.place === 1 ? (
-                    <Image
-                      src="/maglia-rosa.png"
-                      alt="Maglia Rosa"
-                      width={24}
-                      height={24}
-                      className="h-6 w-6 rounded-sm object-contain"
-                    />
-                  ) : row.place <= 3 ? (
-                    <Trophy
-                      aria-hidden
-                      className={cn(
-                        "h-4 w-4",
-                        row.place === 2 ? "text-slate-400" : "text-amber-700",
-                      )}
-                    />
-                  ) : null}
+              <td className="whitespace-nowrap px-4 py-4 font-semibold text-asphalt-900">
+                <span className="inline-flex items-center gap-2">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+                    {row.place === 1 ? (
+                      <Image
+                        src="/maglia-rosa.png"
+                        alt="Maglia Rosa"
+                        width={24}
+                        height={24}
+                        className="h-6 w-6 rounded-sm object-contain"
+                      />
+                    ) : row.place <= 3 ? (
+                      <Trophy
+                        aria-hidden
+                        className={cn(
+                          "h-4 w-4",
+                          row.place === 2 ? "text-slate-400" : "text-amber-700",
+                        )}
+                      />
+                    ) : null}
+                  </span>
                   {row.place}
                 </span>
               </td>
@@ -566,30 +567,22 @@ function DesktopLeaderboard({
 
 function SortableHeader({
   active,
-  alignRight = false,
   direction,
   label,
   onSort,
 }: {
   active: boolean;
-  alignRight?: boolean;
   direction: LeaderboardSortDirection;
   label: string;
   onSort: () => void;
 }) {
   return (
-    <th
-      className={cn(
-        "whitespace-nowrap px-4 py-3",
-        alignRight && "text-right",
-      )}
-    >
+    <th className="whitespace-nowrap px-4 py-3">
       <button
         type="button"
         className={cn(
           "focus-ring inline-flex items-center gap-1 rounded-sm font-semibold",
           active ? "text-asphalt-900" : "text-asphalt-500",
-          alignRight && "w-full justify-end",
         )}
         onClick={onSort}
       >
@@ -607,7 +600,7 @@ function MobileLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-asphalt-200 bg-white shadow-line md:hidden">
       <div className="grid grid-cols-[3.5rem_minmax(0,1fr)_5.5rem_2.5rem] gap-2 border-b border-asphalt-100 bg-asphalt-50 px-3 py-2 text-xs font-semibold uppercase text-asphalt-500">
-        <span className="text-right">Platz</span>
+        <span>Platz</span>
         <span>Fahrer</span>
         <span className="text-right">Punkte</span>
         <span className="sr-only">Details</span>
@@ -618,24 +611,26 @@ function MobileLeaderboard({ rows }: { rows: LeaderboardRow[] }) {
           className="group border-b border-asphalt-100 last:border-b-0"
         >
           <summary className="focus-ring grid min-h-14 cursor-pointer list-none grid-cols-[3.5rem_minmax(0,1fr)_5.5rem_2.5rem] items-center gap-2 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
-            <span className="inline-flex items-center justify-end gap-1.5 font-semibold text-asphalt-900">
-              {row.place === 1 ? (
-                <Image
-                  src="/maglia-rosa.png"
-                  alt="Maglia Rosa"
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 rounded-sm object-contain"
-                />
-              ) : row.place <= 3 ? (
-                <Trophy
-                  aria-hidden
-                  className={cn(
-                    "h-4 w-4",
-                    row.place === 2 ? "text-slate-400" : "text-amber-700",
-                  )}
-                />
-              ) : null}
+            <span className="inline-flex items-center gap-1.5 font-semibold text-asphalt-900">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+                {row.place === 1 ? (
+                  <Image
+                    src="/maglia-rosa.png"
+                    alt="Maglia Rosa"
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 rounded-sm object-contain"
+                  />
+                ) : row.place <= 3 ? (
+                  <Trophy
+                    aria-hidden
+                    className={cn(
+                      "h-4 w-4",
+                      row.place === 2 ? "text-slate-400" : "text-amber-700",
+                    )}
+                  />
+                ) : null}
+              </span>
               {row.place}
             </span>
             <span className="truncate font-medium text-asphalt-900">
