@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
@@ -40,6 +41,7 @@ export default function RootLayout({
     <html lang="de" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <AppShell>{children}</AppShell>
+        <SpeedInsights />
       </body>
     </html>
   );
