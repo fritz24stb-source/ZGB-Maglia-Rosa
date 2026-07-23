@@ -72,6 +72,13 @@ const memberPointAdjustmentsSql = readFileSync(
   ),
   "utf8",
 );
+const dailyScoringLimitSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260723110000_limit_one_scored_activity_per_day.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -205,5 +212,28 @@ describe("database migrations", () => {
     );
     expect(memberPointAdjustmentsSql).toContain("and p_from is null");
     expect(memberPointAdjustmentsSql).toContain("and p_to is null");
+  });
+
+  it("counts only the latest scored activity for each member and local day", () => {
+    expect(dailyScoringLimitSql).toContain(
+      "partition by\n          a.user_id,",
+    );
+    expect(dailyScoringLimitSql).toContain(
+      "at time zone 'Europe/Berlin')::date",
+    );
+    expect(dailyScoringLimitSql).toContain(
+      "coalesce(a.uploaded_or_created_at, a.created_at) desc",
+    );
+    expect(dailyScoringLimitSql).toContain("where a.daily_score_order = 1");
+
+    const dailySelectionPosition = dailyScoringLimitSql.indexOf(
+      "where a.daily_score_order = 1",
+    );
+    const categoryFilterPosition = dailyScoringLimitSql.indexOf(
+      "and (p_category is null",
+    );
+
+    expect(dailySelectionPosition).toBeGreaterThan(-1);
+    expect(categoryFilterPosition).toBeGreaterThan(dailySelectionPosition);
   });
 });
