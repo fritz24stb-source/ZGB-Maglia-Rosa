@@ -146,7 +146,7 @@ describe("manual entry options", () => {
     });
   });
 
-  it("does not report a past fixed window as the next opening", () => {
+  it("does not include a past fixed window in the manual entry options", () => {
     const contexts = buildManualEntryContexts({
       now: new Date("2026-08-16T10:00:00.000Z"),
       existingEntryCounts: new Map(),
@@ -168,9 +168,7 @@ describe("manual entry options", () => {
       ],
     });
 
-    expect(contexts).toHaveLength(1);
-    expect(contexts[0].status).toBe("closed");
-    expect(contexts[0].nextOpensAt).toBeNull();
+    expect(contexts).toHaveLength(0);
     expect(
       getNextManualEntryOpening(
         contexts.map((context) => ({ nextOpensAt: context.nextOpensAt })),

@@ -48,6 +48,10 @@ export function buildManualEntryContexts({
 
     const windowStatus = getWeeklyWindowStatus(windowConfig, now);
 
+    if (hasWindowEnded(windowStatus, now)) {
+      continue;
+    }
+
     contexts.push(
       buildContext({
         existingEntryCounts,
@@ -68,6 +72,10 @@ export function buildManualEntryContexts({
     const windowStatus = getRuleWindowStatus(rule, now);
 
     if (!windowStatus) {
+      continue;
+    }
+
+    if (hasWindowEnded(windowStatus, now)) {
       continue;
     }
 
@@ -154,6 +162,10 @@ function getFutureOpening(windowStatus: WindowStatus, now: Date) {
       .sort((left, right) => left.getTime() - right.getTime())[0]
       ?.toISOString() ?? null
   );
+}
+
+function hasWindowEnded(windowStatus: WindowStatus, now: Date) {
+  return windowStatus.closesAt.getTime() < now.getTime();
 }
 
 function getRuleWindowStatus(rule: ScoringRuleRow, now: Date) {

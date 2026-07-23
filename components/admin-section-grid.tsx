@@ -48,7 +48,7 @@ export function AdminSectionGrid({
         </p>
       </article>
       <Link
-        href="/admin?showFailedWebhookEvents=1#failed-webhook-events"
+        href="/admin/webhooks?status=failed"
         className="focus-ring rounded-lg border border-asphalt-200 bg-white p-5 shadow-line transition hover:border-asphalt-400"
         aria-label="Fehlgeschlagene Webhook Events anzeigen"
       >

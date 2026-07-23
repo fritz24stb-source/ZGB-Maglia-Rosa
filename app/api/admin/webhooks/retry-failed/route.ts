@@ -33,11 +33,11 @@ export async function POST(request: NextRequest) {
       entityType: "webhook_event",
     });
 
-    return redirectWithAdminFlash(request, "/admin#failed-webhook-events", {
+    return redirectWithAdminFlash(request, "/admin/webhooks?status=failed", {
       status: formatRetrySummary(summary),
     });
   } catch (error) {
-    return redirectWithAdminFlash(request, "/admin#failed-webhook-events", {
+    return redirectWithAdminFlash(request, "/admin/webhooks?status=failed", {
       error: formatAdminError(error),
     });
   }

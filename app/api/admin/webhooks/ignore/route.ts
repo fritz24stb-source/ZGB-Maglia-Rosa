@@ -53,13 +53,13 @@ export async function POST(request: NextRequest) {
 
     return redirectWithAdminFlash(
       request,
-      "/admin?showFailedWebhookEvents=1#failed-webhook-events",
+      "/admin/webhooks?status=failed",
       { status: "Webhook Event wurde manuell ignoriert." },
     );
   } catch (error) {
     return redirectWithAdminFlash(
       request,
-      "/admin?showFailedWebhookEvents=1#failed-webhook-events",
+      "/admin/webhooks?status=failed",
       { error: formatAdminError(error) },
     );
   }

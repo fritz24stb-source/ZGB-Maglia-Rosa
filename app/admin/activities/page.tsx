@@ -13,6 +13,7 @@ import { AdminFlash } from "@/components/admin-flash";
 import { AdminActivitiesScrollReset } from "@/components/admin-activities-scroll-reset";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
+import { loadAllPages } from "@/lib/admin/pagination";
 import { toLocalInputValue } from "@/lib/manual-entry/time";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -428,6 +429,10 @@ function ActivityList({
 
   return (
     <section className="grid gap-3">
+      <p className="text-sm font-medium text-asphalt-700">
+        {activities.length}{" "}
+        {activities.length === 1 ? "Aktivität" : "Aktivitäten"}
+      </p>
       {activities.map((activity) => {
         const profile = profiles.get(activity.user_id);
         const season = seasons.get(activity.season_id);
@@ -637,48 +642,53 @@ async function loadActivitiesState(
     const seasons = (seasonsResult.data ?? []) as SeasonRow[];
     const rules = (rulesResult.data ?? []) as ScoringRuleRow[];
     const filters = buildFilters(params, seasons, rules);
-    let query = supabase
-      .from("activities")
-      .select("*")
-      .order("activity_started_at", { ascending: false })
-      .limit(150);
+    const activities = await loadAllPages<ActivityRow>({
+      fetchPage: async ({ from, to }) => {
+        let query = supabase
+          .from("activities")
+          .select("*")
+          .order("activity_started_at", { ascending: false })
+          .order("id", { ascending: false });
 
-    if (filters.seasonId !== "all") {
-      query = query.eq("season_id", filters.seasonId);
-    }
+        if (filters.seasonId !== "all") {
+          query = query.eq("season_id", filters.seasonId);
+        }
 
-    if (filters.userId !== "all") {
-      query = query.eq("user_id", filters.userId);
-    }
+        if (filters.userId !== "all") {
+          query = query.eq("user_id", filters.userId);
+        }
 
-    if (filters.source === "strava" || filters.source === "manual") {
-      query = query.eq("source", filters.source);
-    }
+        if (filters.source === "strava" || filters.source === "manual") {
+          query = query.eq("source", filters.source);
+        }
 
-    if (
-      filters.status === "active" ||
-      filters.status === "ignored" ||
-      filters.status === "deleted"
-    ) {
-      query = query.eq("status", filters.status);
-    }
+        if (
+          filters.status === "active" ||
+          filters.status === "ignored" ||
+          filters.status === "deleted"
+        ) {
+          query = query.eq("status", filters.status);
+        }
 
-    if (filters.search) {
-      query = query.ilike("activity_name", `%${filters.search}%`);
-    }
+        if (filters.search) {
+          query = query.ilike("activity_name", `%${filters.search}%`);
+        }
 
-    if (filters.category !== "all") {
-      query = query.eq("category", filters.category);
-    }
+        if (filters.category !== "all") {
+          query = query.eq("category", filters.category);
+        }
 
-    const activitiesResult = await query;
+        const result = await query.range(from, to);
 
-    if (activitiesResult.error) {
-      throw activitiesResult.error;
-    }
+        return {
+          data: (result.data ?? []) as ActivityRow[],
+          error: result.error,
+        };
+      },
+    });
 
     return {
-      activities: (activitiesResult.data ?? []) as ActivityRow[],
+      activities,
       filters,
       kind: "ready",
       profiles: (profilesResult.data ?? []) as ProfileRow[],
