@@ -1,6 +1,8 @@
 import {
   Ban,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   Filter,
   PlusCircle,
@@ -13,7 +15,6 @@ import { AdminFlash } from "@/components/admin-flash";
 import { AdminActivitiesScrollReset } from "@/components/admin-activities-scroll-reset";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
-import { loadAllPages } from "@/lib/admin/pagination";
 import { toLocalInputValue } from "@/lib/manual-entry/time";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
@@ -32,9 +33,12 @@ type ActivitiesState =
       activities: ActivityRow[];
       filters: ActivityFilters;
       kind: "ready";
+      page: number;
+      pageCount: number;
       profiles: ProfileRow[];
       rules: ScoringRuleRow[];
       seasons: SeasonRow[];
+      totalCount: number;
     }
   | { kind: "error"; message: string };
 
@@ -46,6 +50,8 @@ type ActivityFilters = {
   status: string;
   userId: string;
 };
+
+const ACTIVITIES_PER_PAGE = 50;
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +95,9 @@ export default async function AdminActivitiesPage({
           <SeasonActions filters={state.filters} seasons={state.seasons} />
           <ActivityList
             activities={state.activities}
+            filters={state.filters}
+            page={state.page}
+            pageCount={state.pageCount}
             profiles={
               new Map(state.profiles.map((profile) => [profile.id, profile]))
             }
@@ -96,6 +105,7 @@ export default async function AdminActivitiesPage({
             seasons={
               new Map(state.seasons.map((season) => [season.id, season]))
             }
+            totalCount={state.totalCount}
           />
         </>
       )}
@@ -410,14 +420,22 @@ function SeasonActions({
 
 function ActivityList({
   activities,
+  filters,
+  page,
+  pageCount,
   profiles,
   rules,
   seasons,
+  totalCount,
 }: {
   activities: ActivityRow[];
+  filters: ActivityFilters;
+  page: number;
+  pageCount: number;
   profiles: Map<string, ProfileRow>;
   rules: ScoringRuleRow[];
   seasons: Map<string, SeasonRow>;
+  totalCount: number;
 }) {
   if (activities.length === 0) {
     return (
@@ -427,12 +445,21 @@ function ActivityList({
     );
   }
 
+  const firstResult = (page - 1) * ACTIVITIES_PER_PAGE + 1;
+  const lastResult = firstResult + activities.length - 1;
+
   return (
     <section className="grid gap-3">
-      <p className="text-sm font-medium text-asphalt-700">
-        {activities.length}{" "}
-        {activities.length === 1 ? "Aktivität" : "Aktivitäten"}
-      </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-medium text-asphalt-700">
+          {firstResult}–{lastResult} von {totalCount} Aktivitäten
+        </p>
+        <Pagination
+          filters={filters}
+          page={page}
+          pageCount={pageCount}
+        />
+      </div>
       {activities.map((activity) => {
         const profile = profiles.get(activity.user_id);
         const season = seasons.get(activity.season_id);
@@ -584,7 +611,51 @@ function ActivityList({
           </article>
         );
       })}
+      <Pagination filters={filters} page={page} pageCount={pageCount} />
     </section>
+  );
+}
+
+function Pagination({
+  filters,
+  page,
+  pageCount,
+}: {
+  filters: ActivityFilters;
+  page: number;
+  pageCount: number;
+}) {
+  if (pageCount <= 1) {
+    return null;
+  }
+
+  return (
+    <nav
+      aria-label="Seitennavigation Aktivitäten"
+      className="flex items-center justify-end gap-2"
+    >
+      {page > 1 ? (
+        <a
+          className="focus-ring inline-flex min-h-10 items-center gap-1 rounded-md border border-asphalt-300 bg-white px-3 text-sm font-medium text-asphalt-800"
+          href={buildPageHref(filters, page - 1)}
+        >
+          <ChevronLeft aria-hidden className="h-4 w-4" />
+          Zurück
+        </a>
+      ) : null}
+      <span className="px-2 text-sm text-asphalt-600">
+        Seite {page} von {pageCount}
+      </span>
+      {page < pageCount ? (
+        <a
+          className="focus-ring inline-flex min-h-10 items-center gap-1 rounded-md border border-asphalt-300 bg-white px-3 text-sm font-medium text-asphalt-800"
+          href={buildPageHref(filters, page + 1)}
+        >
+          Weiter
+          <ChevronRight aria-hidden className="h-4 w-4" />
+        </a>
+      ) : null}
+    </nav>
   );
 }
 
@@ -642,58 +713,82 @@ async function loadActivitiesState(
     const seasons = (seasonsResult.data ?? []) as SeasonRow[];
     const rules = (rulesResult.data ?? []) as ScoringRuleRow[];
     const filters = buildFilters(params, seasons, rules);
-    const activities = await loadAllPages<ActivityRow>({
-      fetchPage: async ({ from, to }) => {
-        let query = supabase
-          .from("activities")
-          .select("*")
-          .order("activity_started_at", { ascending: false })
-          .order("id", { ascending: false });
+    const requestedPage = parsePage(getSingleParam(params.page));
 
-        if (filters.seasonId !== "all") {
-          query = query.eq("season_id", filters.seasonId);
-        }
+    const buildQuery = () => {
+      let query = supabase
+        .from("activities")
+        .select("*", { count: "exact" })
+        .order("activity_started_at", { ascending: false })
+        .order("id", { ascending: false });
 
-        if (filters.userId !== "all") {
-          query = query.eq("user_id", filters.userId);
-        }
+      if (filters.seasonId !== "all") {
+        query = query.eq("season_id", filters.seasonId);
+      }
 
-        if (filters.source === "strava" || filters.source === "manual") {
-          query = query.eq("source", filters.source);
-        }
+      if (filters.userId !== "all") {
+        query = query.eq("user_id", filters.userId);
+      }
 
-        if (
-          filters.status === "active" ||
-          filters.status === "ignored" ||
-          filters.status === "deleted"
-        ) {
-          query = query.eq("status", filters.status);
-        }
+      if (filters.source === "strava" || filters.source === "manual") {
+        query = query.eq("source", filters.source);
+      }
 
-        if (filters.search) {
-          query = query.ilike("activity_name", `%${filters.search}%`);
-        }
+      if (
+        filters.status === "active" ||
+        filters.status === "ignored" ||
+        filters.status === "deleted"
+      ) {
+        query = query.eq("status", filters.status);
+      }
 
-        if (filters.category !== "all") {
-          query = query.eq("category", filters.category);
-        }
+      if (filters.search) {
+        query = query.ilike("activity_name", `%${filters.search}%`);
+      }
 
-        const result = await query.range(from, to);
+      if (filters.category !== "all") {
+        query = query.eq("category", filters.category);
+      }
 
-        return {
-          data: (result.data ?? []) as ActivityRow[],
-          error: result.error,
-        };
-      },
-    });
+      return query;
+    };
+
+    const requestedFrom = (requestedPage - 1) * ACTIVITIES_PER_PAGE;
+    let activitiesResult = await buildQuery().range(
+      requestedFrom,
+      requestedFrom + ACTIVITIES_PER_PAGE - 1,
+    );
+
+    if (activitiesResult.error) {
+      throw activitiesResult.error;
+    }
+
+    const totalCount = activitiesResult.count ?? 0;
+    const pageCount = Math.max(1, Math.ceil(totalCount / ACTIVITIES_PER_PAGE));
+    const page = Math.min(requestedPage, pageCount);
+
+    if (page !== requestedPage) {
+      const from = (page - 1) * ACTIVITIES_PER_PAGE;
+      activitiesResult = await buildQuery().range(
+        from,
+        from + ACTIVITIES_PER_PAGE - 1,
+      );
+
+      if (activitiesResult.error) {
+        throw activitiesResult.error;
+      }
+    }
 
     return {
-      activities,
+      activities: (activitiesResult.data ?? []) as ActivityRow[],
       filters,
       kind: "ready",
+      page,
+      pageCount,
       profiles: (profilesResult.data ?? []) as ProfileRow[],
       rules,
       seasons,
+      totalCount,
     };
   } catch (error) {
     return {
@@ -768,6 +863,29 @@ function statusTone(status: ActivityRow["status"]) {
 
 function getSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function parsePage(value: string | undefined) {
+  const page = Number(value);
+
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+function buildPageHref(filters: ActivityFilters, page: number) {
+  const params = new URLSearchParams({
+    category: filters.category,
+    search: filters.search,
+    seasonId: filters.seasonId,
+    source: filters.source,
+    status: filters.status,
+    userId: filters.userId,
+  });
+
+  if (page > 1) {
+    params.set("page", String(page));
+  }
+
+  return `/admin/activities?${params.toString()}`;
 }
 
 function formatDateTime(value: string) {
