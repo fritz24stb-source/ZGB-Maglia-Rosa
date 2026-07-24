@@ -1,51 +1,7 @@
 import { NextResponse } from "next/server";
 import { AppAccessError, requireActiveAppUser } from "@/lib/auth/guards";
-import {
-  buildLeaderboardResponse,
-  normalizeLeaderboardRow,
-  parseLeaderboardSearchParams,
-  toLeaderboardRpcArgs,
-  withEffectiveSeason,
-} from "@/lib/leaderboard/query";
-import type {
-  LeaderboardOption,
-  LeaderboardOptions,
-  LeaderboardRpcRow,
-} from "@/lib/leaderboard/types";
+import { loadLeaderboardResponse } from "@/lib/leaderboard/server";
 import { logError } from "@/lib/logger";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
-
-type SeasonOptionRow = {
-  id: string;
-  name: string;
-  starts_on: string;
-  ends_on: string;
-  is_active: boolean;
-};
-
-type RuleOptionRow = {
-  category: string;
-  name: string;
-  rule_type: "standard" | "special";
-};
-
-type LeaderboardRpcClient = {
-  rpc(
-    functionName: "get_leaderboard",
-    args: ReturnType<typeof toLeaderboardRpcArgs>,
-  ): Promise<{
-    data: LeaderboardRpcRow[] | null;
-    error: Error | null;
-  }>;
-};
-
-const categoryLabels: Record<string, string> = {
-  fondo: "Samstags-Fondo",
-  zug: "Zug",
-  scuola: "Scuola",
-  scuderia: "Scuderia",
-  sonderevent: "Sonderevent",
-};
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,49 +11,7 @@ export async function GET(request: Request) {
     await requireActiveAppUser();
 
     const requestUrl = new URL(request.url);
-    const query = parseLeaderboardSearchParams(requestUrl.searchParams);
-    const supabase = createSupabaseServiceRoleClient();
-
-    const [seasonsResult, rulesResult] = await Promise.all([
-      supabase
-        .from("seasons")
-        .select("id, name, starts_on, ends_on, is_active")
-        .order("starts_on", { ascending: false }),
-      supabase
-        .from("scoring_rules")
-        .select("category, name, rule_type")
-        .eq("is_active", true)
-        .order("priority", { ascending: false }),
-    ]);
-
-    if (seasonsResult.error || rulesResult.error) {
-      throw seasonsResult.error ?? rulesResult.error;
-    }
-
-    const seasons = (seasonsResult.data ?? []) as SeasonOptionRow[];
-    const activeSeasonId =
-      seasons.find((season) => season.is_active)?.id ?? null;
-    const effectiveQuery = withEffectiveSeason(query, activeSeasonId);
-    const leaderboardResult = await (
-      supabase as unknown as LeaderboardRpcClient
-    ).rpc("get_leaderboard", toLeaderboardRpcArgs(effectiveQuery.filters));
-
-    if (leaderboardResult.error) {
-      throw leaderboardResult.error;
-    }
-
-    const options = buildOptions({
-      seasons,
-      rules: (rulesResult.data ?? []) as RuleOptionRow[],
-    });
-    const rows = (leaderboardResult.data ?? []).map(normalizeLeaderboardRow);
-    const response = buildLeaderboardResponse({
-      rows,
-      filters: effectiveQuery.filters,
-      options,
-      sortKey: effectiveQuery.sortKey,
-      sortDirection: effectiveQuery.sortDirection,
-    });
+    const response = await loadLeaderboardResponse(requestUrl.searchParams);
 
     return NextResponse.json(response);
   } catch (error) {
@@ -115,47 +29,6 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
-}
-
-function buildOptions(input: {
-  seasons: SeasonOptionRow[];
-  rules: RuleOptionRow[];
-}): LeaderboardOptions {
-  return {
-    seasons: input.seasons.map((season) => ({
-      value: season.id,
-      label: season.name,
-      isActive: season.is_active,
-      startsOn: season.starts_on,
-      endsOn: season.ends_on,
-    })),
-    categories: buildCategoryOptions(input.rules),
-    sources: [
-      { value: "strava", label: "Strava" },
-      { value: "manual", label: "Manuell" },
-    ],
-  };
-}
-
-function buildCategoryOptions(rules: RuleOptionRow[]): LeaderboardOption[] {
-  const options = new Map<string, string>();
-
-  for (const rule of rules) {
-    if (options.has(rule.category)) {
-      continue;
-    }
-
-    options.set(
-      rule.category,
-      rule.rule_type === "special"
-        ? "Sonderevents"
-        : (categoryLabels[rule.category] ?? rule.name),
-    );
-  }
-
-  return [...options.entries()]
-    .map(([value, label]) => ({ value, label }))
-    .sort((left, right) => left.label.localeCompare(right.label, "de"));
 }
 
 function formatLeaderboardError(error: unknown) {

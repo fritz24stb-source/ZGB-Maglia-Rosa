@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowDownUp,
   ChevronDown,
   Filter,
   Loader2,
-  LogIn,
   RotateCcw,
   SearchX,
   Trophy,
@@ -29,9 +27,9 @@ type DraftFilters = {
   to: string;
 };
 
-type LoadState = "loading" | "success" | "unauthorized" | "error";
+type RefreshState = "idle" | "loading" | "unauthorized" | "error";
 
-const initialFilters: DraftFilters = {
+const defaultFilters: DraftFilters = {
   seasonId: "",
   category: "all",
   source: "all",
@@ -51,31 +49,53 @@ const sortOptions: { key: LeaderboardSortKey; label: string }[] = [
 
 const numberFormatter = new Intl.NumberFormat("de-CH");
 
-export function LeaderboardPreview() {
-  const [draftFilters, setDraftFilters] =
-    useState<DraftFilters>(initialFilters);
-  const [appliedFilters, setAppliedFilters] =
-    useState<DraftFilters>(initialFilters);
-  const [sortKey, setSortKey] = useState<LeaderboardSortKey>("totalPoints");
-  const [sortDirection, setSortDirection] =
-    useState<LeaderboardSortDirection>("desc");
-  const [data, setData] = useState<LeaderboardResponse | null>(null);
-  const [loadState, setLoadState] = useState<LoadState>("loading");
+export function LeaderboardPreview({
+  initialData,
+}: {
+  initialData: LeaderboardResponse;
+}) {
+  const [draftFilters, setDraftFilters] = useState<DraftFilters>(() =>
+    toDraftFilters(initialData),
+  );
+  const [appliedFilters, setAppliedFilters] = useState<DraftFilters>(() =>
+    toDraftFilters(initialData),
+  );
+  const [sortKey, setSortKey] = useState<LeaderboardSortKey>(
+    initialData.sort.key,
+  );
+  const [sortDirection, setSortDirection] = useState<LeaderboardSortDirection>(
+    initialData.sort.direction,
+  );
+  const [data, setData] = useState<LeaderboardResponse>(initialData);
+  const [refreshState, setRefreshState] = useState<RefreshState>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const loadedRequestKey = useRef(
+    buildSearchParams({
+      filters: toDraftFilters(initialData),
+      sortKey: initialData.sort.key,
+      sortDirection: initialData.sort.direction,
+    }).toString(),
+  );
 
   useEffect(() => {
+    const params = buildSearchParams({
+      filters: appliedFilters,
+      sortKey,
+      sortDirection,
+    });
+    const requestKey = params.toString();
+
+    if (requestKey === loadedRequestKey.current) {
+      return;
+    }
+
     const controller = new AbortController();
 
     async function loadLeaderboard() {
-      setLoadState((current) => (current === "success" ? current : "loading"));
+      setRefreshState("loading");
       setErrorMessage(null);
 
-      const params = buildSearchParams({
-        filters: appliedFilters,
-        sortKey,
-        sortDirection,
-      });
       const response = await fetch(`/api/leaderboard?${params}`, {
         signal: controller.signal,
       });
@@ -85,8 +105,12 @@ export function LeaderboardPreview() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          setLoadState("unauthorized");
-          setData(null);
+          setRefreshState("unauthorized");
+          setErrorMessage(
+            "error" in payload && payload.error
+              ? payload.error
+              : "Die Sitzung ist abgelaufen. Bitte Seite neu laden.",
+          );
           return;
         }
 
@@ -98,7 +122,8 @@ export function LeaderboardPreview() {
       }
 
       setData(payload as LeaderboardResponse);
-      setLoadState("success");
+      loadedRequestKey.current = requestKey;
+      setRefreshState("idle");
     }
 
     loadLeaderboard().catch((error: unknown) => {
@@ -106,7 +131,7 @@ export function LeaderboardPreview() {
         return;
       }
 
-      setLoadState("error");
+      setRefreshState("error");
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -120,8 +145,7 @@ export function LeaderboardPreview() {
   }, [appliedFilters, sortDirection, sortKey]);
 
   const selectedSeasonValue =
-    draftFilters.seasonId || data?.filters.seasonId || "all";
-  const isRefreshing = loadState === "success" && data === null;
+    draftFilters.seasonId || data.filters.seasonId || "all";
 
   function updateDraftFilter(key: keyof DraftFilters, value: string) {
     setDraftFilters((current) => ({
@@ -136,8 +160,8 @@ export function LeaderboardPreview() {
   }
 
   function resetFilters() {
-    setDraftFilters(initialFilters);
-    setAppliedFilters(initialFilters);
+    setDraftFilters(defaultFilters);
+    setAppliedFilters(defaultFilters);
     setSortKey("totalPoints");
     setSortDirection("desc");
     setMobileFiltersOpen(false);
@@ -172,28 +196,23 @@ export function LeaderboardPreview() {
         sortKey={sortKey}
       />
 
-      {loadState === "loading" ? <LoadingState /> : null}
-      {loadState === "unauthorized" ? <UnauthorizedState /> : null}
-      {loadState === "error" ? <ErrorState message={errorMessage} /> : null}
+      <UpdateStatus state={refreshState} message={errorMessage} />
 
-      {loadState === "success" && data ? (
-        <>
-          {data.rows.length > 0 ? (
-            <>
-              <DesktopLeaderboard
-                rows={data.rows}
-                sortDirection={sortDirection}
-                sortKey={sortKey}
-                onSort={updateSort}
-              />
-              <MobileLeaderboard rows={data.rows} />
-            </>
-          ) : (
-            <EmptyState />
-          )}
-          {isRefreshing ? <LoadingState compact /> : null}
-        </>
-      ) : null}
+      <div className="min-h-[50vh]" aria-busy={refreshState === "loading"}>
+        {data.rows.length > 0 ? (
+          <>
+            <DesktopLeaderboard
+              rows={data.rows}
+              sortDirection={sortDirection}
+              sortKey={sortKey}
+              onSort={updateSort}
+            />
+            <MobileLeaderboard rows={data.rows} />
+          </>
+        ) : (
+          <EmptyState />
+        )}
+      </div>
     </section>
   );
 }
@@ -212,7 +231,7 @@ function LeaderboardFilters({
   sortDirection,
   sortKey,
 }: {
-  data: LeaderboardResponse | null;
+  data: LeaderboardResponse;
   draftFilters: DraftFilters;
   mobileFiltersOpen: boolean;
   onApply: () => void;
@@ -290,7 +309,7 @@ function LeaderboardFilterFields({
   sortDirection,
   sortKey,
 }: {
-  data: LeaderboardResponse | null;
+  data: LeaderboardResponse;
   draftFilters: DraftFilters;
   onApply: () => void;
   onDraftFilterChange: (key: keyof DraftFilters, value: string) => void;
@@ -310,7 +329,7 @@ function LeaderboardFilterFields({
           onChange={(value) => onDraftFilterChange("seasonId", value)}
         >
           <option value="all">Alle Saisons</option>
-          {data?.options.seasons.map((season) => (
+          {data.options.seasons.map((season) => (
             <option key={season.value} value={season.value}>
               {season.label}
               {season.isActive ? " (aktiv)" : ""}
@@ -324,7 +343,7 @@ function LeaderboardFilterFields({
           onChange={(value) => onDraftFilterChange("category", value)}
         >
           <option value="all">Alle</option>
-          {data?.options.categories.map((category) => (
+          {data.options.categories.map((category) => (
             <option key={category.value} value={category.value}>
               {category.label}
             </option>
@@ -337,7 +356,7 @@ function LeaderboardFilterFields({
           onChange={(value) => onDraftFilterChange("source", value)}
         >
           <option value="all">Alle</option>
-          {data?.options.sources.map((source) => (
+          {data.options.sources.map((source) => (
             <option key={source.value} value={source.value}>
               {source.label}
             </option>
@@ -673,52 +692,34 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
-function LoadingState({ compact = false }: { compact?: boolean }) {
+function UpdateStatus({
+  message,
+  state,
+}: {
+  message: string | null;
+  state: RefreshState;
+}) {
   return (
     <div
-      className={cn(
-        "rounded-lg border border-asphalt-200 bg-white p-5 text-sm text-asphalt-600 shadow-line",
-        compact && "py-3",
-      )}
+      className="relative h-6 overflow-hidden text-sm"
+      aria-live="polite"
+      aria-atomic="true"
     >
-      <div className="flex items-center gap-2">
-        <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
-        Leaderboard wird geladen.
-      </div>
-    </div>
-  );
-}
-
-function UnauthorizedState() {
-  return (
-    <div className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <LogIn aria-hidden className="mt-1 h-5 w-5 text-signal-blue" />
-          <div>
-            <h2 className="text-base font-semibold text-asphalt-900">
-              Anmeldung erforderlich
-            </h2>
-            <p className="mt-1 text-sm leading-6 text-asphalt-600">
-              Das Leaderboard ist für angemeldete Vereinsmitglieder sichtbar.
-            </p>
-          </div>
-        </div>
-        <Link
-          href="/login"
-          className="focus-ring inline-flex min-h-10 items-center justify-center rounded-md bg-asphalt-900 px-3 text-sm font-semibold text-white"
+      {state === "loading" ? (
+        <span className="absolute inset-x-0 top-0 flex items-center gap-2 text-asphalt-600">
+          <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+          Rangliste wird aktualisiert.
+        </span>
+      ) : null}
+      {state === "error" || state === "unauthorized" ? (
+        <span
+          className="absolute inset-x-0 top-0 truncate text-red-900"
+          role="alert"
+          title={message ?? undefined}
         >
-          Zur Anmeldung
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function ErrorState({ message }: { message: string | null }) {
-  return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-5 text-sm text-red-900">
-      {message ?? "Leaderboard konnte nicht geladen werden."}
+          {message ?? "Leaderboard konnte nicht aktualisiert werden."}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -765,6 +766,16 @@ function appendFilter(params: URLSearchParams, key: string, value: string) {
   }
 
   params.set(key, value);
+}
+
+function toDraftFilters(data: LeaderboardResponse): DraftFilters {
+  return {
+    seasonId: data.filters.seasonId ?? "all",
+    category: data.filters.category ?? "all",
+    source: data.filters.source ?? "all",
+    from: data.filters.from ?? "",
+    to: data.filters.to ?? "",
+  };
 }
 
 function defaultDirectionForSort(

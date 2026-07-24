@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import {
+  loadLeaderboardData,
+  type LeaderboardDataSource,
+} from "@/lib/leaderboard/load";
 import {
   buildLeaderboardResponse,
   parseLeaderboardSearchParams,
@@ -117,6 +121,72 @@ describe("leaderboard response sorting", () => {
     expect(response.rows.map((item) => item.displayName)).toEqual([
       "Anna",
       "Bernd",
+    ]);
+  });
+});
+
+describe("leaderboard data loader", () => {
+  it("loads options and rows with the effective active season", async () => {
+    const loadRows = vi.fn<LeaderboardDataSource["loadRows"]>(async () => [
+      {
+        display_name: "Anna",
+        last_activity_at: "2026-07-20T10:00:00.000Z",
+        manual_points: 0,
+        mittwochs_fahrten: 1,
+        place: 1,
+        samstags_fahrten: 2,
+        season_id: activeSeasonId,
+        season_name: "Saison 2026",
+        sonderevents: 0,
+        total_points: 300,
+        total_rides: 3,
+        user_id: "user-anna",
+      },
+    ]);
+    const dataSource: LeaderboardDataSource = {
+      loadSeasons: async () => [
+        {
+          id: activeSeasonId,
+          name: "Saison 2026",
+          starts_on: "2026-01-01",
+          ends_on: "2026-12-31",
+          is_active: true,
+        },
+      ],
+      loadRules: async () => [
+        {
+          category: "fondo",
+          name: "Samstags-Fondo",
+          rule_type: "standard",
+        },
+        {
+          category: "sonderevent",
+          name: "Sonderfahrt",
+          rule_type: "special",
+        },
+      ],
+      loadRows,
+    };
+
+    const response = await loadLeaderboardData(
+      new URLSearchParams("source=manual&sort=displayName&direction=asc"),
+      dataSource,
+    );
+
+    expect(loadRows).toHaveBeenCalledWith(
+      expect.objectContaining({
+        seasonId: activeSeasonId,
+        source: "manual",
+      }),
+    );
+    expect(response.sort).toEqual({ key: "displayName", direction: "asc" });
+    expect(response.rows[0]).toMatchObject({
+      displayName: "Anna",
+      totalPoints: 300,
+    });
+    expect(response.options.categories).toEqual([
+      { label: "Samstags-Fondo", value: "fondo" },
+      { label: "Sonderevents", value: "sonderevent" },
     ]);
   });
 });
