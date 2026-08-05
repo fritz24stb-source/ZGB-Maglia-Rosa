@@ -1,7 +1,16 @@
 import { LeaderboardPreview } from "@/components/leaderboard-preview";
+import {
+  ClassificationLeaderboard,
+  ClassificationTabs,
+} from "@/components/classification-leaderboards";
 import { PageHeader } from "@/components/page-header";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import { loadLeaderboardResponse } from "@/lib/leaderboard/server";
+import {
+  classificationsEnabled,
+  loadClassificationLeaderboard,
+} from "@/lib/classifications/server";
+import type { ClassificationKind } from "@/lib/classifications/types";
 
 export const dynamic = "force-dynamic";
 
@@ -18,19 +27,41 @@ export default async function LeaderboardPage({
     return accessBlocked;
   }
 
-  const initialData = await loadLeaderboardResponse(
-    toUrlSearchParams(await searchParams),
-  );
+  const resolvedParams = await searchParams;
+  const urlParams = toUrlSearchParams(resolvedParams);
+  const enabled = classificationsEnabled();
+  const requestedClassification = single(resolvedParams.classification);
+  const classification: ClassificationKind =
+    enabled && (requestedClassification === "ciclamino" || requestedClassification === "azzurra")
+      ? requestedClassification
+      : "rosa";
+  const initialData = await loadLeaderboardResponse(urlParams);
+  const classificationData = enabled
+    ? await loadClassificationLeaderboard(single(resolvedParams.seasonId))
+    : null;
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Leaderboard"
-        description="Auswertung mit Saison-, Quellen- und Kategorie-Filtern."
+        description="Maglia Rosa, Ciclamino und Azzurra im Saisonvergleich."
       />
-      <LeaderboardPreview initialData={initialData} />
+      <ClassificationTabs
+        active={classification}
+        enabled={enabled}
+        seasonId={classificationData?.selectedSeasonId ?? initialData.filters.seasonId}
+      />
+      {classification === "rosa" || !classificationData ? (
+        <LeaderboardPreview initialData={initialData} />
+      ) : (
+        <ClassificationLeaderboard active={classification} data={classificationData} />
+      )}
     </main>
   );
+}
+
+function single(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function toUrlSearchParams(

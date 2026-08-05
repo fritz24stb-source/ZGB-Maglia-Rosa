@@ -16,7 +16,7 @@ type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
 type ProfileRow = {
   id: string;
   display_name: string;
-  role: "admin" | "member";
+  role: "admin" | "member" | "scorekeeper";
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -117,6 +117,7 @@ type ActivityRow = {
   activity_name: string;
   sport_type: string | null;
   distance_m: number | null;
+  total_elevation_gain_m: number | null;
   activity_started_at: string;
   activity_started_local_at: string | null;
   uploaded_or_created_at: string | null;
@@ -135,6 +136,33 @@ type ActivityRow = {
   manual_entry_key: string | null;
   strava_url: string | null;
   strava_erased_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type CiclaminoSprintRow = {
+  id: string;
+  season_id: string;
+  sprint_date: string;
+  name: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type CiclaminoPlacementRow = {
+  sprint_id: string;
+  place: number;
+  user_id: string;
+  points: number;
+  created_at: string;
+};
+
+type AzzurraWindowRow = {
+  user_id: string;
+  season_id: string;
+  starts_on: string;
+  selected_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -213,6 +241,9 @@ export type Database = {
       seasons: Table<SeasonRow>;
       scoring_rules: Table<ScoringRuleRow>;
       activities: Table<ActivityRow>;
+      ciclamino_sprints: Table<CiclaminoSprintRow>;
+      ciclamino_placements: Table<CiclaminoPlacementRow>;
+      azzurra_windows: Table<AzzurraWindowRow>;
       member_point_adjustments: Table<MemberPointAdjustmentRow>;
       manual_entry_windows: Table<ManualEntryWindowRow>;
       admin_notifications: Table<AdminNotificationRow>;
@@ -245,6 +276,48 @@ export type Database = {
           manual_points: number;
           last_activity_at: string | null;
         }[];
+      };
+      get_ciclamino_leaderboard: {
+        Args: { p_season_id: string | null };
+        Returns: {
+          place: number;
+          user_id: string;
+          display_name: string;
+          season_id: string;
+          season_name: string;
+          total_points: number;
+          wins: number;
+          second_places: number;
+          third_places: number;
+          sprint_count: number;
+        }[];
+      };
+      get_azzurra_leaderboard: {
+        Args: { p_season_id: string | null };
+        Returns: {
+          place: number;
+          user_id: string;
+          display_name: string;
+          season_id: string;
+          season_name: string;
+          starts_on: string;
+          ends_on: string;
+          total_elevation_gain_m: number;
+          total_distance_m: number;
+          ride_count: number;
+          missing_elevation_count: number;
+        }[];
+      };
+      save_ciclamino_sprint: {
+        Args: {
+          p_sprint_id: string | null;
+          p_season_id: string;
+          p_sprint_date: string;
+          p_name: string;
+          p_user_ids: string[];
+          p_actor_user_id: string;
+        };
+        Returns: string;
       };
       consume_app_invite: {
         Args: {

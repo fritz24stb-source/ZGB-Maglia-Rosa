@@ -41,6 +41,7 @@ type DashboardState =
       kind: "ready";
       activeMembers: number;
       failedWebhookEventCount: number;
+      missingElevationActivities: number;
       notifications: NotificationRow[];
       pendingWebhookEvents: number;
       seasons: SeasonRow[];
@@ -106,7 +107,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 </div>
                 <p className="mt-2 text-sm leading-6 text-asphalt-600">
                   Lädt Strava-Aktivitäten im gewählten Saisonfenster nach und
-                  bewertet sie neu.
+                  bewertet sie neu. Dabei werden auch fehlende Azzurra-Höhenmeter nachgeladen.
+                </p>
+                <p className="mt-2 text-sm font-medium text-sky-800">
+                  Noch {state.missingElevationActivities} relevante Fahrten ohne Höhenmeter.
                 </p>
               </div>
               <form
@@ -283,6 +287,7 @@ async function loadDashboardState(): Promise<DashboardState> {
       pendingWebhookEventsResult,
       failedWebhookEventsResult,
       activeMembersResult,
+      missingElevationResult,
     ] = await Promise.all([
       supabase
         .from("seasons")
@@ -315,6 +320,13 @@ async function loadDashboardState(): Promise<DashboardState> {
         .from("profiles")
         .select("id", { count: "exact", head: true })
         .eq("is_active", true),
+      supabase
+        .from("activities")
+        .select("id", { count: "exact", head: true })
+        .eq("source", "strava")
+        .eq("status", "active")
+        .in("sport_type", ["Ride", "GravelRide", "MountainBikeRide"])
+        .is("total_elevation_gain_m", null),
     ]);
 
     const firstError =
@@ -324,7 +336,8 @@ async function loadDashboardState(): Promise<DashboardState> {
       unreadNotificationsResult.error ??
       pendingWebhookEventsResult.error ??
       failedWebhookEventsResult.error ??
-      activeMembersResult.error;
+      activeMembersResult.error ??
+      missingElevationResult.error;
 
     if (firstError) {
       throw firstError;
@@ -347,6 +360,7 @@ async function loadDashboardState(): Promise<DashboardState> {
       kind: "ready",
       activeMembers: activeMembersResult.count ?? 0,
       failedWebhookEventCount: failedWebhookEventsResult.count ?? 0,
+      missingElevationActivities: missingElevationResult.count ?? 0,
       notifications: (notificationsResult.data ?? []) as NotificationRow[],
       pendingWebhookEvents: pendingWebhookEventsResult.count ?? 0,
       seasons: (seasonsResult.data ?? []) as SeasonRow[],

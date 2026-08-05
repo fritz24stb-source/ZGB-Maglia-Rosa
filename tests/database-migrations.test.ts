@@ -79,6 +79,13 @@ const dailyScoringLimitSql = readFileSync(
   ),
   "utf8",
 );
+const classificationSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260804190000_add_ciclamino_azzurra_classifications.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -235,5 +242,20 @@ describe("database migrations", () => {
 
     expect(dailySelectionPosition).toBeGreaterThan(-1);
     expect(categoryFilterPosition).toBeGreaterThan(dailySelectionPosition);
+  });
+
+  it("adds isolated Ciclamino and Azzurra classifications", () => {
+    expect(classificationSql).toContain("'admin', 'member', 'scorekeeper'");
+    expect(classificationSql).toContain("create table public.ciclamino_sprints");
+    expect(classificationSql).toContain("create table public.ciclamino_placements");
+    expect(classificationSql).toContain("create table public.azzurra_windows");
+    expect(classificationSql).toContain("add column if not exists total_elevation_gain_m numeric");
+    expect(classificationSql).toContain("when 1 then 5");
+    expect(classificationSql).toContain("when 2 then 3");
+    expect(classificationSql).toContain("when 3 then 1");
+    expect(classificationSql).toContain("activity.sport_type in ('Ride', 'GravelRide', 'MountainBikeRide')");
+    expect(classificationSql).toContain("window.starts_on + 6");
+    expect(classificationSql).toContain("public.get_ciclamino_leaderboard");
+    expect(classificationSql).toContain("public.get_azzurra_leaderboard");
   });
 });

@@ -17,6 +17,7 @@ export type StravaDetailedActivity = {
   sport_type?: string | null;
   type?: string | null;
   distance?: number | null;
+  total_elevation_gain?: number | null;
   start_date?: string | null;
   start_date_local?: string | null;
   created_at?: string | null;
@@ -29,6 +30,7 @@ export type StravaActivitySummary = Pick<
   StravaDetailedActivity,
   | "athlete"
   | "distance"
+  | "total_elevation_gain"
   | "id"
   | "name"
   | "sport_type"
@@ -152,6 +154,9 @@ export function mapStravaActivityToActivityWrite({
     activity_name: normalizeActivityName(activity.name, stravaActivityId),
     sport_type: normalizeOptionalText(activity.sport_type ?? activity.type),
     distance_m: normalizeFiniteNumber(activity.distance),
+    total_elevation_gain_m: normalizeFiniteNumber(
+      activity.total_elevation_gain,
+    ),
     activity_started_at: activityStartedAt,
     activity_started_local_at: normalizeTimestamp(activity.start_date_local),
     ...(uploadedOrCreatedAt

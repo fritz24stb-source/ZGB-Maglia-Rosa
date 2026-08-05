@@ -8,6 +8,7 @@ import {
 } from "@/lib/strava/token-policy";
 import { refreshStravaToken } from "@/lib/strava/oauth";
 import type { Database } from "@/types/database";
+import { stravaTokenRefreshEnabled } from "@/lib/strava/runtime";
 
 type StravaConnection =
   Database["public"]["Tables"]["strava_connections"]["Row"];
@@ -52,6 +53,12 @@ export async function getValidStravaAccessToken(connection: StravaConnection) {
 
   if (!connection.refresh_token) {
     throw new StravaConnectionError("No Strava refresh token available.");
+  }
+
+  if (!stravaTokenRefreshEnabled()) {
+    throw new StravaConnectionError(
+      "Strava token refresh is disabled in this environment. Reconnect Strava locally.",
+    );
   }
 
   const env = getServerEnv();

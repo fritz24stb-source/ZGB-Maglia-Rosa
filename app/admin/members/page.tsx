@@ -28,6 +28,7 @@ type ActivityMiniRow = Pick<
 >;
 type PointAdjustmentRow =
   Database["public"]["Tables"]["member_point_adjustments"]["Row"];
+type AzzurraWindowRow = Database["public"]["Tables"]["azzurra_windows"]["Row"];
 
 type MemberStats = {
   activeActivities: number;
@@ -46,6 +47,7 @@ type MembersState =
       connections: Map<string, ConnectionRow>;
       profiles: ProfileRow[];
       seasons: SeasonRow[];
+      azzurraWindows: Map<string, AzzurraWindowRow[]>;
     }
   | { kind: "error"; message: string };
 
@@ -79,6 +81,7 @@ export default async function AdminMembersPage({
               key={profile.id}
               connection={state.connections.get(profile.id) ?? null}
               adjustments={state.adjustments.get(profile.id) ?? []}
+              azzurraWindows={state.azzurraWindows.get(profile.id) ?? []}
               isLastActiveAdmin={
                 profile.role === "admin" &&
                 profile.is_active &&
@@ -97,6 +100,7 @@ export default async function AdminMembersPage({
 
 function MemberCard({
   adjustments,
+  azzurraWindows,
   connection,
   isLastActiveAdmin,
   profile,
@@ -104,6 +108,7 @@ function MemberCard({
   stats,
 }: {
   adjustments: PointAdjustmentRow[];
+  azzurraWindows: AzzurraWindowRow[];
   connection: ConnectionRow | null;
   isLastActiveAdmin: boolean;
   profile: ProfileRow;
@@ -166,6 +171,7 @@ function MemberCard({
                     name="role"
                   >
                     <option value="member">member</option>
+                    <option value="scorekeeper">scorekeeper</option>
                     <option value="admin">admin</option>
                   </select>
                 </label>
@@ -326,6 +332,57 @@ function MemberCard({
                 Korrigieren
               </button>
             </form>
+
+            <section className="mt-4 border-t border-asphalt-100 pt-4">
+              <h3 className="text-sm font-semibold text-asphalt-900">Azzurra-Woche</h3>
+              <div className="mt-3 grid gap-3">
+                {seasons.map((season) => {
+                  const window = azzurraWindows.find((item) => item.season_id === season.id);
+                  return (
+                    <form
+                      action="/api/admin/azzurra-window"
+                      method="post"
+                      key={season.id}
+                      className="grid gap-3 rounded-md bg-sky-50 p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"
+                    >
+                      <input type="hidden" name="userId" value={profile.id} />
+                      <input type="hidden" name="seasonId" value={season.id} />
+                      <input type="hidden" name="action" value="save" />
+                      <div className="text-sm">
+                        <p className="font-semibold text-asphalt-900">{season.name}</p>
+                        <p className="text-xs text-asphalt-500">
+                          {window ? `Aktuell ab ${formatDateOnly(window.starts_on)}` : "Noch nicht gewählt"}
+                        </p>
+                      </div>
+                      <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+                        Starttag
+                        <input
+                          className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm"
+                          defaultValue={window?.starts_on}
+                          max={subtractDays(season.ends_on, 6)}
+                          min={season.starts_on}
+                          name="startsOn"
+                          required
+                          type="date"
+                        />
+                      </label>
+                      <button type="submit" className="focus-ring min-h-10 rounded-md border border-sky-300 bg-white px-3 text-sm font-medium text-sky-900">
+                        Speichern
+                      </button>
+                      <button
+                        type="submit"
+                        name="action"
+                        value="reset"
+                        disabled={!window}
+                        className="focus-ring min-h-10 rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-800 disabled:opacity-40"
+                      >
+                        Zurücksetzen
+                      </button>
+                    </form>
+                  );
+                })}
+              </div>
+            </section>
             {connection ? (
               <dl className="mt-4 grid gap-2 border-t border-asphalt-100 pt-4 text-xs text-asphalt-500 md:grid-cols-3">
                 <div>
@@ -382,6 +439,7 @@ async function loadMembersState(): Promise<MembersState> {
       activities,
       seasonsResult,
       adjustmentsResult,
+      azzurraWindowsResult,
     ] = await Promise.all([
       supabase
         .from("profiles")
@@ -396,6 +454,7 @@ async function loadMembersState(): Promise<MembersState> {
         .select("*")
         .order("starts_on", { ascending: false }),
       supabase.from("member_point_adjustments").select("*"),
+      supabase.from("azzurra_windows").select("*"),
     ]);
 
     const firstError =
@@ -404,8 +463,10 @@ async function loadMembersState(): Promise<MembersState> {
       seasonsResult.error ??
       adjustmentsResult.error;
 
-    if (firstError) {
-      throw firstError;
+    const combinedError = firstError ?? azzurraWindowsResult.error;
+
+    if (combinedError) {
+      throw combinedError;
     }
 
     const connections = new Map(
@@ -419,6 +480,9 @@ async function loadMembersState(): Promise<MembersState> {
       kind: "ready",
       adjustments: buildAdjustmentsByUser(
         (adjustmentsResult.data ?? []) as PointAdjustmentRow[],
+      ),
+      azzurraWindows: buildAzzurraWindowsByUser(
+        (azzurraWindowsResult.data ?? []) as AzzurraWindowRow[],
       ),
       activityStats: buildActivityStats(activities),
       activeAdminCount: ((profilesResult.data ?? []) as ProfileRow[]).filter(
@@ -502,6 +566,15 @@ function buildAdjustmentsByUser(adjustments: PointAdjustmentRow[]) {
   }, new Map<string, PointAdjustmentRow[]>());
 }
 
+function buildAzzurraWindowsByUser(windows: AzzurraWindowRow[]) {
+  return windows.reduce((byUser, window) => {
+    const current = byUser.get(window.user_id) ?? [];
+    current.push(window);
+    byUser.set(window.user_id, current);
+    return byUser;
+  }, new Map<string, AzzurraWindowRow[]>());
+}
+
 function formatSignedPoints(points: number) {
   return `${points > 0 ? "+" : ""}${points} P`;
 }
@@ -516,4 +589,16 @@ function formatDateTime(value: string) {
     timeStyle: "short",
     timeZone: "Europe/Berlin",
   }).format(new Date(value));
+}
+
+function formatDateOnly(value: string) {
+  return new Intl.DateTimeFormat("de-CH", { dateStyle: "medium", timeZone: "UTC" }).format(
+    new Date(`${value}T12:00:00.000Z`),
+  );
+}
+
+function subtractDays(value: string, days: number) {
+  const date = new Date(`${value}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
 }

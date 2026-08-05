@@ -7,11 +7,12 @@ export type NavItem = {
 };
 
 export const mainNavItems: NavItem[] = [
-  { href: "/leaderboard", label: "Leaderboard", roles: ["admin", "member"] },
-  { href: "/analyse", label: "Analyse", roles: ["admin", "member"] },
-  { href: "/manual", label: "Manuell", roles: ["admin", "member"] },
-  { href: "/profile", label: "Profil", roles: ["admin", "member"] },
-  { href: "/faq", label: "FAQ", roles: ["admin", "member"] },
+  { href: "/leaderboard", label: "Leaderboard", roles: ["admin", "member", "scorekeeper"] },
+  { href: "/analyse", label: "Analyse", roles: ["admin", "member", "scorekeeper"] },
+  { href: "/manual", label: "Manuell", roles: ["admin", "member", "scorekeeper"] },
+  { href: "/profile", label: "Profil", roles: ["admin", "member", "scorekeeper"] },
+  { href: "/faq", label: "FAQ", roles: ["admin", "member", "scorekeeper"] },
+  { href: "/sprints", label: "Sprintpflege", roles: ["admin", "scorekeeper"] },
   { href: "/admin", label: "Admin", roles: ["admin"] },
 ];
 

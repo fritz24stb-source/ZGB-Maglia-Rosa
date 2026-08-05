@@ -6,13 +6,21 @@ import {
   setAppSessionCookie,
 } from "@/lib/auth/app-session";
 
-const protectedAppPaths = ["/leaderboard", "/analyse", "/manual", "/profile"];
+const protectedAppPaths = [
+  "/leaderboard",
+  "/analyse",
+  "/manual",
+  "/profile",
+  "/sprints",
+];
 const protectedAppApiPaths = [
   "/api/leaderboard",
   "/api/manual-entry",
   "/api/passkeys/register",
   "/api/strava/disconnect",
   "/api/strava/purge",
+  "/api/ciclamino/sprints",
+  "/api/azzurra/window",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -93,11 +101,14 @@ export const config = {
     "/analyse/:path*",
     "/manual/:path*",
     "/profile/:path*",
+    "/sprints/:path*",
     "/api/leaderboard/:path*",
     "/api/manual-entry/:path*",
     "/api/passkeys/register/:path*",
     "/api/strava/disconnect",
     "/api/strava/purge",
+    "/api/ciclamino/sprints/:path*",
+    "/api/azzurra/window",
   ],
 };
 

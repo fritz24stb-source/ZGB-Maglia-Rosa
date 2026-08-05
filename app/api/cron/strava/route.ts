@@ -5,6 +5,7 @@ import { processPendingStravaWebhookEvents } from "@/lib/strava/webhook-processo
 import { syncStravaActivitiesForActiveUsers } from "@/lib/strava/admin-sync";
 import { ensureStravaWebhookSubscription } from "@/lib/strava/subscription";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { stravaSubscriptionMaintenanceEnabled } from "@/lib/strava/runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,17 +25,19 @@ export async function GET(request: NextRequest) {
   try {
     const env = getServerEnv();
     const supabase = createSupabaseServiceRoleClient();
-    const subscription = await ensureStravaWebhookSubscription(
-      {
-        clientId: env.stravaClientId,
-        clientSecret: env.stravaClientSecret,
-        callbackUrl: env.stravaWebhookCallbackUrl,
-        verifyToken: env.stravaVerifyToken,
-      },
-      {
-        replaceMismatched: true,
-      },
-    );
+    const subscription = stravaSubscriptionMaintenanceEnabled()
+      ? await ensureStravaWebhookSubscription(
+          {
+            clientId: env.stravaClientId,
+            clientSecret: env.stravaClientSecret,
+            callbackUrl: env.stravaWebhookCallbackUrl,
+            verifyToken: env.stravaVerifyToken,
+          },
+          {
+            replaceMismatched: true,
+          },
+        )
+      : { status: "disabled" as const };
     const webhookEvents = await processPendingStravaWebhookEvents({
       client: supabase,
       limit: WEBHOOK_EVENT_BATCH_LIMIT,

@@ -5,6 +5,7 @@ import { AccessDenied } from "@/components/access-denied";
 import { AccessBlocked } from "@/components/access-blocked";
 import { decideAdminAccess } from "@/lib/auth/admin-access";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
+import { canManageCiclamino } from "@/lib/auth/roles";
 
 export async function requireActiveAppPage(nextPath: string) {
   const state = await loadCurrentAppAccessState();
@@ -38,6 +39,29 @@ export async function requireAdminAppPage(nextPath: string) {
       <AccessDenied
         title="Adminzugriff gesperrt"
         description="Dieses Profil hat keine Admin-Rolle. Melde dich mit einem Admin-Profil an."
+      />
+    );
+  }
+
+  return null;
+}
+
+export async function requireCiclaminoManagerPage(nextPath: string) {
+  const state = await loadCurrentAppAccessState();
+
+  if (state.kind === "anonymous") {
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  }
+
+  if (state.kind === "blocked") {
+    return <AccessBlocked />;
+  }
+
+  if (!canManageCiclamino(state.profile.role)) {
+    return (
+      <AccessDenied
+        title="Zugriff auf Sprintpflege gesperrt"
+        description="Für die Sprintpflege ist die Rolle Admin oder Scorekeeper erforderlich."
       />
     );
   }

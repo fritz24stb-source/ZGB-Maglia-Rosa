@@ -104,6 +104,7 @@ describe("strava activity mapping", () => {
       name: "ZGB Fondo Samstag",
       sport_type: "Ride",
       distance: 125000,
+      total_elevation_gain: 1840,
       start_date: "2026-06-27T08:00:00Z",
       start_date_local: "2026-06-27T10:00:00",
       created_at: "2026-06-27T08:05:00Z",
@@ -126,6 +127,7 @@ describe("strava activity mapping", () => {
       activity_name: "ZGB Fondo Samstag",
       sport_type: "Ride",
       distance_m: 125000,
+      total_elevation_gain_m: 1840,
       activity_started_at: "2026-06-27T08:00:00.000Z",
       activity_started_local_at: "2026-06-27T10:00:00.000Z",
       uploaded_or_created_at: "2026-06-27T08:05:00.000Z",
@@ -146,6 +148,7 @@ describe("strava activity mapping", () => {
         name: "ZGB Mittwoch",
         sport_type: "Ride",
         distance: 42000,
+        total_elevation_gain: 620,
         start_date: "2026-07-01T16:00:00Z",
         start_date_local: "2026-07-01T18:00:00",
         athlete: { id: 456 },
@@ -155,5 +158,6 @@ describe("strava activity mapping", () => {
     });
 
     expect(activityWrite).not.toHaveProperty("uploaded_or_created_at");
+    expect(activityWrite.total_elevation_gain_m).toBe(620);
   });
 });

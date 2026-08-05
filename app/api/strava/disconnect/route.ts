@@ -9,12 +9,19 @@ import {
 } from "@/lib/supabase/server";
 import { disconnectStravaForUser } from "@/lib/strava/data-retention";
 import { revokeStravaToken } from "@/lib/strava/oauth";
+import { stravaRevokeEnabled } from "@/lib/strava/runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    if (!stravaRevokeEnabled()) {
+      const url = new URL("/profile", request.url);
+      url.searchParams.set("error", "strava_mutation_disabled");
+      return NextResponse.redirect(url, { status: 303 });
+    }
+
     const env = getServerEnv();
     const origin = request.headers.get("origin");
 

@@ -4,6 +4,7 @@ import { getServerEnv } from "@/lib/env";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { logError } from "@/lib/logger";
 import { buildStravaAuthorizeUrl } from "@/lib/strava/oauth";
+import { stravaOauthEnabled } from "@/lib/strava/runtime";
 
 const STATE_COOKIE = "strava_oauth_state";
 const OAUTH_STATE_MAX_AGE_SECONDS = 10 * 60;
@@ -19,6 +20,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
+    if (!stravaOauthEnabled()) {
+      const url = new URL("/profile", request.url);
+      url.searchParams.set("error", "strava_disabled");
+      return NextResponse.redirect(url);
+    }
+
     const env = getServerEnv();
     const state = randomBytes(32).toString("hex");
     const oauthState = await buildOAuthState(state, request);

@@ -34,3 +34,8 @@ archive
 supabase/.branches
 supabase/.temp
 supabase/snippets
+
+# local Supabase dump artifacts (never commit production data)
+/data.sql
+/roles.sql
+/schema.sql

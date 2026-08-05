@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Link2Off,
   LogOut,
+  Mountain,
   PlugZap,
   RefreshCw,
   Trash2,
@@ -15,6 +16,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import type { UserRole } from "@/lib/auth/roles";
+import type { Database } from "@/types/database";
 
 type ProfilePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -26,7 +29,7 @@ type ProfileState =
   | {
       kind: "authenticated";
       profileName: string;
-      role: "admin" | "member";
+      role: UserRole;
       connection: {
         athleteId: number;
         expiresAt: string | null;
@@ -34,6 +37,11 @@ type ProfileState =
         scope: string | null;
       } | null;
       passkeyCount: number;
+      seasons: Pick<
+        Database["public"]["Tables"]["seasons"]["Row"],
+        "ends_on" | "id" | "is_active" | "name" | "starts_on"
+      >[];
+      azzurraWindows: Database["public"]["Tables"]["azzurra_windows"]["Row"][];
       activities: {
         id: string;
         activity_name: string;
@@ -46,7 +54,7 @@ type ProfileState =
 
 type ProfileSummary = {
   display_name: string;
-  role: "admin" | "member";
+  role: UserRole;
 };
 
 type ConnectionSummary = {
@@ -109,11 +117,33 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           versuchen.
         </section>
       ) : null}
+      {error === "strava_disabled" ? (
+        <section className="panel border-amber-300 bg-amber-50 text-amber-950">
+          Die Strava-Verbindung ist in dieser Testumgebung deaktiviert.
+        </section>
+      ) : null}
+      {error === "strava_mutation_disabled" ? (
+        <section className="panel border-amber-300 bg-amber-50 text-amber-950">
+          Strava-Daten dürfen in dieser Testumgebung nicht verändert werden.
+        </section>
+      ) : null}
 
       {getSingleParam(params.purged) ? (
         <section className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
           Strava-bezogene Detaildaten wurden bereinigt. Aggregierte
           Wertungsdaten bleiben erhalten.
+        </section>
+      ) : null}
+
+      {getSingleParam(params.azzurraStatus) ? (
+        <section className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+          {getSingleParam(params.azzurraStatus)}
+        </section>
+      ) : null}
+
+      {getSingleParam(params.azzurraError) ? (
+        <section className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+          {getSingleParam(params.azzurraError)}
         </section>
       ) : null}
 
@@ -129,6 +159,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       {state.kind === "anonymous" ? <AnonymousProfile /> : null}
 
       {state.kind === "authenticated" ? (
+        <>
         <section className="grid gap-4 md:grid-cols-[1fr_1.2fr]">
           <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
             <div className="flex items-start justify-between gap-3">
@@ -137,7 +168,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                   {state.profileName}
                 </h2>
                 <p className="mt-1 text-sm text-asphalt-600">
-                  Rolle: {state.role === "admin" ? "Admin" : "Mitglied"}
+                  Rolle: {state.role === "admin" ? "Admin" : state.role === "scorekeeper" ? "Sprintwertung" : "Mitglied"}
                 </p>
               </div>
               <StatusBadge tone={state.role === "admin" ? "info" : "neutral"}>
@@ -196,8 +227,81 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
             <ActivityList activities={state.activities} />
           </article>
         </section>
+        <AzzurraWindowCard
+          seasons={state.seasons}
+          windows={state.azzurraWindows}
+        />
+        </>
       ) : null}
     </main>
+  );
+}
+
+function AzzurraWindowCard({
+  seasons,
+  windows,
+}: {
+  seasons: Extract<ProfileState, { kind: "authenticated" }>["seasons"];
+  windows: Extract<ProfileState, { kind: "authenticated" }>["azzurraWindows"];
+}) {
+  const selectableSeasons = seasons.filter(
+    (season) => !windows.some((window) => window.season_id === season.id),
+  );
+  const defaultSeason =
+    selectableSeasons.find((season) => season.is_active) ?? selectableSeasons[0];
+
+  return (
+    <section className="rounded-lg border border-sky-200 bg-white p-5 shadow-line">
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+          <Mountain aria-hidden className="h-5 w-5" />
+        </span>
+        <div>
+          <h2 className="text-base font-semibold text-asphalt-900">Maglia Azzurra</h2>
+          <p className="mt-1 text-sm leading-6 text-asphalt-600">
+            Wähle pro Saison einmal den Start deiner persönlichen Sieben-Tage-Wertung. Danach kann nur ein Admin korrigieren.
+          </p>
+        </div>
+      </div>
+
+      {windows.length > 0 ? (
+        <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+          {windows.map((window) => {
+            const season = seasons.find((item) => item.id === window.season_id);
+            return (
+              <div key={`${window.user_id}-${window.season_id}`} className="rounded-md bg-sky-50 p-3 text-sm">
+                <dt className="font-semibold text-asphalt-900">{season?.name ?? "Saison"}</dt>
+                <dd className="mt-1 text-asphalt-700">
+                  {formatDateOnly(window.starts_on)} bis {formatDateOnly(addDays(window.starts_on, 6))}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      ) : null}
+
+      {defaultSeason ? (
+        <form action="/api/azzurra/window" method="post" className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+            Saison
+            <select name="seasonId" defaultValue={defaultSeason.id} className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm" required>
+              {selectableSeasons.map((season) => (
+                <option key={season.id} value={season.id}>{season.name}{season.is_active ? " (aktiv)" : ""}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+            Starttag
+            <input name="startsOn" type="date" min={defaultSeason.starts_on} max={subtractDays(defaultSeason.ends_on, 6)} className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm" required />
+          </label>
+          <button type="submit" className="focus-ring inline-flex min-h-10 items-center justify-center rounded-md bg-sky-700 px-4 text-sm font-semibold text-white">
+            Woche festlegen
+          </button>
+        </form>
+      ) : (
+        <p className="mt-4 text-sm text-asphalt-600">Für alle vorhandenen Saisons wurde bereits eine Woche gewählt.</p>
+      )}
+    </section>
   );
 }
 
@@ -382,7 +486,7 @@ async function loadProfileState(): Promise<ProfileState> {
 
     const supabase = createSupabaseServiceRoleClient();
     const userId = accessState.userId;
-    const [profileResult, connectionResult, activities] = await Promise.all([
+    const [profileResult, connectionResult, activities, seasonsResult, windowsResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("display_name, role")
@@ -394,6 +498,8 @@ async function loadProfileState(): Promise<ProfileState> {
         .eq("user_id", userId)
         .maybeSingle(),
       loadAllScoredActivities(supabase, userId),
+      supabase.from("seasons").select("id, name, starts_on, ends_on, is_active").order("starts_on", { ascending: false }),
+      supabase.from("azzurra_windows").select("*").eq("user_id", userId).order("starts_on", { ascending: false }),
     ]);
     const passkeysResult = await supabase
       .from("app_passkey_credentials")
@@ -404,8 +510,8 @@ async function loadProfileState(): Promise<ProfileState> {
       throw passkeysResult.error;
     }
 
-    if (profileResult.error || connectionResult.error) {
-      throw profileResult.error ?? connectionResult.error;
+    if (profileResult.error || connectionResult.error || seasonsResult.error || windowsResult.error) {
+      throw profileResult.error ?? connectionResult.error ?? seasonsResult.error ?? windowsResult.error;
     }
 
     const profile = profileResult.data as ProfileSummary | null;
@@ -416,6 +522,8 @@ async function loadProfileState(): Promise<ProfileState> {
         profile?.display_name ?? accessState.profile.display_name ?? "Mitglied",
       role: profile?.role ?? "member",
       passkeyCount: passkeysResult.count ?? 0,
+      seasons: seasonsResult.data ?? [],
+      azzurraWindows: windowsResult.data ?? [],
       connection: connection
         ? {
             athleteId: connection.strava_athlete_id,
@@ -493,4 +601,20 @@ function formatDate(value: string) {
     timeStyle: "short",
     timeZone: "Europe/Berlin",
   }).format(new Date(value));
+}
+
+function formatDateOnly(value: string) {
+  return new Intl.DateTimeFormat("de-CH", { dateStyle: "medium", timeZone: "UTC" }).format(
+    new Date(`${value}T12:00:00.000Z`),
+  );
+}
+
+function addDays(value: string, days: number) {
+  const date = new Date(`${value}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function subtractDays(value: string, days: number) {
+  return addDays(value, -days);
 }
