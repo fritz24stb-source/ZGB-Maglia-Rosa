@@ -390,8 +390,8 @@ as $$
       profile.display_name,
       season.id as season_id,
       season.name as season_name,
-      window.starts_on,
-      (window.starts_on + 6)::date as ends_on,
+      azzurra_window.starts_on,
+      (azzurra_window.starts_on + 6)::date as ends_on,
       coalesce(sum(activity.total_elevation_gain_m), 0)::numeric
         as total_elevation_gain_m,
       coalesce(sum(activity.distance_m), 0)::numeric as total_distance_m,
@@ -399,27 +399,27 @@ as $$
       count(activity.id) filter (
         where activity.total_elevation_gain_m is null
       )::bigint as missing_elevation_count
-    from public.azzurra_windows window
-    join public.profiles profile on profile.id = window.user_id
-    join public.seasons season on season.id = window.season_id
+    from public.azzurra_windows azzurra_window
+    join public.profiles profile on profile.id = azzurra_window.user_id
+    join public.seasons season on season.id = azzurra_window.season_id
     left join public.activities activity
-      on activity.user_id = window.user_id
-      and activity.season_id = window.season_id
+      on activity.user_id = azzurra_window.user_id
+      and activity.season_id = azzurra_window.season_id
       and activity.status = 'active'
       and activity.source = 'strava'
       and activity.sport_type in ('Ride', 'GravelRide', 'MountainBikeRide')
       and (
         coalesce(activity.activity_started_local_at, activity.activity_started_at)
           at time zone 'Europe/Berlin'
-      )::date between window.starts_on and window.starts_on + 6
+      )::date between azzurra_window.starts_on and azzurra_window.starts_on + 6
     where profile.is_active
-      and (p_season_id is null or window.season_id = p_season_id)
+      and (p_season_id is null or azzurra_window.season_id = p_season_id)
     group by
       profile.id,
       profile.display_name,
       season.id,
       season.name,
-      window.starts_on
+      azzurra_window.starts_on
   )
   select
     row_number() over (

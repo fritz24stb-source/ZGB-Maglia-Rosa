@@ -10,14 +10,14 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "format": "prettier --write .",
-    "db:staging:status": "node scripts/db-target.mjs staging status",
-    "db:staging:dry-run": "node scripts/db-target.mjs staging dry-run",
-    "db:staging:push": "node scripts/db-target.mjs staging push",
+    "db:staging:status": "node --env-file=.env.local scripts/db-target.mjs staging status",
+    "db:staging:dry-run": "node --env-file=.env.local scripts/db-target.mjs staging dry-run",
+    "db:staging:push": "node --env-file=.env.local scripts/db-target.mjs staging push",
     "db:production:status": "node scripts/db-target.mjs production status",
     "db:production:dry-run": "node scripts/db-target.mjs production dry-run",
     "db:production:push": "node scripts/db-target.mjs production push",
-    "staging:sanitize": "node scripts/sanitize-staging.mjs",
-    "staging:admin": "node scripts/seed-local-admin.mjs"
+    "staging:sanitize": "node --env-file=.env.local scripts/sanitize-staging.mjs",
+    "staging:admin": "node --env-file=.env.local scripts/seed-local-admin.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

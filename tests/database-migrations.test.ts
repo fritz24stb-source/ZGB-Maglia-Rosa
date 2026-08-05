@@ -254,7 +254,8 @@ describe("database migrations", () => {
     expect(classificationSql).toContain("when 2 then 3");
     expect(classificationSql).toContain("when 3 then 1");
     expect(classificationSql).toContain("activity.sport_type in ('Ride', 'GravelRide', 'MountainBikeRide')");
-    expect(classificationSql).toContain("window.starts_on + 6");
+    expect(classificationSql).toContain("azzurra_window.starts_on + 6");
+    expect(classificationSql).not.toContain("azzurra_windows window");
     expect(classificationSql).toContain("public.get_ciclamino_leaderboard");
     expect(classificationSql).toContain("public.get_azzurra_leaderboard");
   });
