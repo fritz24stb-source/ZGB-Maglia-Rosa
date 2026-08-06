@@ -133,7 +133,7 @@ describe("ride analysis aggregation", () => {
     });
   });
 
-  it("uses rule names for event titles", () => {
+  it("uses the current rule name for event titles after a rule rename", () => {
     const analysis = buildRideAnalysis(
       [
         activity({

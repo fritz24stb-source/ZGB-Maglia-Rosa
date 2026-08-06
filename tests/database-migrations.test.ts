@@ -79,6 +79,13 @@ const dailyScoringLimitSql = readFileSync(
   ),
   "utf8",
 );
+const longestDailyActivitySql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260806100000_keep_longest_scored_activity_per_member_day.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -235,5 +242,13 @@ describe("database migrations", () => {
 
     expect(dailySelectionPosition).toBeGreaterThan(-1);
     expect(categoryFilterPosition).toBeGreaterThan(dailySelectionPosition);
+  });
+  it("keeps only the longest scored activity for each member and local day", () => {
+    expect(longestDailyActivitySql).toContain(
+      "enforce_longest_scored_activity_per_member_day",
+    );
+    expect(longestDailyActivitySql).toContain("a.distance_m desc nulls last");
+    expect(longestDailyActivitySql).toContain("points = 0");
+    expect(longestDailyActivitySql).toContain("daily_score_order > 1");
   });
 });
