@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ChevronDown, Flag, Mountain, Trophy } from "lucide-react";
+import { AlertTriangle, ChevronDown, Flag, Mountain, Trophy, Vote } from "lucide-react";
 import { CiclaminoSprintDays } from "@/components/ciclamino-sprint-days";
 import type {
   AzzurraLeaderboardRow,
@@ -42,6 +42,11 @@ export function ClassificationLeaderboard({ active, data }: { active: "ciclamino
         </label>
         <button className="focus-ring mt-3 min-h-10 rounded-md bg-asphalt-900 px-4 text-sm font-semibold text-white" type="submit">Anzeigen</button>
       </form>
+      {active === "ciclamino" ? (
+        <Link href="/ciclamino/vote" className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-fuchsia-700 px-4 text-sm font-semibold text-white shadow-line sm:w-fit">
+          <Vote aria-hidden className="h-4 w-4" /> Zur Abstimmung Most Combative Rider
+        </Link>
+      ) : null}
       {rows.length === 0 ? (
         <p className="rounded-lg border border-asphalt-200 bg-white p-5 text-sm text-asphalt-600 shadow-line">Für diese Saison gibt es noch keine Teilnehmer in der gewählten Wertung.</p>
       ) : active === "ciclamino" ? <CiclaminoTable rows={data.ciclamino} /> : <AzzurraTable rows={data.azzurra} />}

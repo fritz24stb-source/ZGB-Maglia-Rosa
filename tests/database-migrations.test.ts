@@ -107,6 +107,13 @@ const combativeAwardsSql = readFileSync(
   ),
   "utf8",
 );
+const combativeVotingSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260806190000_add_ciclamino_combative_voting.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -309,5 +316,14 @@ describe("database migrations", () => {
     expect(combativeAwardsSql).toContain("p_combative_user_id uuid");
     expect(combativeAwardsSql).toContain("combative_awards bigint");
     expect(combativeAwardsSql).toContain("coalesce(award.award_points, 0)");
+  });
+
+  it("stores changeable votes and resolves ties using sprint points", () => {
+    expect(combativeVotingSql).toContain("create table public.ciclamino_combative_voting_windows");
+    expect(combativeVotingSql).toContain("create table public.ciclamino_combative_votes");
+    expect(combativeVotingSql).toContain("primary key (season_id, sprint_date, voter_user_id)");
+    expect(combativeVotingSql).toContain("candidate.vote_count desc, candidate.sprint_points desc");
+    expect(combativeVotingSql).toContain("having count(*) = 1");
+    expect(combativeVotingSql).toContain("Europe/Berlin");
   });
 });

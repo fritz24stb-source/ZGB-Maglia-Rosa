@@ -38,6 +38,8 @@ export type CiclaminoSprint = {
 };
 
 export type CiclaminoSprintDay = {
+  adminOverrideUserId: string | null;
+  combativeSource: "admin_override" | "vote" | null;
   combativeRider: {
     displayName: string;
     points: number;
@@ -48,6 +50,18 @@ export type CiclaminoSprintDay = {
   seasonName: string;
   sprintDate: string;
   sprints: CiclaminoSprint[];
+  voteSummary: {
+    candidateDisplayName: string;
+    candidateUserId: string;
+    sprintPoints: number;
+    voteCount: number;
+    voters: { displayName: string; userId: string }[];
+  }[];
+  votingWindow: {
+    closesAt: string;
+    opensAt: string;
+    status: "closed" | "open" | "scheduled";
+  } | null;
 };
 
 export type AzzurraLeaderboardRow = {

@@ -3,6 +3,7 @@ import { writeAdminAuditLog } from "@/lib/admin/audit";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { canManageCiclamino } from "@/lib/auth/roles";
 import { CICLAMINO_LOCATIONS } from "@/lib/classifications/ciclamino";
+import { berlinLocalDateTimeToIso } from "@/lib/date-time";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 
@@ -30,6 +31,8 @@ export async function POST(request: NextRequest) {
       if (awardSelectError) throw awardSelectError;
       const { error: awardDeleteError } = await supabase.from("ciclamino_combative_awards").delete().eq("season_id", seasonId).eq("sprint_date", sprintDate);
       if (awardDeleteError) throw awardDeleteError;
+      const { error: votingWindowDeleteError } = await supabase.from("ciclamino_combative_voting_windows").delete().eq("season_id", seasonId).eq("sprint_date", sprintDate);
+      if (votingWindowDeleteError) throw votingWindowDeleteError;
       const { error } = await supabase.from("ciclamino_sprints").delete().eq("season_id", seasonId).eq("sprint_date", sprintDate);
       if (error) throw error;
       await writeAdminAuditLog(supabase, {
@@ -58,7 +61,12 @@ export async function POST(request: NextRequest) {
 
     const originalSeasonId = textValue(formData, "originalSeasonId");
     const originalSprintDate = optionalDate(formData, "originalSprintDate");
-    const combativeUserId = requiredText(formData, "combativeUserId");
+    const combativeUserId = textValue(formData, "combativeUserId");
+    const voteOpensAt = berlinLocalDateTimeToIso(requiredText(formData, "voteOpensAt"));
+    const voteClosesAt = berlinLocalDateTimeToIso(requiredText(formData, "voteClosesAt"));
+    if (new Date(voteOpensAt) >= new Date(voteClosesAt)) {
+      throw new Error("Der Abstimmungsbeginn muss vor dem Abstimmungsende liegen.");
+    }
 
     if (!originalSeasonId) {
       const { data: existingSprint, error: existingSprintError } = await supabase
@@ -85,11 +93,20 @@ export async function POST(request: NextRequest) {
     });
     if (error) throw error;
 
+    const { error: votingWindowError } = await supabase.from("ciclamino_combative_voting_windows").upsert({
+      closes_at: voteClosesAt,
+      opens_at: voteOpensAt,
+      season_id: seasonId,
+      sprint_date: sprintDate,
+      updated_by: access.userId,
+    });
+    if (votingWindowError) throw votingWindowError;
+
     await writeAdminAuditLog(supabase, {
       action: originalSeasonId ? "ciclamino.race_day.update" : "ciclamino.race_day.create",
       entityType: "ciclamino_race_day",
       entityId: savedIds?.[0] ?? null,
-      after: { actorUserId: access.userId, combativeUserId, seasonId, sprintDate, sprints },
+      after: { actorUserId: access.userId, combativeUserId, seasonId, sprintDate, sprints, voteClosesAt, voteOpensAt },
     });
     return redirect(request, { status: originalSeasonId ? "Sprinttag aktualisiert." : "Sprinttag angelegt." });
   } catch (error) {

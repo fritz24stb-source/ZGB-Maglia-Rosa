@@ -168,6 +168,25 @@ type CiclaminoCombativeAwardRow = {
   updated_at: string;
 };
 
+type CiclaminoCombativeVotingWindowRow = {
+  season_id: string;
+  sprint_date: string;
+  opens_at: string;
+  closes_at: string;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type CiclaminoCombativeVoteRow = {
+  season_id: string;
+  sprint_date: string;
+  voter_user_id: string;
+  candidate_user_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type AzzurraWindowRow = {
   user_id: string;
   season_id: string;
@@ -254,6 +273,8 @@ export type Database = {
       ciclamino_sprints: Table<CiclaminoSprintRow>;
       ciclamino_placements: Table<CiclaminoPlacementRow>;
       ciclamino_combative_awards: Table<CiclaminoCombativeAwardRow>;
+      ciclamino_combative_voting_windows: Table<CiclaminoCombativeVotingWindowRow>;
+      ciclamino_combative_votes: Table<CiclaminoCombativeVoteRow>;
       azzurra_windows: Table<AzzurraWindowRow>;
       member_point_adjustments: Table<MemberPointAdjustmentRow>;
       manual_entry_windows: Table<ManualEntryWindowRow>;
@@ -327,7 +348,7 @@ export type Database = {
           p_season_id: string;
           p_sprint_date: string;
           p_sprints: Json;
-          p_combative_user_id: string;
+          p_combative_user_id: string | null;
           p_actor_user_id: string;
           p_original_season_id: string | null;
           p_original_sprint_date: string | null;
