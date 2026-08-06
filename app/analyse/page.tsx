@@ -516,7 +516,7 @@ async function loadAnalysisState(
     const [rulesResult, profilesResult, activitiesResult] = await Promise.all([
       supabase
         .from("scoring_rules")
-        .select("id, name, category, rule_type")
+        .select("id, name, category, is_active, rule_type, valid_from, valid_until")
         .order("priority", { ascending: false }),
       supabase.from("profiles").select("id").eq("is_active", true),
       buildActivitiesQuery(supabase, selectedSeasonId),
