@@ -30,6 +30,9 @@ export function ClassificationTabs({ active, enabled, seasonId }: { active: Clas
 
 export function ClassificationLeaderboard({ active, data }: { active: "ciclamino" | "azzurra"; data: ClassificationLeaderboardResponse }) {
   const rows = active === "ciclamino" ? data.ciclamino : data.azzurra;
+  const completedCiclaminoSprintDays = data.ciclaminoSprintDays.filter(
+    (day) => day.votingWindow?.status === "closed",
+  );
   return (
     <section className="flex flex-col gap-6">
       <form action="/leaderboard" className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line">
@@ -50,7 +53,9 @@ export function ClassificationLeaderboard({ active, data }: { active: "ciclamino
       {rows.length === 0 ? (
         <p className="rounded-lg border border-asphalt-200 bg-white p-5 text-sm text-asphalt-600 shadow-line">Für diese Saison gibt es noch keine Teilnehmer in der gewählten Wertung.</p>
       ) : active === "ciclamino" ? <CiclaminoTable rows={data.ciclamino} /> : <AzzurraTable rows={data.azzurra} />}
-      {active === "ciclamino" ? <CiclaminoSprintDays sprintDays={data.ciclaminoSprintDays} /> : null}
+      {active === "ciclamino" ? (
+        <CiclaminoSprintDays sprintDays={completedCiclaminoSprintDays} title="Vergangene Sprints" />
+      ) : null}
     </section>
   );
 }
