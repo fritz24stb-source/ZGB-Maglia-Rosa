@@ -26,8 +26,9 @@ export function CiclaminoSprintDays({
             {sprintDays.map((day) => (
               <details key={day.key} className="group">
                 <summary className="focus-ring grid min-h-14 cursor-pointer list-none grid-cols-[minmax(0,1fr)_2.5rem] items-center gap-3 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden md:grid-cols-[10rem_minmax(0,1fr)_10rem_minmax(12rem,1fr)_2.5rem]">
-                  <span className="font-semibold text-asphalt-900">{formatDate(day.sprintDate)}</span>
-                  <span className="text-asphalt-600">{day.seasonName}</span>
+                  <span className="min-w-0 truncate font-semibold text-asphalt-900 md:hidden">Mittwoch {formatDate(day.sprintDate)}</span>
+                  <span className="hidden font-semibold text-asphalt-900 md:block">{formatDate(day.sprintDate)}</span>
+                  <span className="hidden min-w-0 truncate text-asphalt-600 md:block">{day.seasonName}</span>
                   <span className="hidden text-asphalt-600 md:block">{day.sprints.length} von 3</span>
                   <span className="hidden font-medium text-fuchsia-800 md:block">{day.combativeRider ? `${day.combativeRider.displayName} (+5 P)` : resultStatus(day)}</span>
                   <ChevronDown aria-hidden className="h-5 w-5 justify-self-end text-asphalt-500 transition group-open:rotate-180" />
@@ -109,8 +110,11 @@ function VotingDetails({ day }: { day: CiclaminoSprintDay }) {
         <div className="mt-3 grid gap-2">
           {day.voteSummary.map((candidate, index) => (
             <details key={candidate.candidateUserId} className="group rounded-md border border-asphalt-100 bg-asphalt-50">
-              <summary className="focus-ring grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto_auto_1.5rem] items-center gap-3 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
-                <span className="font-semibold text-asphalt-900">{candidate.candidateDisplayName}</span><span className="font-semibold text-fuchsia-800">{candidate.voteCount} {candidate.voteCount === 1 ? "Stimme" : "Stimmen"}</span><span className="text-xs text-asphalt-600">{candidate.sprintPoints} Sprintpunkte</span><ChevronDown aria-hidden className="h-4 w-4 transition group-open:rotate-180" />
+              <summary className="focus-ring grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_1.5rem] items-center gap-3 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden sm:grid-cols-[minmax(0,1fr)_auto_auto_1.5rem]">
+                <span className="min-w-0 font-semibold text-asphalt-900">
+                  <span className="block truncate">{candidate.candidateDisplayName}</span>
+                  <span className="mt-0.5 block text-xs font-normal text-asphalt-600 sm:hidden">{candidate.voteCount} {candidate.voteCount === 1 ? "Stimme" : "Stimmen"} · {candidate.sprintPoints} Sprintpunkte</span>
+                </span><span className="hidden font-semibold text-fuchsia-800 sm:block">{candidate.voteCount} {candidate.voteCount === 1 ? "Stimme" : "Stimmen"}</span><span className="hidden text-xs text-asphalt-600 sm:block">{candidate.sprintPoints} Sprintpunkte</span><ChevronDown aria-hidden className="h-4 w-4 justify-self-end transition group-open:rotate-180" />
               </summary>
               <div className="border-t border-asphalt-100 px-3 py-2 text-xs text-asphalt-600"><span className="font-semibold">Abgestimmt haben: </span>{candidate.voters.map((voter) => voter.displayName).join(", ")}</div>
               {index === 0 && day.votingWindow?.status === "closed" && !day.combativeRider ? <p className="border-t border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">Stimmen und Sprintpunkte sind gleich – Admin-Override erforderlich.</p> : null}
