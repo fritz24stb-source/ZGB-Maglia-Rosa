@@ -277,7 +277,9 @@ function getEventName(
     ? rulesById.get(activity.matched_rule_id)
     : null;
 
-  return activity.matched_rule_name ?? rule?.name ?? null;
+  // Rule names are editable. Prefer the current rule name so the analysis
+  // reflects a later event rename for activities that were already scored.
+  return rule?.name ?? activity.matched_rule_name ?? null;
 }
 
 function formatEventTitle(eventNames: string[]) {
