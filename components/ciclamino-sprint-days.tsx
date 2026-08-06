@@ -44,11 +44,23 @@ export function CiclaminoSprintDays({ editable = false, sprintDays }: { editable
                           <h3 className="font-semibold text-fuchsia-950">{location}</h3>
                           {sprint ? (
                             <ol className="mt-3 grid gap-2 text-sm">
-                              {sprint.placements.map((placement) => (
-                                <li key={placement.place} className="grid grid-cols-[2rem_minmax(0,1fr)_3rem] gap-2">
-                                  <span className="font-semibold">{placement.place}.</span><span>{placement.displayName}</span><span className="text-right font-semibold text-fuchsia-800">{placement.points} P</span>
-                                </li>
-                              ))}
+                              {[1, 2, 3, 4, 5].map((place) => {
+                                const placement = sprint.placements.find((candidate) => candidate.place === place);
+                                return (
+                                  <li key={place} className="grid grid-cols-[2rem_minmax(0,1fr)_3rem] gap-2">
+                                    <span className="font-semibold">{place}.</span>
+                                    <span className={placement ? "" : "text-asphalt-400"}>
+                                      {placement?.displayName ?? "Noch offen"}
+                                      {editable && placement ? (
+                                        <span className="ml-2 text-xs text-asphalt-500">
+                                          {placement.source === "admin_override" ? "Admin-Override" : "Mitgliedsmeldung"}
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                    <span className="text-right font-semibold text-fuchsia-800">{placement ? `${placement.points} P` : "–"}</span>
+                                  </li>
+                                );
+                              })}
                             </ol>
                           ) : <p className="mt-3 text-sm text-asphalt-500">Nicht erfasst</p>}
                         </section>
@@ -84,7 +96,7 @@ function VotingDetails({ day }: { day: CiclaminoSprintDay }) {
         </div>
         {day.votingWindow ? <span className="rounded-full bg-asphalt-100 px-2.5 py-1 text-xs font-semibold text-asphalt-700">{day.votingWindow.status === "open" ? "Offen" : day.votingWindow.status === "scheduled" ? "Geplant" : "Geschlossen"}</span> : null}
       </div>
-      <div className="mt-4 flex items-center gap-2"><UsersRound aria-hidden className="h-4 w-4 text-fuchsia-700" /><h3 className="text-sm font-semibold text-asphalt-900">Stimmen</h3></div>
+      <div className="mt-4 flex items-center gap-2"><UsersRound aria-hidden className="h-4 w-4 text-fuchsia-700" /><h3 className="text-sm font-semibold text-asphalt-900">Most-Combative-Stimmen</h3></div>
       {day.voteSummary.length ? (
         <div className="mt-3 grid gap-2">
           {day.voteSummary.map((candidate, index) => (

@@ -40,7 +40,7 @@ export async function loadClassificationLeaderboard(
     endsOn: season.ends_on,
   }));
   const selectedSeasonId = resolveSeasonId(requestedSeasonId, seasons);
-  const [ciclaminoResult, azzurraResult, sprintsResult, placementsResult, awardsResult, windowsResult, votesResult, profilesResult] = await Promise.all([
+  const [ciclaminoResult, azzurraResult, sprintsResult, placementsResult, awardsResult, windowsResult, votesResult, overridesResult, profilesResult] = await Promise.all([
     supabase.rpc("get_ciclamino_leaderboard", {
       p_season_id: selectedSeasonId,
     }),
@@ -60,16 +60,20 @@ export async function loadClassificationLeaderboard(
     selectedSeasonId
       ? supabase.from("ciclamino_combative_votes").select("*").eq("season_id", selectedSeasonId)
       : Promise.resolve({ data: [], error: null }),
+    selectedSeasonId
+      ? supabase.from("ciclamino_placement_overrides").select("*").eq("season_id", selectedSeasonId)
+      : Promise.resolve({ data: [], error: null }),
     supabase.from("profiles").select("id, display_name").eq("is_active", true),
   ]);
 
-  const error = ciclaminoResult.error ?? azzurraResult.error ?? sprintsResult.error ?? placementsResult.error ?? awardsResult.error ?? windowsResult.error ?? votesResult.error ?? profilesResult.error;
+  const error = ciclaminoResult.error ?? azzurraResult.error ?? sprintsResult.error ?? placementsResult.error ?? awardsResult.error ?? windowsResult.error ?? votesResult.error ?? overridesResult.error ?? profilesResult.error;
   if (error) {
     throw error;
   }
 
   const ciclaminoSprintDays = buildCiclaminoSprintDays({
     awards: awardsResult.data ?? [],
+    placementOverrides: overridesResult.data ?? [],
     placements: placementsResult.data ?? [],
     profiles: profilesResult.data ?? [],
     seasons,

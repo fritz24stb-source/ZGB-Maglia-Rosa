@@ -28,6 +28,7 @@ export type CiclaminoSprintPlacement = {
   displayName: string;
   place: number;
   points: number;
+  source: "admin_override" | "member";
   userId: string;
 };
 

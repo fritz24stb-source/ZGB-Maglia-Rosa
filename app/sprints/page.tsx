@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Flag } from "lucide-react";
+import { Flag, Plus } from "lucide-react";
 import { AdminFlash } from "@/components/admin-flash";
 import { CiclaminoSprintDays } from "@/components/ciclamino-sprint-days";
 import { PageHeader } from "@/components/page-header";
@@ -30,14 +30,19 @@ export default async function SprintsPage({
   const activeSeason = seasons.find((season) => season.is_active) ?? seasons[0];
   const editKey = single(params.edit);
   const editingDay = sprintDays.find((day) => day.key === editKey);
+  const createRequested = single(params.create) === "1";
   const today = todayInZurich();
-  const initialValue = editingDay ? toFormValue(editingDay) : emptyFormValue(activeSeason, today);
+  const initialValue = editingDay
+    ? toFormValue(editingDay)
+    : createRequested
+      ? emptyFormValue(activeSeason, today)
+      : null;
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Sprintpflege"
-        description="Alle drei Ortsschild-Sprints eines Mittwochs gemeinsam mit den Plätzen 1 bis 5 und dem Most Combative Rider erfassen."
+        description="Gemeldete Ortsschild-Ergebnisse prüfen, einzelne Platzierungen überschreiben und den Abstimmungszeitraum verwalten."
       />
       <AdminFlash error={single(params.adminError)} status={single(params.adminStatus)} />
 
@@ -47,12 +52,12 @@ export default async function SprintsPage({
             <div className="flex items-center gap-2">
               <Flag aria-hidden className="h-5 w-5 text-fuchsia-700" />
               <h2 className="text-base font-semibold text-asphalt-900">
-                {editingDay ? `Sprinttag vom ${formatDate(editingDay.sprintDate)} bearbeiten` : "Neuer Sprinttag"}
+                {editingDay ? `Sprinttag vom ${formatDate(editingDay.sprintDate)} bearbeiten` : "Neuen Sprinttag konfigurieren"}
               </h2>
             </div>
-            {editingDay ? (
+            {editingDay || createRequested ? (
               <Link href="/sprints#sprint-form" className="focus-ring rounded-md border border-asphalt-300 px-3 py-2 text-sm font-medium text-asphalt-700">
-                Bearbeitung abbrechen
+                Fenster schließen
               </Link>
             ) : null}
           </div>
@@ -71,10 +76,19 @@ export default async function SprintsPage({
             today={today}
           />
         </section>
-      ) : (
+      ) : !activeSeason ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
           Für die Sprintpflege wird eine Saison mit mindestens einem Mittwoch benötigt.
         </p>
+      ) : (
+        <div>
+          <Link
+            href="/sprints?create=1#sprint-form"
+            className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-md bg-asphalt-900 px-4 text-sm font-semibold text-white"
+          >
+            <Plus aria-hidden className="h-4 w-4" /> Neuen Sprinttag konfigurieren
+          </Link>
+        </div>
       )}
 
       <CiclaminoSprintDays editable sprintDays={sprintDays} />
@@ -84,7 +98,7 @@ export default async function SprintsPage({
 
 async function loadSprintData() {
   const supabase = createSupabaseServiceRoleClient();
-  const [profilesResult, seasonsResult, sprintsResult, placementsResult, awardsResult, windowsResult, votesResult] = await Promise.all([
+  const [profilesResult, seasonsResult, sprintsResult, placementsResult, awardsResult, windowsResult, votesResult, overridesResult] = await Promise.all([
     supabase.from("profiles").select("id, display_name").eq("is_active", true).order("display_name"),
     supabase.from("seasons").select("id, name, is_active, starts_on, ends_on").order("starts_on", { ascending: false }),
     supabase.from("ciclamino_sprints").select("*").order("sprint_date", { ascending: false }),
@@ -92,14 +106,16 @@ async function loadSprintData() {
     supabase.from("ciclamino_combative_awards").select("*"),
     supabase.from("ciclamino_combative_voting_windows").select("*"),
     supabase.from("ciclamino_combative_votes").select("*"),
+    supabase.from("ciclamino_placement_overrides").select("*"),
   ]);
-  const error = profilesResult.error ?? seasonsResult.error ?? sprintsResult.error ?? placementsResult.error ?? awardsResult.error ?? windowsResult.error ?? votesResult.error;
+  const error = profilesResult.error ?? seasonsResult.error ?? sprintsResult.error ?? placementsResult.error ?? awardsResult.error ?? windowsResult.error ?? votesResult.error ?? overridesResult.error;
   if (error) throw error;
 
   const profiles = (profilesResult.data ?? []) as Profile[];
   const seasons = (seasonsResult.data ?? []) as Season[];
   const sprintDays = buildCiclaminoSprintDays({
     awards: awardsResult.data ?? [],
+    placementOverrides: overridesResult.data ?? [],
     placements: placementsResult.data ?? [],
     profiles,
     seasons,
@@ -120,7 +136,19 @@ function toFormValue(day: CiclaminoSprintDay): SprintDayFormValue {
     voteOpensAt: day.votingWindow ? isoToBerlinLocalDateTime(day.votingWindow.opensAt) : defaultCombativeVotingWindow(day.sprintDate).opensAt,
     locations: CICLAMINO_LOCATIONS.map((name) => {
       const sprint = day.sprints.find((candidate) => candidate.name === name);
-      return { name, userIds: sprint?.placements.map((placement) => placement.userId) ?? [] };
+      return {
+        effectivePlacements: [1, 2, 3, 4, 5].map((place) => {
+          const placement = sprint?.placements.find((candidate) => candidate.place === place);
+          return placement
+            ? { displayName: placement.displayName, source: placement.source }
+            : null;
+        }),
+        name,
+        overrideUserIds: [1, 2, 3, 4, 5].map((place) => {
+          const placement = sprint?.placements.find((candidate) => candidate.place === place);
+          return placement?.source === "admin_override" ? placement.userId : null;
+        }),
+      };
     }),
   };
 }
@@ -136,7 +164,11 @@ function emptyFormValue(season: Season | undefined, today: string): SprintDayFor
     sprintDate,
     voteClosesAt: votingWindow.closesAt,
     voteOpensAt: votingWindow.opensAt,
-    locations: CICLAMINO_LOCATIONS.map((name) => ({ name, userIds: [] })),
+    locations: CICLAMINO_LOCATIONS.map((name) => ({
+      effectivePlacements: [null, null, null, null, null],
+      name,
+      overrideUserIds: [null, null, null, null, null],
+    })),
   };
 }
 

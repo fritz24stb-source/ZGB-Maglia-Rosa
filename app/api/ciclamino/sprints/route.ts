@@ -47,9 +47,10 @@ export async function POST(request: NextRequest) {
 
     const sprints = [0, 1, 2].map((locationIndex) => {
       const name = requiredText(formData, `location${locationIndex}Name`);
-      const userIds = [1, 2, 3, 4, 5].map((place) => requiredText(formData, `location${locationIndex}Place${place}UserId`));
-      if (new Set(userIds).size !== 5) {
-        throw new Error(`Beim Ortsschild ${name} darf jedes Mitglied nur einmal vorkommen.`);
+      const userIds = [1, 2, 3, 4, 5].map((place) => textValue(formData, `location${locationIndex}Place${place}UserId`));
+      const selectedUserIds = userIds.filter((userId): userId is string => Boolean(userId));
+      if (new Set(selectedUserIds).size !== selectedUserIds.length) {
+        throw new Error(`Beim Ortsschild ${name} darf ein Mitglied nur auf einer Position als Override gesetzt werden.`);
       }
       return { name, userIds };
     });
@@ -90,17 +91,10 @@ export async function POST(request: NextRequest) {
       p_season_id: seasonId,
       p_sprint_date: sprintDate,
       p_sprints: sprints as Json,
+      p_vote_closes_at: voteClosesAt,
+      p_vote_opens_at: voteOpensAt,
     });
     if (error) throw error;
-
-    const { error: votingWindowError } = await supabase.from("ciclamino_combative_voting_windows").upsert({
-      closes_at: voteClosesAt,
-      opens_at: voteOpensAt,
-      season_id: seasonId,
-      sprint_date: sprintDate,
-      updated_by: access.userId,
-    });
-    if (votingWindowError) throw votingWindowError;
 
     await writeAdminAuditLog(supabase, {
       action: originalSeasonId ? "ciclamino.race_day.update" : "ciclamino.race_day.create",
@@ -108,7 +102,7 @@ export async function POST(request: NextRequest) {
       entityId: savedIds?.[0] ?? null,
       after: { actorUserId: access.userId, combativeUserId, seasonId, sprintDate, sprints, voteClosesAt, voteOpensAt },
     });
-    return redirect(request, { status: originalSeasonId ? "Sprinttag aktualisiert." : "Sprinttag angelegt." });
+    return redirect(request, { status: originalSeasonId ? "Sprinttag aktualisiert." : "Sprinttag konfiguriert." });
   } catch (error) {
     return redirect(request, { error: error instanceof Error ? error.message : "Sprinttag konnte nicht gespeichert werden." });
   }

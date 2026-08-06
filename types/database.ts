@@ -187,6 +187,27 @@ type CiclaminoCombativeVoteRow = {
   updated_at: string;
 };
 
+type CiclaminoResultSubmissionRow = {
+  season_id: string;
+  sprint_date: string;
+  location: string;
+  user_id: string;
+  place: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type CiclaminoPlacementOverrideRow = {
+  season_id: string;
+  sprint_date: string;
+  location: string;
+  place: number;
+  user_id: string;
+  overridden_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type AzzurraWindowRow = {
   user_id: string;
   season_id: string;
@@ -275,6 +296,8 @@ export type Database = {
       ciclamino_combative_awards: Table<CiclaminoCombativeAwardRow>;
       ciclamino_combative_voting_windows: Table<CiclaminoCombativeVotingWindowRow>;
       ciclamino_combative_votes: Table<CiclaminoCombativeVoteRow>;
+      ciclamino_result_submissions: Table<CiclaminoResultSubmissionRow>;
+      ciclamino_placement_overrides: Table<CiclaminoPlacementOverrideRow>;
       azzurra_windows: Table<AzzurraWindowRow>;
       member_point_adjustments: Table<MemberPointAdjustmentRow>;
       manual_entry_windows: Table<ManualEntryWindowRow>;
@@ -352,8 +375,20 @@ export type Database = {
           p_actor_user_id: string;
           p_original_season_id: string | null;
           p_original_sprint_date: string | null;
+          p_vote_opens_at: string;
+          p_vote_closes_at: string;
         };
         Returns: string[];
+      };
+      save_ciclamino_member_vote: {
+        Args: {
+          p_season_id: string;
+          p_sprint_date: string;
+          p_voter_user_id: string;
+          p_candidate_user_id: string;
+          p_results: Json;
+        };
+        Returns: undefined;
       };
       consume_app_invite: {
         Args: {

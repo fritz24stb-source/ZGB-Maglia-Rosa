@@ -7,6 +7,7 @@ type Season = Pick<Database["public"]["Tables"]["seasons"]["Row"], "id" | "name"
 export function buildCiclaminoSprintDays({
   awards,
   now = new Date(),
+  placementOverrides,
   placements,
   profiles,
   seasons,
@@ -16,6 +17,7 @@ export function buildCiclaminoSprintDays({
 }: {
   awards: Database["public"]["Tables"]["ciclamino_combative_awards"]["Row"][];
   now?: Date;
+  placementOverrides: Database["public"]["Tables"]["ciclamino_placement_overrides"]["Row"][];
   placements: Database["public"]["Tables"]["ciclamino_placements"]["Row"][];
   profiles: Profile[];
   seasons: Season[];
@@ -27,6 +29,9 @@ export function buildCiclaminoSprintDays({
   const seasonNames = new Map(seasons.map((season) => [season.id, season.name]));
   const awardsByDay = new Map(awards.map((award) => [dayKey(award.season_id, award.sprint_date), award]));
   const windowsByDay = new Map(votingWindows.map((window) => [dayKey(window.season_id, window.sprint_date), window]));
+  const overrideKeys = new Set(placementOverrides.map((override) =>
+    `${dayKey(override.season_id, override.sprint_date)}:${override.location}:${override.place}`,
+  ));
   const sprintPoints = new Map<string, number>();
   const sprintById = new Map(sprints.map((sprint) => [sprint.id, sprint]));
   for (const placement of placements) {
@@ -58,6 +63,7 @@ export function buildCiclaminoSprintDays({
           displayName: profileNames.get(placement.user_id) ?? "Unbekannt",
           place: placement.place,
           points: placement.points,
+          source: overrideKeys.has(`${key}:${sprint.name}:${placement.place}`) ? "admin_override" : "member",
           userId: placement.user_id,
         })),
     });

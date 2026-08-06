@@ -114,6 +114,13 @@ const combativeVotingSql = readFileSync(
   ),
   "utf8",
 );
+const memberResultsSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260806210000_expand_ciclamino_member_results.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -325,5 +332,14 @@ describe("database migrations", () => {
     expect(combativeVotingSql).toContain("candidate.vote_count desc, candidate.sprint_points desc");
     expect(combativeVotingSql).toContain("having count(*) = 1");
     expect(combativeVotingSql).toContain("Europe/Berlin");
+  });
+
+  it("stores self-reported sprint results and applies position-specific admin overrides", () => {
+    expect(memberResultsSql).toContain("create table public.ciclamino_result_submissions");
+    expect(memberResultsSql).toContain("where place is not null");
+    expect(memberResultsSql).toContain("create table public.ciclamino_placement_overrides");
+    expect(memberResultsSql).toContain("public.save_ciclamino_member_vote");
+    expect(memberResultsSql).toContain("public.refresh_ciclamino_effective_placements");
+    expect(memberResultsSql).toContain("rider_override.user_id = submission.user_id");
   });
 });

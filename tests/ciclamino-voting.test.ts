@@ -39,6 +39,7 @@ describe("Most Combative voting", () => {
     const days = buildCiclaminoSprintDays({
       awards: [],
       now: new Date("2026-08-06T17:00:00Z"),
+      placementOverrides: [],
       placements: [placement("candidate-a", 1, 5), placement("candidate-b", 2, 4)],
       profiles,
       seasons: [season],
@@ -54,6 +55,7 @@ describe("Most Combative voting", () => {
     const days = buildCiclaminoSprintDays({
       awards: [],
       now: new Date("2026-08-06T17:00:00Z"),
+      placementOverrides: [],
       placements: [placement("candidate-a", 1, 5), placement("candidate-b", 1, 5)],
       profiles,
       seasons: [season],
@@ -76,6 +78,7 @@ describe("Most Combative voting", () => {
         updated_at: "2026-08-05T16:00:00Z",
       }],
       now: new Date("2026-08-06T17:00:00Z"),
+      placementOverrides: [],
       placements: [placement("candidate-a", 1, 5), placement("candidate-b", 2, 4)],
       profiles,
       seasons: [season],

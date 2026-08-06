@@ -21,7 +21,11 @@ type SeasonOption = {
 
 export type SprintDayFormValue = {
   adminOverrideUserId: string;
-  locations: { name: CiclaminoLocation; userIds: string[] }[];
+  locations: {
+    effectivePlacements: ({ displayName: string; source: "admin_override" | "member" } | null)[];
+    name: CiclaminoLocation;
+    overrideUserIds: (string | null)[];
+  }[];
   seasonId: string;
   sprintDate: string;
   voteClosesAt: string;
@@ -99,10 +103,13 @@ export function SprintDayForm({
               <div className="mt-4 grid gap-3">
                 {[1, 2, 3, 4, 5].map((place) => (
                   <Field key={place} label={`${place}. Platz (${6 - place} P)`}>
-                    <select className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm" defaultValue={location?.userIds[place - 1] ?? ""} name={`location${locationIndex}Place${place}UserId`} required>
-                      <option value="" disabled>Mitglied wählen</option>
+                    <select className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm" defaultValue={location?.overrideUserIds[place - 1] ?? ""} name={`location${locationIndex}Place${place}UserId`}>
+                      <option value="">Kein Override – Meldung verwenden</option>
                       {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName}</option>)}
                     </select>
+                    <span className="text-xs font-normal text-asphalt-600">
+                      {formatEffectivePlacement(location?.effectivePlacements[place - 1])}
+                    </span>
                   </Field>
                 ))}
               </div>
@@ -112,7 +119,7 @@ export function SprintDayForm({
       </div>
 
       <fieldset className="grid gap-4 rounded-lg border border-fuchsia-300 bg-fuchsia-50 p-4 md:grid-cols-2">
-        <legend className="px-1 text-sm font-semibold text-fuchsia-950">Abstimmung Most Combative Rider</legend>
+        <legend className="px-1 text-sm font-semibold text-fuchsia-950">Abstimmungszeitraum Maglia Ciclamino</legend>
         <Field label="Abstimmung geöffnet ab">
           <input className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm" name="voteOpensAt" onChange={(event) => setVoteOpensAt(event.target.value)} required type="datetime-local" value={voteOpensAt} />
         </Field>
@@ -131,9 +138,9 @@ export function SprintDayForm({
         <p className="mt-2 text-xs leading-5 text-amber-900">Nur verwenden, wenn Stimmen und erzielte Sprintpunkte keinen eindeutigen Sieger ergeben oder eine Korrektur erforderlich ist.</p>
       </div>
 
-      <button className="focus-ring inline-flex min-h-10 w-fit items-center gap-2 rounded-md bg-asphalt-900 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={profiles.length < 5 || !sprintDate} type="submit">
+      <button className="focus-ring inline-flex min-h-10 w-fit items-center gap-2 rounded-md bg-asphalt-900 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={!sprintDate} type="submit">
         <Save aria-hidden className="h-4 w-4" />
-        {isEditing ? "Alle drei Sprints aktualisieren" : "Alle drei Sprints speichern"}
+        {isEditing ? "Overrides und Zeitraum speichern" : "Sprinttag konfigurieren"}
       </button>
     </form>
   );
@@ -145,4 +152,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function formatWednesday(value: string) {
   return new Intl.DateTimeFormat("de-CH", { dateStyle: "full", timeZone: "UTC" }).format(new Date(`${value}T12:00:00.000Z`));
+}
+
+function formatEffectivePlacement(
+  placement: { displayName: string; source: "admin_override" | "member" } | null | undefined,
+) {
+  if (!placement) return "Aktuell noch nicht belegt";
+  return `Aktuell: ${placement.displayName} · ${placement.source === "admin_override" ? "Admin-Override" : "Mitgliedsmeldung"}`;
 }

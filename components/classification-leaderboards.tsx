@@ -44,7 +44,7 @@ export function ClassificationLeaderboard({ active, data }: { active: "ciclamino
       </form>
       {active === "ciclamino" ? (
         <Link href="/ciclamino/vote" className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-fuchsia-700 px-4 text-sm font-semibold text-white shadow-line sm:w-fit">
-          <Vote aria-hidden className="h-4 w-4" /> Zur Abstimmung Most Combative Rider
+          <Vote aria-hidden className="h-4 w-4" /> Zur Abstimmung Maglia Ciclamino
         </Link>
       ) : null}
       {rows.length === 0 ? (
