@@ -26,13 +26,17 @@ export async function POST(request: NextRequest) {
     if (action === "delete") {
       const { data: before, error: selectError } = await supabase.from("ciclamino_sprints").select("*").eq("season_id", seasonId).eq("sprint_date", sprintDate);
       if (selectError) throw selectError;
+      const { data: awardBefore, error: awardSelectError } = await supabase.from("ciclamino_combative_awards").select("*").eq("season_id", seasonId).eq("sprint_date", sprintDate).maybeSingle();
+      if (awardSelectError) throw awardSelectError;
+      const { error: awardDeleteError } = await supabase.from("ciclamino_combative_awards").delete().eq("season_id", seasonId).eq("sprint_date", sprintDate);
+      if (awardDeleteError) throw awardDeleteError;
       const { error } = await supabase.from("ciclamino_sprints").delete().eq("season_id", seasonId).eq("sprint_date", sprintDate);
       if (error) throw error;
       await writeAdminAuditLog(supabase, {
         action: "ciclamino.race_day.delete",
         entityType: "ciclamino_race_day",
         entityId: before?.[0]?.id ?? null,
-        before,
+        before: { award: awardBefore, sprints: before },
         after: { actorUserId: access.userId, seasonId, sprintDate },
       });
       return redirect(request, { status: "Sprinttag gelöscht." });
@@ -54,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     const originalSeasonId = textValue(formData, "originalSeasonId");
     const originalSprintDate = optionalDate(formData, "originalSprintDate");
+    const combativeUserId = requiredText(formData, "combativeUserId");
 
     if (!originalSeasonId) {
       const { data: existingSprint, error: existingSprintError } = await supabase
@@ -71,6 +76,7 @@ export async function POST(request: NextRequest) {
 
     const { data: savedIds, error } = await supabase.rpc("save_ciclamino_race_day", {
       p_actor_user_id: access.userId,
+      p_combative_user_id: combativeUserId,
       p_original_season_id: originalSeasonId,
       p_original_sprint_date: originalSprintDate,
       p_season_id: seasonId,
@@ -83,7 +89,7 @@ export async function POST(request: NextRequest) {
       action: originalSeasonId ? "ciclamino.race_day.update" : "ciclamino.race_day.create",
       entityType: "ciclamino_race_day",
       entityId: savedIds?.[0] ?? null,
-      after: { actorUserId: access.userId, seasonId, sprintDate, sprints },
+      after: { actorUserId: access.userId, combativeUserId, seasonId, sprintDate, sprints },
     });
     return redirect(request, { status: originalSeasonId ? "Sprinttag aktualisiert." : "Sprinttag angelegt." });
   } catch (error) {

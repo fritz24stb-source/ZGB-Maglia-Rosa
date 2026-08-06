@@ -100,6 +100,13 @@ const expandedCiclaminoSql = readFileSync(
   ),
   "utf8",
 );
+const combativeAwardsSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260806170000_add_ciclamino_combative_awards.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -293,5 +300,14 @@ describe("database migrations", () => {
     expect(expandedCiclaminoSql).toContain("when 5 then 1");
     expect(expandedCiclaminoSql).toContain("fourth_places bigint");
     expect(expandedCiclaminoSql).toContain("fifth_places bigint");
+  });
+
+  it("awards five extra Ciclamino points to one Most Combative Rider per race day", () => {
+    expect(combativeAwardsSql).toContain("create table public.ciclamino_combative_awards");
+    expect(combativeAwardsSql).toContain("primary key (season_id, sprint_date)");
+    expect(combativeAwardsSql).toContain("points smallint not null default 5 check (points = 5)");
+    expect(combativeAwardsSql).toContain("p_combative_user_id uuid");
+    expect(combativeAwardsSql).toContain("combative_awards bigint");
+    expect(combativeAwardsSql).toContain("coalesce(award.award_points, 0)");
   });
 });

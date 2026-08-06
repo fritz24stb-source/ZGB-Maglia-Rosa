@@ -19,6 +19,7 @@ type SeasonOption = {
 };
 
 export type SprintDayFormValue = {
+  combativeUserId: string;
   locations: { name: CiclaminoLocation; userIds: string[] }[];
   seasonId: string;
   sprintDate: string;
@@ -127,6 +128,22 @@ export function SprintDayForm({
             </fieldset>
           );
         })}
+      </div>
+
+      <div className="rounded-lg border border-fuchsia-300 bg-fuchsia-50 p-4">
+        <Field label="Most Combative Rider (5 Extrapunkte)">
+          <select
+            className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm"
+            defaultValue={initialValue.combativeUserId}
+            name="combativeUserId"
+            required
+          >
+            <option value="" disabled>Mitglied wählen</option>
+            {profiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>{profile.displayName}</option>
+            ))}
+          </select>
+        </Field>
       </div>
 
       <button

@@ -158,6 +158,16 @@ type CiclaminoPlacementRow = {
   created_at: string;
 };
 
+type CiclaminoCombativeAwardRow = {
+  season_id: string;
+  sprint_date: string;
+  user_id: string;
+  points: number;
+  awarded_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type AzzurraWindowRow = {
   user_id: string;
   season_id: string;
@@ -243,6 +253,7 @@ export type Database = {
       activities: Table<ActivityRow>;
       ciclamino_sprints: Table<CiclaminoSprintRow>;
       ciclamino_placements: Table<CiclaminoPlacementRow>;
+      ciclamino_combative_awards: Table<CiclaminoCombativeAwardRow>;
       azzurra_windows: Table<AzzurraWindowRow>;
       member_point_adjustments: Table<MemberPointAdjustmentRow>;
       manual_entry_windows: Table<ManualEntryWindowRow>;
@@ -291,6 +302,7 @@ export type Database = {
           third_places: number;
           fourth_places: number;
           fifth_places: number;
+          combative_awards: number;
           sprint_count: number;
         }[];
       };
@@ -315,6 +327,7 @@ export type Database = {
           p_season_id: string;
           p_sprint_date: string;
           p_sprints: Json;
+          p_combative_user_id: string;
           p_actor_user_id: string;
           p_original_season_id: string | null;
           p_original_sprint_date: string | null;
