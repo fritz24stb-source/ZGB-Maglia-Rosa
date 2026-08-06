@@ -110,6 +110,45 @@ describe("ride analysis aggregation", () => {
     expect(analysis.summary.eventParticipantAverage).toBe(2);
   });
 
+  it("ignores events whose current rule is no longer valid on the activity date", () => {
+    const analysis = buildRideAnalysis(
+      [
+        activity({
+          category: "sonderevent",
+          matched_rule_id: "rule-training-camp",
+          matched_rule_name: "Teuto",
+          user_id: "user-1",
+        }),
+        activity({
+          category: "sonderevent",
+          matched_rule_id: "rule-teuto-2",
+          matched_rule_name: "Teuto 2",
+          user_id: "user-2",
+        }),
+      ],
+      [
+        rule({
+          id: "rule-training-camp",
+          name: "ZGB Trainingslager",
+          rule_type: "special",
+        }),
+        rule({
+          id: "rule-teuto-2",
+          name: "Teuto 2",
+          rule_type: "special",
+          valid_from: "2026-07-19T04:00:00.000Z",
+          valid_until: "2026-07-19T21:59:00.000Z",
+        }),
+      ],
+    );
+
+    expect(analysis.eventRides).toEqual([
+      expect.objectContaining({
+        participantCount: 2,
+        title: "ZGB Trainingslager",
+      }),
+    ]);
+  });
   it("does not use raw activity names as event titles", () => {
     const rawActivityName = "Private Strava Titel";
     const analysis = buildRideAnalysis(

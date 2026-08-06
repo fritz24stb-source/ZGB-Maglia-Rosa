@@ -15,7 +15,13 @@ export type AnalysisActivity = Pick<
 
 export type AnalysisScoringRule = Pick<
   ScoringRuleRow,
-  "category" | "id" | "name" | "rule_type"
+  | "category"
+  | "id"
+  | "is_active"
+  | "name"
+  | "rule_type"
+  | "valid_from"
+  | "valid_until"
 >;
 
 export type RideAnalysisRow = {
@@ -89,6 +95,7 @@ export function buildRideAnalysis(
         }),
         activity,
         rulesById,
+        rules,
       );
     }
 
@@ -101,6 +108,7 @@ export function buildRideAnalysis(
         }),
         activity,
         rulesById,
+        rules,
       );
     }
 
@@ -113,6 +121,7 @@ export function buildRideAnalysis(
         }),
         activity,
         rulesById,
+        rules,
       );
     }
   }
@@ -198,6 +207,7 @@ function addActivityToRide(
   ride: RideAccumulator,
   activity: AnalysisActivity,
   rulesById: Map<string, AnalysisScoringRule>,
+  rules: AnalysisScoringRule[],
 ) {
   ride.participants.add(activity.user_id);
 
@@ -213,7 +223,7 @@ function addActivityToRide(
     ride.scuderiaParticipants.add(activity.user_id);
   }
 
-  const eventName = getEventName(activity, rulesById);
+  const eventName = getEventName(activity, rulesById, rules);
 
   if (eventName) {
     ride.eventNames.add(eventName);
@@ -265,21 +275,58 @@ function isSpecialEvent(
   return rule?.rule_type === "special" || activity.category === "sonderevent";
 }
 
+function isRuleEffectiveForActivity(
+  rule: AnalysisScoringRule,
+  activity: AnalysisActivity,
+) {
+  if (!rule.is_active) {
+    return false;
+  }
+
+  const activityStartedAt = new Date(
+    activity.activity_started_local_at ?? activity.activity_started_at,
+  );
+  const validFrom = rule.valid_from ? new Date(rule.valid_from) : null;
+  const validUntil = rule.valid_until ? new Date(rule.valid_until) : null;
+
+  if (
+    Number.isNaN(activityStartedAt.getTime()) ||
+    (validFrom && Number.isNaN(validFrom.getTime())) ||
+    (validUntil && Number.isNaN(validUntil.getTime()))
+  ) {
+    return false;
+  }
+
+  return (
+    (!validFrom || activityStartedAt >= validFrom) &&
+    (!validUntil || activityStartedAt <= validUntil)
+  );
+}
+
 function getEventName(
   activity: AnalysisActivity,
   rulesById: Map<string, AnalysisScoringRule>,
+  rules: AnalysisScoringRule[],
 ) {
   if (!isSpecialEvent(activity, rulesById)) {
     return null;
   }
 
-  const rule = activity.matched_rule_id
+  const matchedRule = activity.matched_rule_id
     ? rulesById.get(activity.matched_rule_id)
     : null;
+  const currentRule =
+    matchedRule?.rule_type === "special" &&
+    isRuleEffectiveForActivity(matchedRule, activity)
+      ? matchedRule
+      : rules.find(
+          (rule) =>
+            rule.rule_type === "special" &&
+            isRuleEffectiveForActivity(rule, activity),
+        );
 
-  // Rule names are editable. Prefer the current rule name so the analysis
-  // reflects a later event rename for activities that were already scored.
-  return rule?.name ?? activity.matched_rule_name ?? null;
+  // Rules are the current source of truth for event names and validity.
+  return currentRule?.name ?? "Sonderevent";
 }
 
 function formatEventTitle(eventNames: string[]) {
