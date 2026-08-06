@@ -93,6 +93,13 @@ const classificationSql = readFileSync(
   ),
   "utf8",
 );
+const expandedCiclaminoSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260806150000_expand_ciclamino_race_days.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -273,5 +280,18 @@ describe("database migrations", () => {
     expect(classificationSql).not.toContain("azzurra_windows window");
     expect(classificationSql).toContain("public.get_ciclamino_leaderboard");
     expect(classificationSql).toContain("public.get_azzurra_leaderboard");
+  });
+
+  it("stores complete Ciclamino race days with three locations and five places", () => {
+    expect(expandedCiclaminoSql).toContain("public.save_ciclamino_race_day");
+    expect(expandedCiclaminoSql).toContain("jsonb_array_length(p_sprints) <> 3");
+    expect(expandedCiclaminoSql).toContain("jsonb_array_length(sprint_input -> 'userIds') <> 5");
+    expect(expandedCiclaminoSql).toContain("'Okel', 'Heiligenfelde I', 'Heiligenfelde II'");
+    expect(expandedCiclaminoSql).toContain("extract(isodow from new.sprint_date) <> 3");
+    expect(expandedCiclaminoSql).toContain("when 2 then 4");
+    expect(expandedCiclaminoSql).toContain("when 4 then 2");
+    expect(expandedCiclaminoSql).toContain("when 5 then 1");
+    expect(expandedCiclaminoSql).toContain("fourth_places bigint");
+    expect(expandedCiclaminoSql).toContain("fifth_places bigint");
   });
 });

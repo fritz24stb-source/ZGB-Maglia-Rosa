@@ -289,6 +289,8 @@ export type Database = {
           wins: number;
           second_places: number;
           third_places: number;
+          fourth_places: number;
+          fifth_places: number;
           sprint_count: number;
         }[];
       };
@@ -308,16 +310,16 @@ export type Database = {
           missing_elevation_count: number;
         }[];
       };
-      save_ciclamino_sprint: {
+      save_ciclamino_race_day: {
         Args: {
-          p_sprint_id: string | null;
           p_season_id: string;
           p_sprint_date: string;
-          p_name: string;
-          p_user_ids: string[];
+          p_sprints: Json;
           p_actor_user_id: string;
+          p_original_season_id: string | null;
+          p_original_sprint_date: string | null;
         };
-        Returns: string;
+        Returns: string[];
       };
       consume_app_invite: {
         Args: {

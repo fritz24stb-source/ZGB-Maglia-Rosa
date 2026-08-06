@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     const userId = requiredText(formData, "userId");
     const seasonId = requiredText(formData, "seasonId");
     const action = requiredText(formData, "action");
+    let status = "Azzurra-Woche aktualisiert.";
     const supabase = createSupabaseServiceRoleClient();
     const { data: before, error: selectError } = await supabase
       .from("azzurra_windows")
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
         before,
         after: { seasonId, actorUserId: admin.userId },
       });
+      status = "Azzurra-Woche zurückgesetzt. Das Mitglied kann erneut wählen.";
     } else {
       const startsOn = requiredDate(formData, "startsOn");
       const { error } = await supabase.from("azzurra_windows").upsert(
@@ -62,7 +64,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return redirect(request, { status: "Azzurra-Woche aktualisiert." });
+    return redirect(request, { status });
   } catch (error) {
     return redirect(request, { error: formatAdminError(error) });
   }

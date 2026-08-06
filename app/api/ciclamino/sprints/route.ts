@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { writeAdminAuditLog } from "@/lib/admin/audit";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { canManageCiclamino } from "@/lib/auth/roles";
+import { CICLAMINO_LOCATIONS } from "@/lib/classifications/ciclamino";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +13,6 @@ export async function POST(request: NextRequest) {
   try {
     validateOrigin(request);
     const access = await loadCurrentAppAccessState();
-
     if (access.kind !== "active" || !canManageCiclamino(access.profile.role)) {
       throw new Error("Keine Berechtigung für die Sprintpflege.");
     }
@@ -19,73 +20,74 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const action = textValue(formData, "action") ?? "save";
     const supabase = createSupabaseServiceRoleClient();
-
-    if (action === "delete") {
-      const sprintId = requiredText(formData, "sprintId");
-      const { data: before, error: selectError } = await supabase
-        .from("ciclamino_sprints")
-        .select("*")
-        .eq("id", sprintId)
-        .maybeSingle();
-
-      if (selectError) throw selectError;
-      const { error } = await supabase
-        .from("ciclamino_sprints")
-        .delete()
-        .eq("id", sprintId);
-      if (error) throw error;
-
-      await writeAdminAuditLog(supabase, {
-        action: "ciclamino.sprint.delete",
-        entityType: "ciclamino_sprint",
-        entityId: sprintId,
-        before,
-        after: { actorUserId: access.userId },
-      });
-
-      return redirect(request, { status: "Sprint gelöscht." });
-    }
-
-    const sprintId = textValue(formData, "sprintId");
     const seasonId = requiredText(formData, "seasonId");
     const sprintDate = requiredDate(formData, "sprintDate");
-    const name = requiredText(formData, "name");
-    const userIds = [1, 2, 3].map((place) =>
-      requiredText(formData, `place${place}UserId`),
-    );
 
-    if (new Set(userIds).size !== 3) {
-      throw new Error("Jedes Mitglied darf pro Sprint nur einmal vorkommen.");
+    if (action === "delete") {
+      const { data: before, error: selectError } = await supabase.from("ciclamino_sprints").select("*").eq("season_id", seasonId).eq("sprint_date", sprintDate);
+      if (selectError) throw selectError;
+      const { error } = await supabase.from("ciclamino_sprints").delete().eq("season_id", seasonId).eq("sprint_date", sprintDate);
+      if (error) throw error;
+      await writeAdminAuditLog(supabase, {
+        action: "ciclamino.race_day.delete",
+        entityType: "ciclamino_race_day",
+        entityId: before?.[0]?.id ?? null,
+        before,
+        after: { actorUserId: access.userId, seasonId, sprintDate },
+      });
+      return redirect(request, { status: "Sprinttag gelöscht." });
     }
 
-    const { data: savedId, error } = await supabase.rpc(
-      "save_ciclamino_sprint",
-      {
-        p_sprint_id: sprintId,
-        p_season_id: seasonId,
-        p_sprint_date: sprintDate,
-        p_name: name,
-        p_user_ids: userIds,
-        p_actor_user_id: access.userId,
-      },
-    );
+    const sprints = [0, 1, 2].map((locationIndex) => {
+      const name = requiredText(formData, `location${locationIndex}Name`);
+      const userIds = [1, 2, 3, 4, 5].map((place) => requiredText(formData, `location${locationIndex}Place${place}UserId`));
+      if (new Set(userIds).size !== 5) {
+        throw new Error(`Beim Ortsschild ${name} darf jedes Mitglied nur einmal vorkommen.`);
+      }
+      return { name, userIds };
+    });
 
+    const selectedLocations = new Set(sprints.map((sprint) => sprint.name));
+    if (selectedLocations.size !== CICLAMINO_LOCATIONS.length || CICLAMINO_LOCATIONS.some((location) => !selectedLocations.has(location))) {
+      throw new Error("Okel, Heiligenfelde I und Heiligenfelde II müssen je einmal erfasst werden.");
+    }
+
+    const originalSeasonId = textValue(formData, "originalSeasonId");
+    const originalSprintDate = optionalDate(formData, "originalSprintDate");
+
+    if (!originalSeasonId) {
+      const { data: existingSprint, error: existingSprintError } = await supabase
+        .from("ciclamino_sprints")
+        .select("id")
+        .eq("season_id", seasonId)
+        .eq("sprint_date", sprintDate)
+        .limit(1)
+        .maybeSingle();
+      if (existingSprintError) throw existingSprintError;
+      if (existingSprint) {
+        throw new Error("Für dieses Datum existiert bereits ein Sprinttag. Bitte verwende Bearbeiten.");
+      }
+    }
+
+    const { data: savedIds, error } = await supabase.rpc("save_ciclamino_race_day", {
+      p_actor_user_id: access.userId,
+      p_original_season_id: originalSeasonId,
+      p_original_sprint_date: originalSprintDate,
+      p_season_id: seasonId,
+      p_sprint_date: sprintDate,
+      p_sprints: sprints as Json,
+    });
     if (error) throw error;
 
     await writeAdminAuditLog(supabase, {
-      action: sprintId ? "ciclamino.sprint.update" : "ciclamino.sprint.create",
-      entityType: "ciclamino_sprint",
-      entityId: savedId,
-      after: { seasonId, sprintDate, name, userIds, actorUserId: access.userId },
+      action: originalSeasonId ? "ciclamino.race_day.update" : "ciclamino.race_day.create",
+      entityType: "ciclamino_race_day",
+      entityId: savedIds?.[0] ?? null,
+      after: { actorUserId: access.userId, seasonId, sprintDate, sprints },
     });
-
-    return redirect(request, {
-      status: sprintId ? "Sprint aktualisiert." : "Sprint angelegt.",
-    });
+    return redirect(request, { status: originalSeasonId ? "Sprinttag aktualisiert." : "Sprinttag angelegt." });
   } catch (error) {
-    return redirect(request, {
-      error: error instanceof Error ? error.message : "Sprint konnte nicht gespeichert werden.",
-    });
+    return redirect(request, { error: error instanceof Error ? error.message : "Sprinttag konnte nicht gespeichert werden." });
   }
 }
 
@@ -94,28 +96,27 @@ function validateOrigin(request: NextRequest) {
   const expected = new URL(process.env.APP_BASE_URL ?? request.url).origin;
   if (origin && origin !== expected) throw new Error("Ungültiger Request-Origin.");
 }
-
 function requiredText(formData: FormData, key: string) {
   const value = textValue(formData, key);
   if (!value) throw new Error(`${key} fehlt.`);
   return value;
 }
-
 function requiredDate(formData: FormData, key: string) {
   const value = requiredText(formData, key);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error("Ungültiges Datum.");
   return value;
 }
-
+function optionalDate(formData: FormData, key: string) {
+  const value = textValue(formData, key);
+  if (!value) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error("Ungültiges Datum.");
+  return value;
+}
 function textValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
-
-function redirect(
-  request: NextRequest,
-  flash: { error?: string; status?: string },
-) {
+function redirect(request: NextRequest, flash: { error?: string; status?: string }) {
   const url = new URL("/sprints", request.url);
   if (flash.error) url.searchParams.set("adminError", flash.error);
   if (flash.status) url.searchParams.set("adminStatus", flash.status);

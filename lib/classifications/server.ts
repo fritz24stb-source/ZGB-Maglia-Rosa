@@ -89,6 +89,8 @@ function normalizeCiclaminoRow(row: CiclaminoRpcRow): CiclaminoLeaderboardRow {
     wins: Number(row.wins),
     secondPlaces: Number(row.second_places),
     thirdPlaces: Number(row.third_places),
+    fourthPlaces: Number(row.fourth_places),
+    fifthPlaces: Number(row.fifth_places),
     sprintCount: Number(row.sprint_count),
   };
 }

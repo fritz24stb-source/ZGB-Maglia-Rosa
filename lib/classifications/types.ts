@@ -18,6 +18,8 @@ export type CiclaminoLeaderboardRow = {
   wins: number;
   secondPlaces: number;
   thirdPlaces: number;
+  fourthPlaces: number;
+  fifthPlaces: number;
   sprintCount: number;
 };
 

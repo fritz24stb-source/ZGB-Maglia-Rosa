@@ -335,6 +335,7 @@ function MemberCard({
 
             <section className="mt-4 border-t border-asphalt-100 pt-4">
               <h3 className="text-sm font-semibold text-asphalt-900">Azzurra-Woche</h3>
+              <p className="mt-1 text-xs text-asphalt-500">Nach dem Zurücksetzen kann das Mitglied im Profil erneut eine Woche auswählen.</p>
               <div className="mt-3 grid gap-3">
                 {seasons.map((season) => {
                   const window = azzurraWindows.find((item) => item.season_id === season.id);
