@@ -121,6 +121,13 @@ const memberResultsSql = readFileSync(
   ),
   "utf8",
 );
+const scheduledSprintDaysSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260806230000_schedule_ciclamino_sprint_days.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -341,5 +348,15 @@ describe("database migrations", () => {
     expect(memberResultsSql).toContain("public.save_ciclamino_member_vote");
     expect(memberResultsSql).toContain("public.refresh_ciclamino_effective_placements");
     expect(memberResultsSql).toContain("rider_override.user_id = submission.user_id");
+  });
+
+  it("creates every season Wednesday and publishes results only after voting closes", () => {
+    expect(scheduledSprintDaysSql).toContain("public.ensure_ciclamino_sprint_days_for_season");
+    expect(scheduledSprintDaysSql).toContain("extract(isodow from generated_day) = 3");
+    expect(scheduledSprintDaysSql).toContain("create_ciclamino_sprint_days_after_season_insert");
+    expect(scheduledSprintDaysSql).toContain("'Okel'");
+    expect(scheduledSprintDaysSql).toContain("'Heiligenfelde I'");
+    expect(scheduledSprintDaysSql).toContain("'Heiligenfelde II'");
+    expect(scheduledSprintDaysSql).toContain("where voting_window.closes_at <= now()");
   });
 });

@@ -75,7 +75,7 @@ function CiclaminoTable({ rows }: { rows: CiclaminoLeaderboardRow[] }) {
               <dl className="grid grid-cols-2 gap-2 text-sm">
                 <Detail label="1. Plätze" value={row.wins} /><Detail label="2. Plätze" value={row.secondPlaces} />
                 <Detail label="3. Plätze" value={row.thirdPlaces} /><Detail label="4. Plätze" value={row.fourthPlaces} />
-                <Detail label="5. Plätze" value={row.fifthPlaces} /><Detail label="Sprintteilnahmen" value={row.sprintCount} />
+                <Detail label="5. Plätze" value={row.fifthPlaces} /><Detail label="Platzierungen" value={row.sprintCount} />
                 <Detail label="Most Combative" value={`${row.combativeAwards} × 5 P`} />
               </dl>
             </div>
@@ -84,7 +84,7 @@ function CiclaminoTable({ rows }: { rows: CiclaminoLeaderboardRow[] }) {
       </div>
       <div className="hidden overflow-x-auto rounded-lg border border-fuchsia-200 bg-white shadow-line md:block">
         <table className="min-w-[1040px] w-full text-left text-sm">
-          <thead className="bg-fuchsia-50 text-xs uppercase text-fuchsia-900"><tr><th className="px-4 py-3">Platz</th><th className="px-4 py-3">Fahrer</th><th className="px-4 py-3 text-right">Punkte</th><th className="px-4 py-3 text-right">1.</th><th className="px-4 py-3 text-right">2.</th><th className="px-4 py-3 text-right">3.</th><th className="px-4 py-3 text-right">4.</th><th className="px-4 py-3 text-right">5.</th><th className="px-4 py-3 text-right">Most Combative</th><th className="px-4 py-3 text-right">Starts</th></tr></thead>
+          <thead className="bg-fuchsia-50 text-xs uppercase text-fuchsia-900"><tr><th className="px-4 py-3">Platz</th><th className="px-4 py-3">Fahrer</th><th className="px-4 py-3 text-right">Punkte</th><th className="px-4 py-3 text-right">1.</th><th className="px-4 py-3 text-right">2.</th><th className="px-4 py-3 text-right">3.</th><th className="px-4 py-3 text-right">4.</th><th className="px-4 py-3 text-right">5.</th><th className="px-4 py-3 text-right">Most Combative</th><th className="px-4 py-3 text-right">Platzierungen</th></tr></thead>
           <tbody className="divide-y divide-asphalt-100">{rows.map((row) => <tr key={row.userId}><RankCell place={row.place} tone="ciclamino" /><td className="px-4 py-4 font-medium">{row.displayName}</td><td className="px-4 py-4 text-right font-semibold">{row.totalPoints}</td><td className="px-4 py-4 text-right">{row.wins}</td><td className="px-4 py-4 text-right">{row.secondPlaces}</td><td className="px-4 py-4 text-right">{row.thirdPlaces}</td><td className="px-4 py-4 text-right">{row.fourthPlaces}</td><td className="px-4 py-4 text-right">{row.fifthPlaces}</td><td className="px-4 py-4 text-right">{row.combativeAwards}</td><td className="px-4 py-4 text-right">{row.sprintCount}</td></tr>)}</tbody>
         </table>
       </div>

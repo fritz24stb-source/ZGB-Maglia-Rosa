@@ -12,6 +12,7 @@ import { availableCiclaminoPlaces } from "@/lib/classifications/ciclamino-vote";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+const SHOW_SPRINT_DATE_SELECTOR = false;
 
 export default async function CiclaminoVotePage({
   searchParams,
@@ -58,15 +59,17 @@ export default async function CiclaminoVotePage({
     .order("sprint_date", { ascending: false });
   if (windowsError) throw windowsError;
 
-  const requestedDate = single(params.sprintDate);
+  const requestedDate = SHOW_SPRINT_DATE_SELECTOR ? single(params.sprintDate) : undefined;
   const currentWednesday = defaultSeasonWednesday(
     { startsOn: season.starts_on, endsOn: season.ends_on },
     todayInZurich(),
   );
-  const selectedWindow = (windows ?? []).find((window) => window.sprint_date === requestedDate)
-    ?? (windows ?? []).find((window) => window.sprint_date === currentWednesday)
-    ?? windows?.[0]
-    ?? null;
+  const selectedWindow = SHOW_SPRINT_DATE_SELECTOR
+    ? (windows ?? []).find((window) => window.sprint_date === requestedDate)
+      ?? (windows ?? []).find((window) => window.sprint_date === currentWednesday)
+      ?? windows?.[0]
+      ?? null
+    : (windows ?? []).find((window) => window.sprint_date === currentWednesday) ?? null;
 
   const [currentVoteResult, submissionsResult] = selectedWindow
     ? await Promise.all([
@@ -139,7 +142,7 @@ export default async function CiclaminoVotePage({
           <h2 className="text-lg font-semibold text-asphalt-900">Zur Abstimmung Maglia Ciclamino</h2>
         </div>
 
-        {(windows ?? []).length > 0 ? (
+        {SHOW_SPRINT_DATE_SELECTOR && (windows ?? []).length > 0 ? (
           <form action="/ciclamino/vote" className="mt-4">
             <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
               Mittwoch
@@ -162,6 +165,11 @@ export default async function CiclaminoVotePage({
               Mittwoch anzeigen
             </button>
           </form>
+        ) : currentWednesday ? (
+          <div className="mt-4 rounded-md border border-asphalt-200 bg-asphalt-50 px-3 py-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-asphalt-500">Mittwoch</p>
+            <p className="mt-1 font-semibold text-asphalt-900">{formatDate(currentWednesday)}</p>
+          </div>
         ) : null}
 
         {selectedWindow ? (

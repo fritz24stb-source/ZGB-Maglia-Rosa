@@ -3,10 +3,18 @@ import { ChevronDown, Clock3, Pencil, Swords, Trash2, UsersRound } from "lucide-
 import { CICLAMINO_LOCATIONS } from "@/lib/classifications/ciclamino";
 import type { CiclaminoSprintDay } from "@/lib/classifications/types";
 
-export function CiclaminoSprintDays({ editable = false, sprintDays }: { editable?: boolean; sprintDays: CiclaminoSprintDay[] }) {
+export function CiclaminoSprintDays({
+  editable = false,
+  sprintDays,
+  title = "Angelegte Sprinttage",
+}: {
+  editable?: boolean;
+  sprintDays: CiclaminoSprintDay[];
+  title?: string;
+}) {
   return (
     <section className="grid gap-3">
-      <h2 className="text-lg font-semibold text-asphalt-900">Angelegte Sprinttage</h2>
+      <h2 className="text-lg font-semibold text-asphalt-900">{title}</h2>
       {sprintDays.length === 0 ? (
         <p className="rounded-lg border border-asphalt-200 bg-white p-5 text-sm text-asphalt-600 shadow-line">Noch keine Ciclamino-Sprints erfasst.</p>
       ) : (

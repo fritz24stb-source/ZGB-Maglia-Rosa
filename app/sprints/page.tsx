@@ -32,6 +32,8 @@ export default async function SprintsPage({
   const editingDay = sprintDays.find((day) => day.key === editKey);
   const createRequested = single(params.create) === "1";
   const today = todayInZurich();
+  const pastSprintDays = sprintDays.filter((day) => day.sprintDate < today);
+  const upcomingSprintDays = sprintDays.filter((day) => day.sprintDate >= today);
   const initialValue = editingDay
     ? toFormValue(editingDay)
     : createRequested
@@ -91,7 +93,8 @@ export default async function SprintsPage({
         </div>
       )}
 
-      <CiclaminoSprintDays editable sprintDays={sprintDays} />
+      <CiclaminoSprintDays editable sprintDays={pastSprintDays} title="Vergangene Sprints" />
+      <CiclaminoSprintDays editable sprintDays={upcomingSprintDays} title="Zukünftige Sprints" />
     </main>
   );
 }
