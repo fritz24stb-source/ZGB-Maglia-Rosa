@@ -207,8 +207,11 @@ function rule(overrides: Partial<AnalysisScoringRule>): AnalysisScoringRule {
   return {
     category: "zug",
     id: "rule-standard",
+    is_active: true,
     name: "Standardregel",
     rule_type: "standard",
+    valid_from: null,
+    valid_until: null,
     ...overrides,
   };
 }
