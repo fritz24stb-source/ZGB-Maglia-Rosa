@@ -48,6 +48,7 @@ export class StravaActivityFetchError extends Error {
     message: string,
     readonly status: number,
     readonly responseBody: string,
+    readonly retryAfter: string | null,
   ) {
     super(message);
     this.name = "StravaActivityFetchError";
@@ -204,7 +205,27 @@ async function buildStravaActivityFetchError(
     safeMessage,
     response.status,
     responseBody,
+    response.headers.get("retry-after"),
   );
+}
+
+export function formatStravaActivityFetchError(error: StravaActivityFetchError) {
+  const detail = summarizeStravaErrorResponse(error.responseBody);
+  return [
+    `Strava Activity API: HTTP ${error.status}.`,
+    detail ? `Antwort: ${detail}` : null,
+    error.retryAfter ? `Retry-After: ${error.retryAfter}.` : null,
+  ].filter(Boolean).join(" ");
+}
+
+function summarizeStravaErrorResponse(responseBody: string) {
+  if (!responseBody) return null;
+  try {
+    const parsed = JSON.parse(responseBody) as { message?: unknown };
+    return typeof parsed.message === "string" ? parsed.message : null;
+  } catch {
+    return responseBody.replace(/\s+/g, " ").trim().slice(0, 300) || null;
+  }
 }
 
 function normalizeOptionalText(value: string | null | undefined) {

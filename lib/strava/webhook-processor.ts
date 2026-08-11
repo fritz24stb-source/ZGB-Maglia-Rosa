@@ -9,12 +9,17 @@ import {
 import type { ScorableActivity, ScoringRuleRow } from "@/lib/scoring";
 import {
   fetchStravaActivity,
+  formatStravaActivityFetchError,
   getStravaActivityAthleteId,
   getStravaActivityLocalDate,
   mapStravaActivityToActivityWrite,
+  StravaActivityFetchError,
   type StravaDetailedActivity,
 } from "@/lib/strava/activity";
-import { getValidStravaAccessToken } from "@/lib/strava/token";
+import {
+  getValidStravaAccessToken,
+  refreshStravaAccessToken,
+} from "@/lib/strava/token";
 import {
   isActivityDeleteEvent,
   isActivityFetchEvent,
@@ -69,6 +74,7 @@ export type ProcessQueuedStravaWebhookInput = {
   client?: ServiceClient;
   fetchImpl?: FetchLike;
   now?: Date;
+  forceRetry?: boolean;
 };
 
 export type ProcessPendingStravaWebhookInput = {
@@ -77,6 +83,7 @@ export type ProcessPendingStravaWebhookInput = {
   limit?: number;
   now?: Date;
   statuses?: Array<Extract<ProcessingStatus, "pending" | "failed">>;
+  forceRetry?: boolean;
 };
 
 export type ProcessPendingStravaWebhookSummary = {
@@ -91,6 +98,8 @@ export type ProcessPendingStravaWebhookSummary = {
 };
 
 const DEFAULT_PENDING_WEBHOOK_LIMIT = 25;
+const UPDATE_DEDUPLICATION_WINDOW_MS = 5 * 60 * 1000;
+const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000];
 
 export async function processStravaWebhookPayload({
   payload,
@@ -153,9 +162,10 @@ export async function processQueuedStravaWebhookEvent({
   client = createSupabaseServiceRoleClient(),
   fetchImpl = fetch,
   now = new Date(),
+  forceRetry = false,
 }: ProcessQueuedStravaWebhookInput): Promise<ProcessStravaWebhookResult> {
   const storedEvent = await findWebhookEventById(client, eventId);
-  const claimedEvent = await claimWebhookEvent(client, storedEvent.id);
+  const claimedEvent = await claimWebhookEvent(client, storedEvent.id, now, forceRetry);
 
   if (!claimedEvent) {
     return {
@@ -185,12 +195,15 @@ export async function processQueuedStravaWebhookEvent({
       eventId: claimedEvent.id,
     };
   } catch (error) {
-    const message = getErrorMessage(error);
+    const message = formatWebhookProcessingError(error);
+    const retryAt = getRetryAt(error, claimedEvent.attempt_count, now);
 
     await finishWebhookEvent(client, claimedEvent.id, {
       status: "failed",
       reason: message,
       processedAt: now,
+      attemptCount: claimedEvent.attempt_count + 1,
+      nextRetryAt: retryAt,
     });
 
     return {
@@ -207,11 +220,13 @@ export async function processPendingStravaWebhookEvents({
   limit = DEFAULT_PENDING_WEBHOOK_LIMIT,
   now = new Date(),
   statuses = ["pending", "failed"],
+  forceRetry = false,
 }: ProcessPendingStravaWebhookInput = {}): Promise<ProcessPendingStravaWebhookSummary> {
   const { data, error } = await client
     .from("webhook_events")
     .select("id")
     .in("processing_status", statuses)
+    .or(forceRetry ? "next_retry_at.is.null,next_retry_at.not.is.null" : `next_retry_at.is.null,next_retry_at.lte.${now.toISOString()}`)
     .order("created_at", { ascending: true })
     .limit(limit);
 
@@ -234,6 +249,7 @@ export async function processPendingStravaWebhookEvents({
         client,
         fetchImpl,
         now,
+        forceRetry,
       });
 
       if (result.status === "processed") {
@@ -310,12 +326,15 @@ async function fetchAndUpsertStravaActivity(
     };
   }
 
-  const accessToken = await getValidStravaAccessToken(connection);
-  const stravaActivity = await fetchStravaActivity(
-    event.object_id,
-    accessToken,
-    fetchImpl,
-  );
+  let accessToken = await getValidStravaAccessToken(connection);
+  let stravaActivity: StravaDetailedActivity;
+  try {
+    stravaActivity = await fetchStravaActivity(event.object_id, accessToken, fetchImpl);
+  } catch (error) {
+    if (!(error instanceof StravaActivityFetchError) || error.status !== 401) throw error;
+    accessToken = await refreshStravaAccessToken(connection);
+    stravaActivity = await fetchStravaActivity(event.object_id, accessToken, fetchImpl);
+  }
   const activityAthleteId = getStravaActivityAthleteId(stravaActivity);
 
   if (activityAthleteId !== null && activityAthleteId !== event.owner_id) {
@@ -628,6 +647,10 @@ async function insertOrFetchWebhookEvent(
   event: StravaWebhookEvent,
   rawPayload: unknown,
 ) {
+  if (event.object_type === "activity" && event.aspect_type === "update") {
+    const duplicate = await findRecentActivityUpdate(client, event);
+    if (duplicate) return duplicate;
+  }
   const eventTime = webhookEventTimeToIso(event.event_time);
   const eventInsert = {
     object_type: event.object_type,
@@ -669,13 +692,27 @@ async function insertOrFetchWebhookEvent(
   return existingEvent;
 }
 
-async function claimWebhookEvent(client: ServiceClient, eventId: string) {
+async function findRecentActivityUpdate(client: ServiceClient, event: StravaWebhookEvent) {
+  const since = new Date(Date.now() - UPDATE_DEDUPLICATION_WINDOW_MS).toISOString();
+  const { data, error } = await client.from("webhook_events").select("*")
+    .eq("object_type", event.object_type).eq("object_id", event.object_id)
+    .eq("aspect_type", event.aspect_type).eq("owner_id", event.owner_id)
+    .in("processing_status", ["pending", "processing", "processed", "failed"])
+    .gte("created_at", since).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error) throw error;
+  return data as WebhookEventRow | null;
+}
+
+async function claimWebhookEvent(client: ServiceClient, eventId: string, now: Date, forceRetry: boolean) {
+  const current = await findWebhookEventById(client, eventId);
+  if (!forceRetry && current.next_retry_at && Date.parse(current.next_retry_at) > now.getTime()) return null;
   const { data, error } = await client
     .from("webhook_events")
     .update({
       processing_status: "processing",
       processing_error: null,
       processed_at: null,
+      next_retry_at: null,
     })
     .eq("id", eventId)
     .in("processing_status", ["pending", "failed"])
@@ -696,10 +733,14 @@ async function finishWebhookEvent(
     status,
     reason,
     processedAt,
+    attemptCount = 0,
+    nextRetryAt = null,
   }: {
     status: ProcessingStatus;
     reason?: string;
     processedAt: Date;
+    attemptCount?: number;
+    nextRetryAt?: Date | null;
   },
 ) {
   const { error } = await client
@@ -708,6 +749,8 @@ async function finishWebhookEvent(
       processing_status: status,
       processed_at: processedAt.toISOString(),
       processing_error: reason ?? null,
+      attempt_count: attemptCount,
+      next_retry_at: nextRetryAt?.toISOString() ?? null,
     })
     .eq("id", eventId);
 
@@ -726,4 +769,18 @@ function getErrorMessage(error: unknown) {
   }
 
   return String(error);
+}
+
+function formatWebhookProcessingError(error: unknown) {
+  return error instanceof StravaActivityFetchError
+    ? formatStravaActivityFetchError(error)
+    : getErrorMessage(error);
+}
+
+function getRetryAt(error: unknown, attempts: number, now: Date) {
+  if (!(error instanceof StravaActivityFetchError) || attempts >= RETRY_DELAYS_MS.length) return null;
+  if (error.status === 404) return new Date(now.getTime() + RETRY_DELAYS_MS[attempts]);
+  if (error.status !== 429) return null;
+  const seconds = Number(error.retryAfter);
+  return new Date(now.getTime() + (Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : RETRY_DELAYS_MS[attempts]));
 }

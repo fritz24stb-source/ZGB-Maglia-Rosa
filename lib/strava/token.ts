@@ -50,6 +50,11 @@ export async function getValidStravaAccessToken(connection: StravaConnection) {
     return connection.access_token;
   }
 
+  return refreshStravaAccessToken(connection);
+}
+
+/** Refreshes a token even when its recorded expiry time has not passed yet. */
+export async function refreshStravaAccessToken(connection: StravaConnection) {
   if (!connection.refresh_token) {
     throw new StravaConnectionError("No Strava refresh token available.");
   }
