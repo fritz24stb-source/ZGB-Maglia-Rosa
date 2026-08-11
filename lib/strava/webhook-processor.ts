@@ -197,19 +197,24 @@ export async function processQueuedStravaWebhookEvent({
   } catch (error) {
     const message = formatWebhookProcessingError(error);
     const retryAt = getRetryAt(error, claimedEvent.attempt_count, now);
+    const ignoredNotFound = isTerminalNotFound(error, claimedEvent.attempt_count);
+    const status = ignoredNotFound ? "ignored" : "failed";
+    const reason = ignoredNotFound
+      ? `${message} Aktivität ist nach ${RETRY_DELAYS_MS.length} Wiederholungen weiterhin nicht verfügbar; Event wurde ignoriert.`
+      : message;
 
     await finishWebhookEvent(client, claimedEvent.id, {
-      status: "failed",
-      reason: message,
+      status,
+      reason,
       processedAt: now,
       attemptCount: claimedEvent.attempt_count + 1,
       nextRetryAt: retryAt,
     });
 
     return {
-      status: "failed",
+      status,
       eventId: claimedEvent.id,
-      reason: message,
+      reason,
     };
   }
 }
@@ -783,4 +788,12 @@ function getRetryAt(error: unknown, attempts: number, now: Date) {
   if (error.status !== 429) return null;
   const seconds = Number(error.retryAfter);
   return new Date(now.getTime() + (Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : RETRY_DELAYS_MS[attempts]));
+}
+
+function isTerminalNotFound(error: unknown, attempts: number) {
+  return (
+    error instanceof StravaActivityFetchError &&
+    error.status === 404 &&
+    attempts >= RETRY_DELAYS_MS.length
+  );
 }
