@@ -13,7 +13,9 @@ export type CiclaminoAnalysis = {
     participatingRiders: number;
     sprintDays: number;
   };
-  trend: { date: string; totalPoints: number }[];
+  finishLeaders: { place: number; count: number; names: string[] }[];
+  recentRows: { displayName: string; points: number; userId: string }[];
+  trend: { date: string; values: { displayName: string; totalPoints: number; userId: string }[] }[];
 };
 
 export function buildCiclaminoAnalysis(
@@ -25,22 +27,42 @@ export function buildCiclaminoAnalysis(
     averagePoints: row.sprintCount ? row.totalPoints / row.sprintCount : 0,
     podiums: row.wins + row.secondPlaces + row.thirdPlaces,
   }));
-  const trend = [...sprintDays]
-    .sort((left, right) => left.sprintDate.localeCompare(right.sprintDate))
-    .map((day) => ({
-      date: day.sprintDate,
-      totalPoints: day.sprints.flatMap((sprint) => sprint.placements)
-        .reduce((sum, placement) => sum + placement.points, 0),
-    }));
+  const sortedDays = [...sprintDays].sort((left, right) => left.sprintDate.localeCompare(right.sprintDate));
+  const totals = new Map<string, number>();
+  const names = new Map(rows.map((row) => [row.userId, row.displayName]));
+  const trend = sortedDays.map((day) => {
+    for (const placement of day.sprints.flatMap((sprint) => sprint.placements)) {
+      names.set(placement.userId, placement.displayName);
+      totals.set(placement.userId, (totals.get(placement.userId) ?? 0) + placement.points);
+    }
+    if (day.votingWindow?.status === "closed" && day.combativeRider) totals.set(day.combativeRider.userId, (totals.get(day.combativeRider.userId) ?? 0) + day.combativeRider.points);
+    return { date: day.sprintDate, values: [...totals.entries()].map(([userId, totalPoints]) => ({ displayName: names.get(userId) ?? "Unbekannt", totalPoints, userId })) };
+  });
+  const cutoff = sortedDays.at(-1)?.sprintDate ? new Date(`${sortedDays.at(-1)?.sprintDate}T12:00:00Z`) : null;
+  if (cutoff) cutoff.setUTCDate(cutoff.getUTCDate() - 20);
+  const recentTotals = new Map<string, number>();
+  for (const day of sortedDays) {
+    if (cutoff && new Date(`${day.sprintDate}T12:00:00Z`) < cutoff) continue;
+    for (const placement of day.sprints.flatMap((sprint) => sprint.placements)) recentTotals.set(placement.userId, (recentTotals.get(placement.userId) ?? 0) + placement.points);
+    if (day.votingWindow?.status === "closed" && day.combativeRider) recentTotals.set(day.combativeRider.userId, (recentTotals.get(day.combativeRider.userId) ?? 0) + day.combativeRider.points);
+  }
+  const recentRows = [...recentTotals.entries()].map(([userId, points]) => ({ displayName: names.get(userId) ?? "Unbekannt", points, userId })).sort((left, right) => right.points - left.points || left.displayName.localeCompare(right.displayName, "de"));
+  const finishLeaders = [1, 2, 3, 4, 5].map((place) => {
+    const key = place === 1 ? "wins" : place === 2 ? "secondPlaces" : place === 3 ? "thirdPlaces" : place === 4 ? "fourthPlaces" : "fifthPlaces";
+    const count = Math.max(0, ...rows.map((row) => row[key]));
+    return { place, count, names: count ? rows.filter((row) => row[key] === count).map((row) => row.displayName) : [] };
+  });
 
   return {
     rows,
     summary: {
-      awardedPoints: trend.reduce((sum, day) => sum + day.totalPoints, 0),
+      awardedPoints: [...totals.values()].reduce((sum, value) => sum + value, 0),
       completedDays: sprintDays.filter((day) => day.votingWindow?.status === "closed").length,
       participatingRiders: rows.length,
       sprintDays: sprintDays.length,
     },
+    finishLeaders,
+    recentRows,
     trend,
   };
 }
