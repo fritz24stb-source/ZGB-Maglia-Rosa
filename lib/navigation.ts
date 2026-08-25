@@ -12,8 +12,8 @@ export const mainNavItems: NavItem[] = [
   { href: "/manual", label: "Manuell", roles: ["admin", "member", "scorekeeper"] },
   { href: "/profile", label: "Profil", roles: ["admin", "member", "scorekeeper"] },
   { href: "/faq", label: "FAQ", roles: ["admin", "member", "scorekeeper"] },
-  { href: "/sprints", label: "Sprintpflege", roles: ["admin", "scorekeeper"] },
-  { href: "/admin", label: "Admin", roles: ["admin"] },
+  { href: "/sprints", label: "Sprintleitung", roles: ["admin", "scorekeeper"] },
+  { href: "/admin", label: "Rennleitung", roles: ["admin"] },
 ];
 
 export const adminSections = [

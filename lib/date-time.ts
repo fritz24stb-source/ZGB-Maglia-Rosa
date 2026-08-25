@@ -26,7 +26,7 @@ export function isoToBerlinLocalDateTime(value: string) {
 
 export function defaultCombativeVotingWindow(sprintDate: string) {
   const nextDate = new Date(`${sprintDate}T12:00:00.000Z`);
-  nextDate.setUTCDate(nextDate.getUTCDate() + 1);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 2);
   const tomorrow = nextDate.toISOString().slice(0, 10);
   return {
     closesAt: `${tomorrow}T18:00`,

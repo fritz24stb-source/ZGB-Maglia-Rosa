@@ -101,7 +101,7 @@ export function buildCiclaminoSprintDays({
       .sort((left, right) => right.voteCount - left.voteCount || right.sprintPoints - left.sprintPoints || left.candidateDisplayName.localeCompare(right.candidateDisplayName, "de"));
 
     const override = awardsByDay.get(day.key);
-    if (override) {
+    if (override && day.votingWindow?.status === "closed") {
       day.adminOverrideUserId = override.user_id;
       day.combativeSource = "admin_override";
       day.combativeRider = {

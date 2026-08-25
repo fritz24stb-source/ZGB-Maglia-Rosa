@@ -168,7 +168,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
                   {state.profileName}
                 </h2>
                 <p className="mt-1 text-sm text-asphalt-600">
-                  Rolle: {state.role === "admin" ? "Admin" : state.role === "scorekeeper" ? "Sprintwertung" : "Mitglied"}
+                  Rolle: {state.role === "admin" ? "Rennleitung" : state.role === "scorekeeper" ? "Sprintwertung" : "Mitglied"}
                 </p>
               </div>
               <StatusBadge tone={state.role === "admin" ? "info" : "neutral"}>

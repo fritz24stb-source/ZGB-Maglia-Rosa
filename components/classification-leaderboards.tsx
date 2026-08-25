@@ -9,20 +9,20 @@ import type {
 } from "@/lib/classifications/types";
 import { cn } from "@/lib/ui";
 
-export function ClassificationTabs({ active, enabled, seasonId }: { active: ClassificationKind; enabled: boolean; seasonId?: string | null }) {
+export function ClassificationTabs({ active, enabled, includeAzzurra = true, seasonId, pathname = "/leaderboard" }: { active: ClassificationKind; enabled: boolean; includeAzzurra?: boolean; seasonId?: string | null; pathname?: "/analyse" | "/leaderboard" }) {
   const tabs: { key: ClassificationKind; label: string; color: string }[] = [
     { key: "rosa", label: "Maglia Rosa", color: "border-pink-500 text-pink-800" },
     ...(enabled ? [
       { key: "ciclamino" as const, label: "Maglia Ciclamino", color: "border-fuchsia-600 text-fuchsia-800" },
-      { key: "azzurra" as const, label: "Maglia Azzurra", color: "border-sky-600 text-sky-800" },
+      ...(includeAzzurra ? [{ key: "azzurra" as const, label: "Maglia Azzurra", color: "border-sky-600 text-sky-800" }] : []),
     ] : []),
   ];
   return (
-    <nav aria-label="Trikotwertung" className="grid gap-2 sm:grid-cols-3">
+    <nav aria-label="Trikotwertung" className={cn("grid gap-2", includeAzzurra ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
       {tabs.map((tab) => {
         const params = new URLSearchParams({ classification: tab.key });
         if (seasonId) params.set("seasonId", seasonId);
-        return <Link key={tab.key} href={`/leaderboard?${params}`} aria-current={active === tab.key ? "page" : undefined} className={cn("focus-ring rounded-lg border bg-white px-4 py-3 text-center text-sm font-semibold shadow-line", active === tab.key ? tab.color : "border-asphalt-200 text-asphalt-600")}>{tab.label}</Link>;
+        return <Link key={tab.key} href={`${pathname}?${params}`} aria-current={active === tab.key ? "page" : undefined} className={cn("focus-ring rounded-lg border bg-white px-4 py-3 text-center text-sm font-semibold shadow-line", active === tab.key ? tab.color : "border-asphalt-200 text-asphalt-600")}>{tab.label}</Link>;
       })}
     </nav>
   );
@@ -30,9 +30,6 @@ export function ClassificationTabs({ active, enabled, seasonId }: { active: Clas
 
 export function ClassificationLeaderboard({ active, data }: { active: "ciclamino" | "azzurra"; data: ClassificationLeaderboardResponse }) {
   const rows = active === "ciclamino" ? data.ciclamino : data.azzurra;
-  const completedCiclaminoSprintDays = data.ciclaminoSprintDays.filter(
-    (day) => day.votingWindow?.status === "closed",
-  );
   return (
     <section className="flex flex-col gap-6">
       <form action="/leaderboard" className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line">
@@ -54,7 +51,7 @@ export function ClassificationLeaderboard({ active, data }: { active: "ciclamino
         <p className="rounded-lg border border-asphalt-200 bg-white p-5 text-sm text-asphalt-600 shadow-line">Für diese Saison gibt es noch keine Teilnehmer in der gewählten Wertung.</p>
       ) : active === "ciclamino" ? <CiclaminoTable rows={data.ciclamino} /> : <AzzurraTable rows={data.azzurra} />}
       {active === "ciclamino" ? (
-        <CiclaminoSprintDays sprintDays={completedCiclaminoSprintDays} title="Vergangene Sprints" />
+        <CiclaminoSprintDays sprintDays={data.ciclaminoSprintDays} title="Sprinttage" />
       ) : null}
     </section>
   );

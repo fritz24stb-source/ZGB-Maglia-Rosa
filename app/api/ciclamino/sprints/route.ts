@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     validateOrigin(request);
     const access = await loadCurrentAppAccessState();
     if (access.kind !== "active" || !canManageCiclamino(access.profile.role)) {
-      throw new Error("Keine Berechtigung für die Sprintpflege.");
+      throw new Error("Keine Berechtigung für die Sprintleitung.");
     }
 
     const formData = await request.formData();
@@ -67,6 +67,9 @@ export async function POST(request: NextRequest) {
     const voteClosesAt = berlinLocalDateTimeToIso(requiredText(formData, "voteClosesAt"));
     if (new Date(voteOpensAt) >= new Date(voteClosesAt)) {
       throw new Error("Der Abstimmungsbeginn muss vor dem Abstimmungsende liegen.");
+    }
+    if (combativeUserId && new Date(voteClosesAt) > new Date()) {
+      throw new Error("Most Combative Rider kann erst nach Ende des Abstimmungszeitraums eingetragen werden.");
     }
 
     if (!originalSeasonId) {

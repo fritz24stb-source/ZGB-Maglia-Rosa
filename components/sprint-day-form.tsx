@@ -129,7 +129,7 @@ export function SprintDayForm({
       </fieldset>
 
       <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
-        <Field label="Admin-Override Most Combative Rider (optional)">
+        <Field label="Rennleitungs-Override Most Combative Rider (optional)">
           <select className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm" defaultValue={initialValue.adminOverrideUserId} name="combativeUserId">
             <option value="">Kein Override – Abstimmung entscheidet</option>
             {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName}</option>)}
@@ -158,5 +158,5 @@ function formatEffectivePlacement(
   placement: { displayName: string; source: "admin_override" | "member" } | null | undefined,
 ) {
   if (!placement) return "Aktuell noch nicht belegt";
-  return `Aktuell: ${placement.displayName} · ${placement.source === "admin_override" ? "Admin-Override" : "Mitgliedsmeldung"}`;
+  return `Aktuell: ${placement.displayName} · ${placement.source === "admin_override" ? "Rennleitungs-Override" : "Mitgliedsmeldung"}`;
 }

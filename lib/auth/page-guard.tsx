@@ -60,8 +60,8 @@ export async function requireCiclaminoManagerPage(nextPath: string) {
   if (!canManageCiclamino(state.profile.role)) {
     return (
       <AccessDenied
-        title="Zugriff auf Sprintpflege gesperrt"
-        description="Für die Sprintpflege ist die Rolle Admin oder Scorekeeper erforderlich."
+        title="Zugriff auf Sprintleitung gesperrt"
+        description="Für die Sprintleitung ist die Rolle Rennleitung oder Scorekeeper erforderlich."
       />
     );
   }

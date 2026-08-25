@@ -43,7 +43,7 @@ export default async function SprintsPage({
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
-        title="Sprintpflege"
+        title="Sprintleitung"
         description="Gemeldete Ortsschild-Ergebnisse prüfen, einzelne Platzierungen überschreiben und den Abstimmungszeitraum verwalten."
       />
       <AdminFlash error={single(params.adminError)} status={single(params.adminStatus)} />
@@ -80,7 +80,7 @@ export default async function SprintsPage({
         </section>
       ) : !activeSeason ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-          Für die Sprintpflege wird eine Saison mit mindestens einem Mittwoch benötigt.
+          Für die Sprintleitung wird eine Saison mit mindestens einem Mittwoch benötigt.
         </p>
       ) : (
         <div>

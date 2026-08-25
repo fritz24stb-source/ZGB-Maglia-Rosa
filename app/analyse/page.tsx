@@ -1,4 +1,6 @@
 import { Activity, BarChart3, CalendarDays } from "lucide-react";
+import { CiclaminoAnalysis } from "@/components/ciclamino-analysis";
+import { ClassificationTabs } from "@/components/classification-leaderboards";
 import { PageHeader } from "@/components/page-header";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import {
@@ -10,6 +12,8 @@ import {
   type WednesdayParticipationPoint,
 } from "@/lib/analysis/rides";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { classificationsEnabled, loadClassificationLeaderboard } from "@/lib/classifications/server";
+import type { ClassificationLeaderboardResponse } from "@/lib/classifications/types";
 import { cn } from "@/lib/ui";
 import type { Database } from "@/types/database";
 
@@ -27,6 +31,7 @@ type AnalysisState =
   | {
       kind: "ready";
       analysis: RideAnalysis;
+      ciclamino: ClassificationLeaderboardResponse | null;
       seasons: SeasonRow[];
       selectedSeason: SeasonRow | null;
       selectedSeasonId: string | null;
@@ -77,10 +82,13 @@ function AnalysisContent({
 }: {
   state: Extract<AnalysisState, { kind: "ready" }>;
 }) {
-  const { analysis, selectedSeason } = state;
+  const { analysis, ciclamino, selectedSeason } = state;
+  const showCiclamino = ciclamino !== null;
 
   return (
     <>
+      <ClassificationTabs active={showCiclamino ? "ciclamino" : "rosa"} enabled={classificationsEnabled()} includeAzzurra={false} pathname="/analyse" seasonId={showCiclamino ? ciclamino.selectedSeasonId : state.selectedSeasonId} />
+      {showCiclamino ? <CiclaminoAnalysis leaderboard={ciclamino.ciclamino} sprintDays={ciclamino.ciclaminoSprintDays} /> : <>
       <section className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -140,6 +148,7 @@ function AnalysisContent({
         rows={analysis.eventRides}
         title="Events"
       />
+      </>}
     </>
   );
 }
@@ -538,9 +547,14 @@ async function loadAnalysisState(
       activities,
       (rulesResult.data ?? []) as AnalysisScoringRule[],
     );
+    const requestedClassification = getSingleParam(params.classification);
+    const ciclamino = classificationsEnabled() && requestedClassification === "ciclamino"
+      ? await loadClassificationLeaderboard(selectedSeasonId)
+      : null;
 
     return {
       analysis,
+      ciclamino,
       kind: "ready",
       seasons,
       selectedSeason,
