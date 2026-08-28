@@ -1,772 +1,304 @@
-# Supabase- und GitHub-Push fuer Datenbankmigrationen
+# Supabase-, GitHub- und Migrationsablauf
 
-Ziel dieser Anleitung: Eine neue oder geaenderte Supabase-Migration sauber pruefen, in die verknuepfte Supabase-Datenbank pushen und anschliessend nach GitHub versionieren.
+Diese Anleitung beschreibt den verbindlichen Ablauf fuer Datenbankmigrationen mit einer **Testdatenbank**, einer **Produktionsdatenbank** und mehreren Git-Branches.
 
-Diese Anleitung ist fuer PowerShell unter Windows und dieses Repository gedacht:
+Ziel ist, dass keine Migration und keine Testdaten versehentlich in der Produktionsdatenbank landen.
 
 ```powershell
 Set-Location "C:\Users\Fri\Documents\ZGB Strava Rangliste"
 ```
 
-## Grundregeln
+## 1. Umgebungen und Branches
 
-| Regel                                                            | Bedeutung                                                                      |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Neue fachliche DB-Aenderung = neue Migration                     | Bereits remote angewendete Migrationen nicht nachtraeglich inhaltlich aendern. |
-| Erst lokal pruefen, dann remote pushen                           | Fehler sollen vor `supabase db push` sichtbar werden.                          |
-| Supabase-Push und GitHub-Push getrennt betrachten                | `supabase db push` aendert die Datenbank. `git push` versioniert nur Dateien.  |
-| Vor produktiven Struktur- oder Datenmigrationen Backup erstellen | Besonders bei `alter table`, `drop`, `delete`, `update` ohne klare Begrenzung. |
-| Keine Secrets committen                                          | `.env.local`, Tokens, Service Role Keys und Passwoerter bleiben lokal.         |
-| Rueckrollen erfolgt ueber neue Korrektur-Migration               | Supabase-Migrationen sind keine automatisch reversiblen Down-Migrations.       |
+Die Datenbanken und Branches haben unterschiedliche Aufgaben. Die konkreten Projekt-Referenzen sind nicht im Repository zu hinterlegen.
 
-## Begriffe
+| Umgebung | Git-Branch | Supabase-Projekt | Zweck | Daten |
+| --- | --- | --- | --- | --- |
+| Lokal | beliebig | lokaler Supabase-Stack (optional) | SQL- und automatisierte Tests | neu aus Migrationen erzeugt |
+| Test | `staging/maglia-wertungen` und Feature-Branches | **Testdatenbank** | Integrationstest, manuelle Fachpruefung | ausschliesslich Testdaten |
+| Produktion | `main` | **Produktionsdatenbank** | produktiver Betrieb | reale Daten |
 
-| Begriff           | Bedeutung                                                                          |
-| ----------------- | ---------------------------------------------------------------------------------- |
-| Lokale Migration  | SQL-Datei unter `supabase/migrations/*.sql`.                                       |
-| Remote Migration  | Migration, die in der verknuepften Supabase-Datenbank als angewendet markiert ist. |
-| Linked Project    | Das Supabase-Projekt, mit dem die lokale CLI verbunden ist.                        |
-| Migration Version | Zeitstempel am Anfang des Dateinamens, z. B. `20260629100000`.                     |
+Falls weitere Staging-Branches verwendet werden, gelten sie ebenfalls als Testumgebung. Ein Feature-Branch darf niemals gegen die Produktionsdatenbank gepusht werden.
 
-## Entscheidung: neue oder bestehende Migration?
+Wichtige Begriffe:
 
-| Situation                                                    | Vorgehen                                                                       |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| Migration wurde noch nicht remote gepusht                    | Datei darf korrigiert werden. Danach erneut lokal pruefen.                     |
-| Migration wurde bereits remote gepusht                       | Nicht mehr aendern. Neue Korrektur-Migration erstellen.                        |
-| Unsicher, ob Migration remote angewendet wurde               | Mit `supabase migration list --linked` pruefen.                                |
-| Migration ist nur lokal fehlerhaft und noch nicht angewendet | Datei korrigieren oder neu erzeugen.                                           |
-| Produktivdaten muessen angepasst werden                      | Explizite Datenmigration schreiben, vorher Backup, danach Stichproben pruefen. |
+| Begriff | Bedeutung |
+| --- | --- |
+| Migration | SQL-Datei in `supabase/migrations`. Sie beschreibt eine dauerhaft versionierte Schema- oder Datenänderung. |
+| Testdaten | künstliche, anonymisierte oder ausdrücklich freigegebene Daten. Keine produktiven Nutzer-, Strava- oder Token-Daten. |
+| Projekt-Ref | Kennung eines Supabase-Projekts, z. B. aus `https://<project-ref>.supabase.co`. |
+| Linked Project | Das Supabase-Projekt, gegen das die CLI-Befehle ohne zusätzliche Zielangabe arbeiten. |
 
-## 1. Arbeitsstand pruefen
+## 2. Sicherheitsregeln
+
+| Regel | Bedeutung |
+| --- | --- |
+| Neue fachliche Änderung = neue Migration | Bereits in einer Remote-Datenbank ausgeführte Migrationen nie nachträglich ändern. |
+| Reihenfolge: lokal → Test → Produktion | Jede Migration wird zuerst lokal und in der Testdatenbank geprüft. |
+| Produktion nur von `main` | Ein Produktiv-Push ist erst nach Merge nach `main` zulässig. |
+| Ziel vor jedem `db push` prüfen | Branch und verknüpftes Supabase-Projekt müssen zur Tabelle oben passen. |
+| Keine Secrets oder Dumps committen | `.env.local`, Tokens, Passwörter und Datenbank-Dumps bleiben lokal bzw. im Secret-Store. |
+| Korrekturen durch neue Migration | Rückrollen und Fixes erfolgen als neue, nachvollziehbare Migration. |
+| Kein Remote-Reset | `supabase db reset --local` ist erlaubt; niemals `db reset` gegen Test oder Produktion verwenden. |
+
+`supabase db push` ändert eine Datenbank. `git push` versioniert lediglich Dateien in GitHub. Beide Schritte sind getrennt zu prüfen.
+
+## 3. `.env.local`: lokale App immer gegen die Testdatenbank
+
+`.env.local` wird von Next.js beim lokalen Start geladen und ist nicht zu committen. Sie enthält die Zugangsdaten, die die lokal gestartete App verwendet. Für die normale lokale Entwicklung müssen dort **die Werte der Testdatenbank** stehen, nicht die der Produktion.
+
+```dotenv
+# Test-Supabase-Projekt: Werte aus Settings > API der TESTdatenbank
+NEXT_PUBLIC_SUPABASE_URL=https://<test-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<test-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<test-service-role-key>
+
+# Lokale Anwendung
+APP_BASE_URL=http://localhost:3000
+APP_AUTH_SECRET=<eigener-lokaler-zufaelliger-wert>
+CRON_SECRET=<eigener-lokaler-zufaelliger-wert>
+
+# Strava: nur Test-App bzw. Test-Credentials verwenden
+STRAVA_CLIENT_ID=<test-client-id>
+STRAVA_CLIENT_SECRET=<test-client-secret>
+STRAVA_VERIFY_TOKEN=<test-webhook-verify-token>
+STRAVA_WEBHOOK_CALLBACK_URL=http://localhost:3000/api/strava/webhook
+
+# Optional, wenn E-Mail-Einladungen lokal getestet werden
+INVITE_EMAIL_WEBHOOK_URL=
+INVITE_EMAIL_WEBHOOK_SECRET=
+```
+
+| Variable | Erforderlich | Verwendung / Regel |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | ja fuer DB/Auth im Browser | URL der **Testdatenbank**. Darf im Browser sichtbar sein. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ja fuer DB/Auth im Browser | Anon-/Publishable-Key der **Testdatenbank**. |
+| `SUPABASE_SERVICE_ROLE_KEY` | ja fuer privilegierte Serverrouten | Ausschliesslich serverseitig; niemals mit `NEXT_PUBLIC_` benennen oder committen. |
+| `APP_BASE_URL` | ja | lokal `http://localhost:3000`; fuer Vercel jeweils die passende Deployment-URL. |
+| `APP_AUTH_SECRET` | ja | pro Umgebung eigener zufälliger Wert. |
+| `CRON_SECRET` | ja, wenn Cron aktiv | pro Umgebung eigener zufälliger Wert. |
+| `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` | nur fuer Strava-Abläufe | Test- und Produktions-Credentials strikt trennen. |
+| `STRAVA_VERIFY_TOKEN` | bei Webhook | pro Umgebung eigener Wert. |
+| `STRAVA_WEBHOOK_CALLBACK_URL` | bei Webhook | muss zur jeweiligen lokalen/Test-/Produktions-URL passen. |
+| `INVITE_EMAIL_WEBHOOK_URL`, `INVITE_EMAIL_WEBHOOK_SECRET` | optional | nur setzen, wenn die Einladungsintegration genutzt wird. |
+
+Die Supabase-CLI liest diese App-Variablen nicht als Auswahl des Zielprojekts. Das CLI-Ziel wird separat per `supabase link --project-ref ...` gesetzt. Deshalb ist ein korrekter Inhalt von `.env.local` kein Ersatz für die Zielprüfung vor `supabase db push`.
+
+Für Vercel werden dieselben Variablennamen als Environment Variables gepflegt, jedoch mit den Werten der jeweiligen Umgebung:
+
+| Vercel-Umgebung | Datenbankwerte |
+| --- | --- |
+| Preview / Staging | Testdatenbank und Test-Secrets |
+| Production | Produktionsdatenbank und Produktions-Secrets |
+
+Produktionswerte gehören nicht in `.env.local`, `.env.example`, GitHub oder Markdown-Dateien.
+
+## 4. Vorbereitung: Branch und Zielprojekt prüfen
+
+Vor jeder Migration:
 
 ```powershell
-# In das Repository wechseln
-Set-Location "C:\Users\Fri\Documents\ZGB Strava Rangliste"
-
-# Aktuellen Branch und Aenderungen anzeigen
 git status --short --branch
-
-# Remote-Ziel pruefen
-git remote -v
-
-# Aktuellen Branch anzeigen
 git branch --show-current
-```
-
-Erwartung fuer dieses Projekt:
-
-```text
-Branch: main
-Remote: origin -> https://github.com/fritz24stb-source/ZGB-Maglia-Rosa.git
-```
-
-Wenn der Arbeitsbaum bereits Aenderungen enthaelt, zuerst klaeren, ob sie zur Migration gehoeren:
-
-```powershell
-# Alle Datei-Aenderungen anzeigen
-git diff
-
-# Nur Migrationen anzeigen
-git diff -- .\supabase\migrations
-
-# Bereits gestagte Aenderungen anzeigen
-git diff --cached
-```
-
-## 2. Supabase-CLI pruefen
-
-Empfohlene Varianten:
-
-| Variante                           | PowerShell-Aufruf  | Bemerkung                                                            |
-| ---------------------------------- | ------------------ | -------------------------------------------------------------------- |
-| Ohne Installation im Projekt       | `npx supabase ...` | Offiziell unterstuetzt, benoetigt Node.js 20 oder neuer.             |
-| Als Dev-Dependency im Projekt      | `npx supabase ...` | Reproduzierbarer, weil die CLI-Version in `package-lock.json` steht. |
-| Globale CLI ueber Scoop/Standalone | `supabase ...`     | Praktisch, wenn sauber installiert.                                  |
-
-Hinweis: Eine globale Installation per `npm install -g supabase` wird von Supabase offiziell nicht unterstuetzt. Wenn `supabase` auf dem Rechner bereits funktioniert, kann es genutzt werden. Andernfalls ist `npx supabase ...` die robustere Variante.
-
-Globale CLI pruefen:
-
-```powershell
-# Pruefen, ob supabase gefunden wird
-Get-Command supabase
-
-# Version anzeigen
-supabase --version
-```
-
-Alternative ohne globale Installation:
-
-```powershell
-# Pruefen, ob npx vorhanden ist
-Get-Command npx
-
-# Supabase-CLI ueber npx ausfuehren
-npx supabase --version
-```
-
-Optionale lokale Installation als Dev-Dependency:
-
-```powershell
-# Supabase-CLI im Projekt versionieren
-npm install --save-dev supabase
-
-# Danach ueber npx ausfuehren
-npx supabase --version
-```
-
-Wenn in dieser Anleitung `supabase ...` steht, kann bei fehlender globaler CLI stattdessen immer `npx supabase ...` verwendet werden.
-
-Hinweis: In gesperrten Umgebungen kann die Supabase-CLI beim ersten Start in `C:\Users\<Benutzer>\.supabase` schreiben wollen. Wenn das durch Berechtigungen blockiert ist, den Befehl in einer normalen PowerShell des Benutzers ausfuehren, Schreibrechte fuer dieses Verzeichnis pruefen oder Telemetry fuer die aktuelle Sitzung deaktivieren:
-
-```powershell
-$env:SUPABASE_TELEMETRY_DISABLED = "1"
-npx supabase --version
-```
-
-## 3. Supabase-Login und Projekt-Link pruefen
-
-```powershell
-# Login starten, falls noch kein Supabase-Token hinterlegt ist
-supabase login
-
-# Projekt-Link pruefen
-supabase projects list
-
-# Falls das Repository noch nicht verlinkt ist:
-supabase link --project-ref <project-ref>
-
-# Migration-Status zwischen lokal und remote anzeigen
 supabase migration list --linked
 ```
 
-`<project-ref>` ist die Projektkennung aus der Supabase-URL:
+Vor einem Remote-Push zusätzlich das erwartete Ziel explizit verknüpfen. So wird nicht auf einen alten CLI-Link vertraut.
 
-```text
-https://<project-ref>.supabase.co
-```
-
-Bei automatisierten Umgebungen kann statt interaktivem Login ein Access Token gesetzt werden:
+### Testdatenbank
 
 ```powershell
-# Nur fuer die aktuelle PowerShell-Sitzung
-$env:SUPABASE_ACCESS_TOKEN = "<supabase-access-token>"
+# Nur auf Feature- oder Staging-Branch
+git branch --show-current
 
-# Danach CLI-Befehl ausfuehren
-supabase projects list
+# Testprojekt verknüpfen (Ref aus dem Supabase-Testprojekt)
+supabase link --project-ref tyoffdgeercbkpbdswxh
+
+# Migrationstand des Testprojekts prüfen
+supabase migration list --linked
 ```
 
-Wichtig: Den Access Token nicht in `.env.local`, Markdown-Dateien oder Git committen.
-
-## 4. Neue Migration erstellen
-
-Fuer eine neue Datenbankaenderung:
+### Produktionsdatenbank
 
 ```powershell
-# Aussagekraeftigen Namen setzen, englisch und klein geschrieben
+# Muss exakt main ausgeben
+git branch --show-current
+
+# Erst dann Produktionsprojekt verknüpfen
+supabase link --project-ref jegycrwzvorckdbawqya
+
+# Migrationstand der Produktionsdatenbank prüfen
+supabase migration list --linked
+```
+
+Wenn der Branch nicht passt, wird nicht gepusht. Auf `main` wechseln oder den Branch zunächst per Pull Request mergen. Nach einem Produktiv-Push sollte wieder das Testprojekt verknüpft werden, damit spätere Entwicklungsbefehle standardmäßig sicher gegen Test laufen.
+
+```powershell
+supabase link --project-ref tyoffdgeercbkpbdswxh
+```
+
+## 5. Neue Migration erstellen und lokal prüfen
+
+Eine neue Änderung erhält immer eine neue Migrationsdatei:
+
+```powershell
 $MigrationName = "add_example_column"
-
-# Neue Migration erzeugen
 supabase migration new $MigrationName
 
-# Neueste erzeugte Migrationsdatei finden
 $MigrationFile = Get-ChildItem .\supabase\migrations -Filter "*_$MigrationName.sql" |
   Sort-Object LastWriteTime -Descending |
   Select-Object -First 1
-
-# Pfad anzeigen
-$MigrationFile.FullName
-
-# Datei mit Notepad oeffnen
 notepad $MigrationFile.FullName
 ```
 
-Beispiel fuer eine einfache Strukturmigration:
+Beispiel:
 
 ```sql
 alter table public.activities
   add column if not exists example_column text;
 ```
 
-Beispiel fuer eine abgesicherte Datenmigration:
-
-```sql
-update public.activities
-set source = 'manual'
-where source is null
-  and manual_entry_key is not null;
-```
-
-Fachliche Hinweise:
-
-| Thema               | Empfehlung                                                                       |
-| ------------------- | -------------------------------------------------------------------------------- |
-| Tabellen            | Schema immer explizit angeben, z. B. `public.activities`.                        |
-| Neue Spalten        | Wenn moeglich erst nullable oder mit Default einfuehren.                         |
-| Constraints         | Bei bestehenden Daten vorher pruefen, ob alle Zeilen die Bedingung erfuellen.    |
-| RLS                 | Neue Tabellen nicht ohne aktivierte RLS und Policies produktiv nutzen.           |
-| Funktionen          | `create or replace function` verwenden, wenn bestehende Funktion angepasst wird. |
-| Datenupdates        | Immer mit enger `where`-Bedingung schreiben.                                     |
-| Destruktive Befehle | `drop`, `delete`, breite `update` nur mit Backup und gezielter Pruefung.         |
-
-## 5. Bestehende Migration aendern
-
-Nur erlaubt, wenn die Migration noch nicht remote angewendet wurde.
-
-Pruefung:
+Prüfung gegen die lokale, aus allen Migrationen neu aufgebaute Datenbank:
 
 ```powershell
-# Lokale und remote Migrationshistorie anzeigen
-supabase migration list --linked
-```
-
-Wenn die Migration remote bereits als angewendet gelistet ist:
-
-```powershell
-# Neue Korrektur-Migration erstellen
-supabase migration new fix_previous_migration
-```
-
-Dann die Korrektur als neue SQL-Datei schreiben. Nicht die alte Datei veraendern.
-
-Wenn die Migration noch nicht remote angewendet wurde:
-
-```powershell
-# Datei oeffnen und korrigieren
-notepad .\supabase\migrations\<timestamp>_<name>.sql
-
-# Geaenderte Migration anzeigen
-git diff -- .\supabase\migrations\<timestamp>_<name>.sql
-```
-
-## 6. Lokale Pruefung vor dem Supabase-Push
-
-Empfohlene Reihenfolge:
-
-```powershell
-# SQL-Dateien und sonstige Aenderungen ansehen
-git diff
-
-# Nur Migrationsaenderungen ansehen
 git diff -- .\supabase\migrations
-
-# Migrationen lokal gegen eine frische lokale DB anwenden
+supabase start                 # falls der lokale Stack noch nicht läuft
 supabase db reset --local
-
-# Anwendung formatieren
-npm run format
-
-# TypeScript pruefen
 npm run typecheck
-
-# ESLint pruefen
 npm run lint
-
-# Tests ausfuehren
 npm test
-
-# Produktionsbuild pruefen
 npm run build
 ```
 
-Kommentare zum Ablauf:
+Bei Datenmigrationen zusätzlich Testdaten gezielt vorbereiten und den erwarteten Vorher-/Nachher-Zustand dokumentieren. Breite `update`, `delete`, `drop` oder nicht rückgängig zu machende Umbauten benötigen vor dem Produktionsschritt ein Backup und eine fachliche Freigabe.
 
-| Schritt                     | Zweck                                                                                                           |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `git diff`                  | Sichtkontrolle, ob nur gewollte Aenderungen enthalten sind.                                                     |
-| `supabase db reset --local` | Baut die lokale Datenbank aus allen Migrationen neu auf. Syntaxfehler und Reihenfolgeprobleme fallen frueh auf. |
-| `npm run typecheck`         | Erkennt TypeScript-Fehler nach Schema-/Typaenderungen.                                                          |
-| `npm run lint`              | Erkennt Stil- und Qualitaetsprobleme.                                                                           |
-| `npm test`                  | Prueft fachliche Logik.                                                                                         |
-| `npm run build`             | Prueft, ob die App produktionsfaehig baut.                                                                      |
+## 6. Workflow für Testdatenbank und Pull Request
 
-Wenn lokal kein Supabase-Stack laeuft:
+Dieser Ablauf gilt für Feature- und Staging-Branches:
 
 ```powershell
-# Docker Desktop starten, danach lokalen Supabase-Stack starten
-supabase start
-
-# Danach Reset erneut ausfuehren
+# 1. Branch und lokale Prüfungen
+git branch --show-current
 supabase db reset --local
+npm test
+
+# 2. Ausschliesslich Testprojekt verknüpfen
+supabase link --project-ref <test-project-ref>
+supabase migration list --linked
+
+# 3. Geplante Änderungen prüfen und in Test pushen
+supabase db push --dry-run
+supabase db push
+supabase migration list --linked
+
+# 4. Anwendung mit .env.local (Testdatenbank) fachlich prüfen
+npm run dev
+
+# 5. Versionieren und PR nach main erstellen
+git add .\supabase\migrations
+git add <weitere-betroffene-dateien>
+git diff --cached
+git commit -m "Add example database migration"
+git push -u origin <feature-branch>
 ```
 
-Warnung: Fuer lokale Pruefung explizit `--local` verwenden. Keine Reset-Befehle gegen produktive Datenbanken ausfuehren.
+In der Testdatenbank werden Migrationen aus mehreren Branches dauerhaft in der Historie stehen können. Daher:
 
-## 7. Optional: Backup vor produktivem DB-Push
+- Eine bereits in der Testdatenbank ausgeführte Migration nicht umschreiben.
+- Bei Änderungen eine neue Korrektur-Migration erstellen.
+- Vor dem Produktiv-Push sicherstellen, dass die komplette Migrationshistorie aus `main` vorhanden ist.
+- Testdaten dürfen nach Bedarf bereinigt oder neu aufgebaut werden; die Produktionsdatenbank nie zu Testzwecken verwenden.
 
-Bei reinen View-, Function- oder Policy-Aenderungen ist ein Backup oft nicht zwingend. Bei Tabellenumbauten und Datenupdates ist es sinnvoll.
+## 7. Produktionsworkflow nach Merge nach `main`
+
+Der Produktions-Push erfolgt erst, nachdem der Pull Request geprüft und nach `main` gemergt wurde.
 
 ```powershell
-# Backup-Ordner erstellen
+# 1. Aktuellen main holen und Status prüfen
+git switch main
+git pull --ff-only origin main
+git status --short --branch
+git branch --show-current
+
+# 2. Optional, bei Daten- oder Strukturmigration: Produktionsbackup erstellen
 New-Item -ItemType Directory -Force .\backups | Out-Null
+$BackupFile = ".\backups\pre_production_migration_$(Get-Date -Format 'yyyyMMdd_HHmmss').sql"
 
-# Dateiname mit Zeitstempel
-$BackupFile = ".\backups\pre_migration_$(Get-Date -Format 'yyyyMMdd_HHmmss').sql"
+# 3. Erst jetzt Produktionsprojekt verknüpfen und Status lesen
+supabase link --project-ref <production-project-ref>
+supabase migration list --linked
 
-# Remote-Datenbank dumpen
+# 4. Dry Run sorgfältig mit den erwarteten Migrationen vergleichen
+supabase db push --dry-run
+
+# 5. Bei erforderlichem Backup ausführen; Dumps nicht committen
 supabase db dump --linked --file $BackupFile
-
-# Backup-Datei pruefen
 Get-Item $BackupFile
-```
 
-Backup-Dateien koennen gross werden und gehoeren in der Regel nicht nach Git. Wenn der Ordner `backups` regelmaessig genutzt wird, sollte er in `.gitignore` aufgenommen werden.
-
-## 8. Migration gegen Supabase pruefen und pushen
-
-Zuerst anzeigen, was aus Sicht der CLI noch offen ist:
-
-```powershell
-# Lokalen und remote Migrationsstand vergleichen
-supabase migration list --linked
-```
-
-Dry Run:
-
-```powershell
-# Anzeigen, welche Migrationen gepusht wuerden
-supabase db push --dry-run
-```
-
-Wenn der Dry Run plausibel ist:
-
-```powershell
-# Offene lokale Migrationen in die verknuepfte Supabase-Datenbank pushen
-supabase db push
-```
-
-Nach dem Push:
-
-```powershell
-# Migrationsstatus erneut pruefen
-supabase migration list --linked
-```
-
-Falls der Push eine Passwortabfrage oder Netzwerkverbindung benoetigt, PowerShell offen lassen und die Rueckfrage beantworten.
-
-## 9. Fachliche Pruefung nach Supabase-Push
-
-Je nach Migration:
-
-```powershell
-# App lokal starten
-npm run dev
-```
-
-Dann pruefen:
-
-```text
-http://127.0.0.1:3000/leaderboard
-```
-
-Zusaetzliche Pruefungen:
-
-| Migrationstyp     | Pruefung                                                               |
-| ----------------- | ---------------------------------------------------------------------- |
-| Neue Spalte       | App liest/schreibt weiterhin korrekt.                                  |
-| Neue Tabelle      | RLS aktiv, Policies greifen.                                           |
-| Neue Policy       | Zugriff mit anon/authenticated/service role wie erwartet.              |
-| Neue Function/RPC | API-Endpunkt oder SQL-Aufruf liefert erwartetes Ergebnis.              |
-| Datenmigration    | Stichproben in Supabase Table Editor oder SQL Editor pruefen.          |
-| Index             | Query weiterhin korrekt, Performance bei Bedarf mit `explain` pruefen. |
-
-## 10. Git-Commit vorbereiten
-
-Nach erfolgreichem Supabase-Push und fachlicher Pruefung:
-
-```powershell
-# Arbeitsstand anzeigen
-git status --short
-
-# Aenderungen kontrollieren
-git diff
-
-# Nur relevante Dateien stagen
-git add .\supabase\migrations
-git add .\docs
-
-# Falls Code oder Tests angepasst wurden, gezielt hinzufuegen
-git add .\app .\components .\lib .\tests .\types
-
-# Falls supabase als Dev-Dependency installiert wurde
-git add .\package.json .\package-lock.json
-
-# Staging pruefen
-git diff --cached
-```
-
-Wenn nur eine konkrete Migrationsdatei gestaged werden soll:
-
-```powershell
-git add .\supabase\migrations\<timestamp>_<name>.sql
-```
-
-Wenn versehentlich zu viel gestaged wurde:
-
-```powershell
-# Datei aus Staging entfernen, Arbeitskopie bleibt erhalten
-git restore --staged <dateipfad>
-```
-
-Wenn lokale Supabase-Cachedateien geaendert wurden:
-
-```powershell
-# Erst pruefen
-git diff -- .\supabase\.temp
-
-# Nur wenn die Aenderung eindeutig nicht versioniert werden soll:
-git restore -- .\supabase\.temp
-```
-
-Hinweis: In diesem Repository sind aktuell Dateien unter `supabase/.temp` versioniert. Deshalb nicht blind loeschen oder zuruecksetzen, sondern vorher mit `git diff` pruefen.
-
-## 11. Commit erstellen
-
-```powershell
-# Commit mit konkreter Aussage erstellen
-git commit -m "Add example database migration"
-```
-
-Beispiele fuer Commit-Messages:
-
-```text
-Add public leaderboard access migration
-Fix activity distance migration
-Add manual entry policy migration
-Update leaderboard RPC migration
-```
-
-Wenn Git keinen Commit erstellt:
-
-```powershell
-# Pruefen, ob ueberhaupt etwas gestaged ist
-git status --short
-
-# Gestagte Aenderungen anzeigen
-git diff --cached
-```
-
-## 12. Nach GitHub pushen
-
-```powershell
-# Aktuellen Branch pruefen
-git branch --show-current
-
-# Nach GitHub pushen
-git push origin main
-```
-
-Wenn auf einem Feature-Branch gearbeitet wird:
-
-```powershell
-# Branch anzeigen
-git branch --show-current
-
-# Aktuellen Branch nach origin pushen
-git push -u origin <branch-name>
-```
-
-Nach dem Push:
-
-```powershell
-# Status muss sauber sein
-git status --short --branch
-```
-
-Erwartung:
-
-```text
-## main...origin/main
-```
-
-Ohne weitere Datei-Aenderungen darunter.
-
-## 13. Kompletter Standardablauf
-
-Dieser Ablauf ist der Normalfall fuer eine neue Migration.
-
-```powershell
-# 1. Repository oeffnen
-Set-Location "C:\Users\Fri\Documents\ZGB Strava Rangliste"
-
-# 2. Ausgangszustand pruefen
-git status --short --branch
-git remote -v
-
-# 3. Supabase-Verbindung pruefen
-supabase migration list --linked
-
-# 4. Neue Migration erzeugen
-$MigrationName = "add_example_column"
-supabase migration new $MigrationName
-$MigrationFile = Get-ChildItem .\supabase\migrations -Filter "*_$MigrationName.sql" |
-  Sort-Object LastWriteTime -Descending |
-  Select-Object -First 1
-notepad $MigrationFile.FullName
-
-# 5. Aenderungen pruefen
-git diff -- .\supabase\migrations
-
-# 6. Lokal testen
-supabase db reset --local
-npm run format
-npm run typecheck
-npm run lint
-npm test
-npm run build
-
-# 7. Optionales Backup bei riskanten Migrationen
-New-Item -ItemType Directory -Force .\backups | Out-Null
-$BackupFile = ".\backups\pre_migration_$(Get-Date -Format 'yyyyMMdd_HHmmss').sql"
-supabase db dump --linked --file $BackupFile
-
-# 8. Supabase-Push
-supabase db push --dry-run
+# 6. Migration produktiv anwenden und Status erneut prüfen
 supabase db push
 supabase migration list --linked
 
-# 9. Fachlich pruefen
-npm run dev
+# 7. Produktive fachliche Stichprobe und Logs prüfen
 
-# 10. Git vorbereiten
-git status --short
-git diff
-git add .\supabase\migrations
-git add .\docs
-git diff --cached
-
-# 11. Commit und GitHub-Push
-git commit -m "Add example database migration"
-git push origin main
-
-# 12. Abschlusskontrolle
-git status --short --branch
+# 8. Standardziel zurück auf Test setzen
+supabase link --project-ref <test-project-ref>
 ```
 
-## 14. Ablauf fuer eine Korrektur an bereits gepushter Migration
+Bei reinen SQL-/Policy-/Funktionsmigrationen kann das Backup nach Risikobewertung entfallen. Bei Tabellenumbauten oder Datenänderungen ist es verpflichtend. Den lokalen Ordner `backups/` in `.gitignore` halten.
 
-Nicht die alte Migration aendern. Neue Korrektur-Migration schreiben.
+## 8. Korrektur einer bereits angewendeten Migration
+
+Eine Migration kann in Test oder Produktion bereits angewendet sein. Ihre SQL-Datei darf dann nicht geändert werden.
 
 ```powershell
-# 1. Status pruefen
-Set-Location "C:\Users\Fri\Documents\ZGB Strava Rangliste"
-supabase migration list --linked
-
-# 2. Neue Korrektur-Migration erzeugen
 supabase migration new fix_previous_schema_change
+```
 
-# 3. Datei oeffnen und Korrektur-SQL schreiben
-$MigrationFile = Get-ChildItem .\supabase\migrations -Filter "*_fix_previous_schema_change.sql" |
-  Sort-Object LastWriteTime -Descending |
-  Select-Object -First 1
-notepad $MigrationFile.FullName
+Die Korrektur wird zuerst lokal getestet, dann in die Testdatenbank gepusht und nach dem Merge nach `main` in Produktion ausgerollt. `supabase migration repair` ist kein normaler Korrekturmechanismus: Es ändert nur die Migrationshistorie und darf ausschließlich nach genauer Prüfung von Schema und Historie verwendet werden.
 
-# 4. Lokal pruefen
-supabase db reset --local
+## 9. Häufige Fehler
+
+| Fehlerbild | Ursache | Vorgehen |
+| --- | --- | --- |
+| Falscher Branch vor `db push` | Test- und Produktionsablauf wurden vermischt | Push abbrechen; Branch wechseln und das Zielprojekt erneut mit `supabase link` setzen. |
+| Falsches Linked Project | Die CLI merkt sich das zuletzt verknüpfte Projekt | Vor jedem Remote-Push `supabase link --project-ref ...` und `migration list --linked` ausführen. |
+| `.env.local` zeigt auf Produktion | Lokale App arbeitet gegen reale Daten | Sofort auf Testwerte ändern; lokale Tests erst danach fortsetzen. |
+| Migration wurde in Test bereits angewendet | SQL-Datei wurde nach dem Test geändert | Alte Datei zurück auf den getesteten Stand bringen und eine neue Korrektur-Migration erstellen. |
+| `Remote migration versions not found in local migrations directory` | Branch enthält nicht die vollständige Historie des Zielprojekts | Nicht reparieren oder pushen; erst `git fetch`, Branch/PR und Migrationsreihenfolge klären. |
+| `Docker is not running` | Lokaler Supabase-Stack ist nicht gestartet | Docker Desktop starten, `supabase start` und anschließend `supabase db reset --local`. |
+
+### TypeScript-Fehler nach Branchwechsel
+
+Wenn nach einem Wechsel zwischen `staging` und `main` bei `npm run typecheck`
+Fehler wie `Cannot find module ... app/api/ciclamino/...` oder
+`app/api/azzurra/...` auftreten, stammen diese normalerweise nicht aus einer
+Supabase-Migration. Next.js speichert generierte Routentypen in `.next/types`;
+diese können noch auf Routen des zuvor ausgecheckten Branches verweisen.
+
+Den lokalen Build-Cache löschen und die Typprüfung erneut ausführen:
+
+```powershell
+Remove-Item -Recurse -Force .next
 npm run typecheck
-npm run lint
-npm test
-npm run build
-
-# 5. Remote pruefen und pushen
-supabase db push --dry-run
-supabase db push
-supabase migration list --linked
-
-# 6. GitHub versionieren
-git add .\supabase\migrations
-git commit -m "Fix previous database migration"
-git push origin main
 ```
 
-## 15. Typische Fehler und Loesungen
+`.next` ist ein lokales, generiertes Verzeichnis und darf nicht committed
+werden. Erst wenn der Fehler danach weiter besteht, betrifft er tatsächlich
+fehlende oder inkonsistente Quelldateien.
 
-| Fehlerbild                                                             | Wahrscheinliche Ursache                                                       | Loesung                                                                                                                                                                 |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `supabase : The term 'supabase' is not recognized`                     | Supabase-CLI nicht global installiert oder nicht im PATH.                     | `npx supabase ...` verwenden oder `npm install --save-dev supabase` im Projekt ausfuehren und danach weiter mit `npx supabase ...`.                                     |
-| `npx : The term 'npx' is not recognized`                               | Node.js/npm fehlt oder PATH ist defekt.                                       | Node.js installieren oder PATH reparieren, danach `Get-Command npm` und `Get-Command npx` pruefen.                                                                      |
-| `You are not logged in` oder Login-Fehler                              | Kein Supabase Access Token vorhanden.                                         | `supabase login` ausfuehren oder `$env:SUPABASE_ACCESS_TOKEN` setzen.                                                                                                   |
-| `Project not linked`                                                   | Lokales Repository ist nicht mit Supabase-Projekt verbunden.                  | `supabase link --project-ref <project-ref>` ausfuehren.                                                                                                                 |
-| `failed to connect to postgres`                                        | Netzwerk, Passwort, Pooler oder Projektstatus problematisch.                  | Internet pruefen, Supabase-Projektstatus pruefen, erneut anmelden, `supabase migration list --linked` testen.                                                           |
-| `Docker is not running`                                                | Lokale Supabase-DB benoetigt Docker.                                          | Docker Desktop starten, dann `supabase start` und `supabase db reset --local`.                                                                                          |
-| `relation already exists`                                              | Migration erstellt Objekt ohne Schutz oder Objekt existiert bereits.          | SQL mit `if not exists` absichern oder Korrektur-Migration schreiben.                                                                                                   |
-| `column already exists`                                                | Spalte existiert bereits remote oder lokal.                                   | `add column if not exists` verwenden oder Migration-Historie pruefen.                                                                                                   |
-| `permission denied for schema public`                                  | Rolle hat nicht die noetigen Rechte oder RLS/Grants fehlen.                   | Grants, Policies und Funktionsrechte in Migration ergaenzen.                                                                                                            |
-| `new row violates row-level security policy`                           | RLS-Policy blockiert Insert/Update.                                           | Policy fuer konkrete Rolle und Operation pruefen, nicht pauschal RLS deaktivieren.                                                                                      |
-| `violates foreign key constraint`                                      | Datenmigration referenziert fehlende Datensaetze.                             | Datenbestand vorher pruefen, Reihenfolge korrigieren, fehlende Referenzen sauber anlegen.                                                                               |
-| `violates not-null constraint`                                         | Bestehende Zeilen haben keinen Wert fuer neue Pflichtspalte.                  | Erst nullable einfuehren, Daten befuellen, danach `set not null` in separater Migration.                                                                                |
-| `duplicate key value violates unique constraint`                       | Datenmigration erzeugt Duplikate.                                             | Vorher Duplikate ermitteln, Bereinigung oder `on conflict` verwenden.                                                                                                   |
-| `syntax error at or near ...`                                          | SQL-Syntaxfehler.                                                             | Datei oeffnen, Zeile korrigieren, lokal mit `supabase db reset --local` erneut pruefen.                                                                                 |
-| `prepared statement ... already exists`                                | Verbindungs-/Poolerproblem bei wiederholter Ausfuehrung.                      | Befehl erneut ausfuehren, ggf. PowerShell neu starten.                                                                                                                  |
-| `Remote migration versions not found in local migrations directory`    | Remote kennt Migrationen, die lokal fehlen.                                   | Nicht blind reparieren. Erst `git pull`, Branch pruefen, dann `supabase migration list --linked`.                                                                       |
-| `Local migration versions not found in remote database`                | Lokale Migrationen sind noch nicht gepusht.                                   | `supabase db push --dry-run`, dann `supabase db push`.                                                                                                                  |
-| `Found local migration files to be inserted before the last migration` | Zeitstempel einer neuen Migration liegt vor bereits angewendeten Migrationen. | Neue Migration mit aktuellem Zeitstempel erzeugen. Alte Datei nur verwenden, wenn sie sicher noch nicht remote angewendet wurde.                                        |
-| `supabase migration repair` falsch genutzt                             | Migrationshistorie wurde manuell markiert, Schema aber nicht angepasst.       | Repair nur fuer Historienkorrektur nutzen. Schema separat per SQL/Korrektur-Migration pruefen.                                                                          |
-| `git push rejected`                                                    | Remote enthaelt neue Commits.                                                 | `git pull --rebase origin main`, Konflikte loesen, Tests erneut ausfuehren, dann `git push origin main`.                                                                |
-| `non-fast-forward`                                                     | Lokaler Branch ist hinter `origin/main`.                                      | `git fetch origin`, `git status`, dann `git pull --rebase origin main`.                                                                                                 |
-| Merge-Konflikt in Migrationen                                          | Zwei Aenderungen betreffen Migrationen oder Reihenfolge.                      | Beide Migrationen erhalten, Reihenfolge nach Zeitstempel pruefen, lokal `supabase db reset --local`.                                                                    |
-| `nothing to commit, working tree clean`                                | Keine gestagten oder keine geaenderten Dateien.                               | `git status --short` und `git diff` pruefen.                                                                                                                            |
-| `Author identity unknown`                                              | Git-Name oder E-Mail nicht konfiguriert.                                      | `git config --global user.name "Name"` und `git config --global user.email "mail@example.com"`.                                                                         |
-| `EPERM ... C:\Users\<Benutzer>\.supabase\telemetry...`                 | CLI kann lokale Supabase-Konfiguration/Telemetry nicht schreiben.             | Normale Benutzer-PowerShell verwenden, Schreibrechte auf `C:\Users\<Benutzer>\.supabase` pruefen oder fuer die Sitzung `$env:SUPABASE_TELEMETRY_DISABLED = "1"` setzen. |
+## 10. Checkliste vor einem Push
 
-## 16. Befehle zur Fehleranalyse
+| Prüfschritt | Testdatenbank | Produktion |
+| --- | --- | --- |
+| korrekter Branch | Feature/Staging | `main` |
+| `git status` geprüft | ja | ja |
+| `supabase db reset --local` erfolgreich | ja | ja, vor dem Merge bzw. Ausrollen |
+| `supabase link` explizit gesetzt | Testprojekt | Produktionsprojekt |
+| `supabase migration list --linked` plausibel | ja | ja |
+| `supabase db push --dry-run` geprüft | ja | ja |
+| fachliche Prüfung | Test-App mit Testdaten | Produktions-App / Monitoring |
+| Backup | optional nach Risiko | verpflichtend bei Daten-/Strukturmigration |
+| Ziel wieder auf Test zurückgestellt | n. a. | ja |
 
-Git:
-
-```powershell
-# Remote-Stand holen, ohne zu mergen
-git fetch origin
-
-# Lokalen Stand mit Remote vergleichen
-git status --short --branch
-
-# Commits anzeigen, die lokal noch nicht auf origin/main sind
-git log --oneline origin/main..HEAD
-
-# Commits anzeigen, die remote noch nicht lokal sind
-git log --oneline HEAD..origin/main
-
-# Geaenderte Dateien anzeigen
-git diff --name-status
-
-# Gestagte Dateien anzeigen
-git diff --cached --name-status
-```
-
-Supabase:
-
-```powershell
-# Migrationsstand lokal/remote
-supabase migration list --linked
-
-# Geplanten Push anzeigen
-supabase db push --dry-run
-
-# Lokale Datenbank vollstaendig aus Migrationen neu aufbauen
-supabase db reset --local
-
-# Projektliste pruefen
-supabase projects list
-```
-
-PowerShell:
-
-```powershell
-# Aktuelles Verzeichnis
-Get-Location
-
-# Migrationsdateien nach Datum anzeigen
-Get-ChildItem .\supabase\migrations | Sort-Object Name
-
-# Neueste Migration anzeigen
-Get-ChildItem .\supabase\migrations |
-  Sort-Object LastWriteTime -Descending |
-  Select-Object -First 1
-```
-
-## 17. Migration-Historie reparieren
-
-Nur nutzen, wenn sicher ist, dass Schema und Historie auseinanderlaufen. `migration repair` aendert die Migrationshistorie, ersetzt aber keine fehlenden SQL-Aenderungen.
-
-Beispiele:
-
-```powershell
-# Status pruefen
-supabase migration list --linked
-
-# Eine Version remote als angewendet markieren
-supabase migration repair <version> --status applied
-
-# Eine Version remote als nicht mehr angewendet markieren
-supabase migration repair <version> --status reverted
-
-# Danach erneut pruefen
-supabase migration list --linked
-```
-
-Risiko:
-
-| Problem                                                      | Konsequenz                                               |
-| ------------------------------------------------------------ | -------------------------------------------------------- |
-| Migration als `applied` markiert, SQL aber nicht ausgefuehrt | Supabase fuehrt sie nicht mehr aus, obwohl Schema fehlt. |
-| Migration als `reverted` markiert, Schema aber vorhanden     | Naechster Push kann an vorhandenen Objekten scheitern.   |
-| Repair ohne Backup                                           | Historie wird schwer nachvollziehbar.                    |
-
-Empfehlung: Vor `migration repair` immer `supabase migration list --linked`, `git status`, betroffene SQL-Datei und Remote-Schema pruefen.
-
-## 18. Rollback-Strategie
-
-Wenn `supabase db push` bereits erfolgreich war, nicht versuchen, die alte Migration aus Git zu loeschen und erneut zu pushen. Stattdessen:
-
-```powershell
-# Neue Korrektur-Migration erstellen
-supabase migration new rollback_or_fix_<kurze_beschreibung>
-
-# Korrektur schreiben
-$MigrationFile = Get-ChildItem .\supabase\migrations -Filter "*_rollback_or_fix_<kurze_beschreibung>.sql" |
-  Sort-Object LastWriteTime -Descending |
-  Select-Object -First 1
-notepad $MigrationFile.FullName
-
-# Lokal testen
-supabase db reset --local
-npm test
-npm run build
-
-# Remote pushen
-supabase db push --dry-run
-supabase db push
-
-# Versionieren
-git add .\supabase\migrations
-git commit -m "Fix database migration issue"
-git push origin main
-```
-
-Beispiele fuer Korrektur-SQL:
-
-```sql
--- Spalte wieder entfernen, wenn sie wirklich nicht genutzt wird
-alter table public.activities
-  drop column if exists example_column;
-```
-
-```sql
--- Policy korrigieren
-drop policy if exists "Allow public leaderboard read" on public.activities;
-
-create policy "Allow public leaderboard read"
-on public.activities
-for select
-to anon, authenticated
-using (status = 'active');
-```
-
-## 19. Abschluss-Checkliste
-
-| Pruefung                                                                                | Erledigt |
-| --------------------------------------------------------------------------------------- | -------- |
-| `git status --short --branch` vor Beginn geprueft                                       |          |
-| Neue Migration erstellt oder alte nur dann geaendert, wenn noch nicht remote angewendet |          |
-| SQL fachlich kontrolliert                                                               |          |
-| `supabase db reset --local` erfolgreich                                                 |          |
-| `npm run typecheck` erfolgreich                                                         |          |
-| `npm run lint` erfolgreich                                                              |          |
-| `npm test` erfolgreich                                                                  |          |
-| `npm run build` erfolgreich                                                             |          |
-| Bei riskanter Migration Backup erstellt                                                 |          |
-| `supabase db push --dry-run` plausibel                                                  |          |
-| `supabase db push` erfolgreich                                                          |          |
-| Fachliche Stichprobe in App oder Supabase durchgefuehrt                                 |          |
-| Nur relevante Dateien gestaged                                                          |          |
-| Commit erstellt                                                                         |          |
-| `git push origin main` erfolgreich                                                      |          |
-| `git status --short --branch` sauber                                                    |          |
-
-## 20. Offizielle Referenzen
-
-- Supabase CLI Reference: <https://supabase.com/docs/reference/cli>
-- Supabase Database Migrations: <https://supabase.com/docs/guides/deployment/database-migrations>
-- Git `push`: <https://git-scm.com/docs/git-push>
-- GitHub: Pushing commits to a remote repository: <https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository>
+Weiterführende Referenzen: [Supabase CLI](https://supabase.com/docs/reference/cli) und [Supabase Database Migrations](https://supabase.com/docs/guides/deployment/database-migrations).
