@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     const summary = await processPendingStravaWebhookEvents({
       client: supabase,
       limit: RETRY_BATCH_LIMIT,
+      forceRetry: true,
     });
 
     await writeAdminAuditLog(supabase, {

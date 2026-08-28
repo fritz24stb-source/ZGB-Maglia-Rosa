@@ -266,6 +266,8 @@ type WebhookEventRow = {
     | "ignored"
     | "failed";
   processing_error: string | null;
+  attempt_count: number;
+  next_retry_at: string | null;
   created_at: string;
 };
 
