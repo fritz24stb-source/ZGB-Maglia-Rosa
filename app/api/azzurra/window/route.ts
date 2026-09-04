@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { writeAdminAuditLog } from "@/lib/admin/audit";
 import { requireActiveAppUser } from "@/lib/auth/guards";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import { canAccessAzzurra } from "@/lib/classifications/access";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     validateOrigin(request);
     const access = await requireActiveAppUser();
-    if (!canAccessClassifications(access.profile.role)) {
+    if (!canAccessAzzurra(access.profile.role)) {
       throw new Error("Wertungen sind für dieses Profil noch nicht aktiv.");
     }
     const formData = await request.formData();
@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
 
     if (selectError) throw selectError;
     if (existing) {
-      throw new Error("Die Azzurra-Woche dieser Saison wurde bereits festgelegt.");
+      throw new Error(
+        "Die Azzurra-Woche dieser Saison wurde bereits festgelegt.",
+      );
     }
 
     const { error } = await supabase.from("azzurra_windows").insert({
@@ -48,7 +50,10 @@ export async function POST(request: NextRequest) {
     return redirect(request, { status: "Azzurra-Woche gespeichert." });
   } catch (error) {
     return redirect(request, {
-      error: error instanceof Error ? error.message : "Azzurra-Woche konnte nicht gespeichert werden.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Azzurra-Woche konnte nicht gespeichert werden.",
     });
   }
 }
@@ -56,12 +61,14 @@ export async function POST(request: NextRequest) {
 function validateOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   const expected = new URL(process.env.APP_BASE_URL ?? request.url).origin;
-  if (origin && origin !== expected) throw new Error("Ungültiger Request-Origin.");
+  if (origin && origin !== expected)
+    throw new Error("Ungültiger Request-Origin.");
 }
 
 function requiredText(formData: FormData, key: string) {
   const value = formData.get(key);
-  if (typeof value !== "string" || !value.trim()) throw new Error(`${key} fehlt.`);
+  if (typeof value !== "string" || !value.trim())
+    throw new Error(`${key} fehlt.`);
   return value.trim();
 }
 
@@ -71,7 +78,10 @@ function requiredDate(formData: FormData, key: string) {
   return value;
 }
 
-function redirect(request: NextRequest, flash: { error?: string; status?: string }) {
+function redirect(
+  request: NextRequest,
+  flash: { error?: string; status?: string },
+) {
   const url = new URL("/profile", request.url);
   if (flash.error) url.searchParams.set("azzurraError", flash.error);
   if (flash.status) url.searchParams.set("azzurraStatus", flash.status);

@@ -15,7 +15,7 @@ import { PasskeyPanel } from "@/components/passkey-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import { canAccessAzzurra } from "@/lib/classifications/access";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/auth/roles";
 import type { Database } from "@/types/database";
@@ -161,79 +161,84 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
       {state.kind === "authenticated" ? (
         <>
-        <section className="grid gap-4 md:grid-cols-[1fr_1.2fr]">
-          <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-asphalt-900">
-                  {state.profileName}
-                </h2>
-                <p className="mt-1 text-sm text-asphalt-600">
-                  Rolle: {state.role === "admin" ? "Rennleitung" : state.role === "scorekeeper" ? "Sprintwertung" : "Mitglied"}
-                </p>
+          <section className="grid gap-4 md:grid-cols-[1fr_1.2fr]">
+            <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-asphalt-900">
+                    {state.profileName}
+                  </h2>
+                  <p className="mt-1 text-sm text-asphalt-600">
+                    Rolle:{" "}
+                    {state.role === "admin"
+                      ? "Rennleitung"
+                      : state.role === "scorekeeper"
+                        ? "Sprintwertung"
+                        : "Mitglied"}
+                  </p>
+                </div>
+                <StatusBadge tone={state.role === "admin" ? "info" : "neutral"}>
+                  {state.role}
+                </StatusBadge>
               </div>
-              <StatusBadge tone={state.role === "admin" ? "info" : "neutral"}>
-                {state.role}
-              </StatusBadge>
-            </div>
 
-            <div className="mt-6 border-t border-asphalt-100 pt-5">
-              <h3 className="text-sm font-semibold text-asphalt-900">
-                Strava-Verbindung
-              </h3>
-              <ConnectionStatus connection={state.connection} />
-            </div>
+              <div className="mt-6 border-t border-asphalt-100 pt-5">
+                <h3 className="text-sm font-semibold text-asphalt-900">
+                  Strava-Verbindung
+                </h3>
+                <ConnectionStatus connection={state.connection} />
+              </div>
 
-            <PasskeyPanel passkeyCount={state.passkeyCount} />
+              <PasskeyPanel passkeyCount={state.passkeyCount} />
 
-            <p className="mt-6 text-sm text-asphalt-500">
-              Hinweise zu Strava-Daten und Loeschung stehen unter{" "}
-              <Link
-                className="focus-ring rounded-sm text-signal-blue"
-                href="/datenschutz"
-              >
-                Datenschutz
-              </Link>
-              .
-            </p>
+              <p className="mt-6 text-sm text-asphalt-500">
+                Hinweise zu Strava-Daten und Loeschung stehen unter{" "}
+                <Link
+                  className="focus-ring rounded-sm text-signal-blue"
+                  href="/datenschutz"
+                >
+                  Datenschutz
+                </Link>
+                .
+              </p>
 
-            <form action="/api/strava/purge" className="mt-4" method="post">
-              <button
-                type="submit"
-                className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-md border border-red-200 px-3 text-sm font-medium text-red-800"
-              >
-                <Trash2 aria-hidden className="h-4 w-4" />
-                Strava-Daten bereinigen
-              </button>
-            </form>
+              <form action="/api/strava/purge" className="mt-4" method="post">
+                <button
+                  type="submit"
+                  className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-md border border-red-200 px-3 text-sm font-medium text-red-800"
+                >
+                  <Trash2 aria-hidden className="h-4 w-4" />
+                  Strava-Daten bereinigen
+                </button>
+              </form>
 
-            <form action="/api/auth/logout" className="mt-6" method="post">
-              <button
-                type="submit"
-                className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
-              >
-                <LogOut aria-hidden className="h-4 w-4" />
-                Abmelden
-              </button>
-            </form>
-          </article>
+              <form action="/api/auth/logout" className="mt-6" method="post">
+                <button
+                  type="submit"
+                  className="focus-ring inline-flex min-h-10 items-center gap-2 rounded-md border border-asphalt-300 px-3 text-sm font-medium text-asphalt-800"
+                >
+                  <LogOut aria-hidden className="h-4 w-4" />
+                  Abmelden
+                </button>
+              </form>
+            </article>
 
-          <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
-            <div className="flex items-center gap-2">
-              <Activity aria-hidden className="h-5 w-5 text-signal-blue" />
-              <h2 className="text-base font-semibold text-asphalt-900">
-                Letzte Aktivitäten
-              </h2>
-            </div>
-            <ActivityList activities={state.activities} />
-          </article>
-        </section>
-        {canAccessClassifications(state.role) ? (
-          <AzzurraWindowCard
-            seasons={state.seasons}
-            windows={state.azzurraWindows}
-          />
-        ) : null}
+            <article className="rounded-lg border border-asphalt-200 bg-white p-5 shadow-line">
+              <div className="flex items-center gap-2">
+                <Activity aria-hidden className="h-5 w-5 text-signal-blue" />
+                <h2 className="text-base font-semibold text-asphalt-900">
+                  Letzte Aktivitäten
+                </h2>
+              </div>
+              <ActivityList activities={state.activities} />
+            </article>
+          </section>
+          {canAccessAzzurra(state.role) ? (
+            <AzzurraWindowCard
+              seasons={state.seasons}
+              windows={state.azzurraWindows}
+            />
+          ) : null}
         </>
       ) : null}
     </main>
@@ -251,7 +256,8 @@ function AzzurraWindowCard({
     (season) => !windows.some((window) => window.season_id === season.id),
   );
   const defaultSeason =
-    selectableSeasons.find((season) => season.is_active) ?? selectableSeasons[0];
+    selectableSeasons.find((season) => season.is_active) ??
+    selectableSeasons[0];
 
   return (
     <section className="rounded-lg border border-sky-200 bg-white p-5 shadow-line">
@@ -260,9 +266,12 @@ function AzzurraWindowCard({
           <Mountain aria-hidden className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="text-base font-semibold text-asphalt-900">Maglia Azzurra</h2>
+          <h2 className="text-base font-semibold text-asphalt-900">
+            Maglia Azzurra
+          </h2>
           <p className="mt-1 text-sm leading-6 text-asphalt-600">
-            Wähle pro Saison einmal den Start deiner persönlichen Sieben-Tage-Wertung. Danach kann nur ein Admin korrigieren.
+            Wähle pro Saison einmal den Start deiner persönlichen
+            Sieben-Tage-Wertung. Danach kann nur ein Admin korrigieren.
           </p>
         </div>
       </div>
@@ -272,10 +281,16 @@ function AzzurraWindowCard({
           {windows.map((window) => {
             const season = seasons.find((item) => item.id === window.season_id);
             return (
-              <div key={`${window.user_id}-${window.season_id}`} className="rounded-md bg-sky-50 p-3 text-sm">
-                <dt className="font-semibold text-asphalt-900">{season?.name ?? "Saison"}</dt>
+              <div
+                key={`${window.user_id}-${window.season_id}`}
+                className="rounded-md bg-sky-50 p-3 text-sm"
+              >
+                <dt className="font-semibold text-asphalt-900">
+                  {season?.name ?? "Saison"}
+                </dt>
                 <dd className="mt-1 text-asphalt-700">
-                  {formatDateOnly(window.starts_on)} bis {formatDateOnly(addDays(window.starts_on, 6))}
+                  {formatDateOnly(window.starts_on)} bis{" "}
+                  {formatDateOnly(addDays(window.starts_on, 6))}
                 </dd>
               </div>
             );
@@ -284,25 +299,49 @@ function AzzurraWindowCard({
       ) : null}
 
       {defaultSeason ? (
-        <form action="/api/azzurra/window" method="post" className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <form
+          action="/api/azzurra/window"
+          method="post"
+          className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+        >
           <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
             Saison
-            <select name="seasonId" defaultValue={defaultSeason.id} className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm" required>
+            <select
+              name="seasonId"
+              defaultValue={defaultSeason.id}
+              className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm"
+              required
+            >
               {selectableSeasons.map((season) => (
-                <option key={season.id} value={season.id}>{season.name}{season.is_active ? " (aktiv)" : ""}</option>
+                <option key={season.id} value={season.id}>
+                  {season.name}
+                  {season.is_active ? " (aktiv)" : ""}
+                </option>
               ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
             Starttag
-            <input name="startsOn" type="date" min={defaultSeason.starts_on} max={subtractDays(defaultSeason.ends_on, 6)} className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm" required />
+            <input
+              name="startsOn"
+              type="date"
+              min={defaultSeason.starts_on}
+              max={subtractDays(defaultSeason.ends_on, 6)}
+              className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm"
+              required
+            />
           </label>
-          <button type="submit" className="focus-ring inline-flex min-h-10 items-center justify-center rounded-md bg-sky-700 px-4 text-sm font-semibold text-white">
+          <button
+            type="submit"
+            className="focus-ring inline-flex min-h-10 items-center justify-center rounded-md bg-sky-700 px-4 text-sm font-semibold text-white"
+          >
             Woche festlegen
           </button>
         </form>
       ) : (
-        <p className="mt-4 text-sm text-asphalt-600">Für alle vorhandenen Saisons wurde bereits eine Woche gewählt.</p>
+        <p className="mt-4 text-sm text-asphalt-600">
+          Für alle vorhandenen Saisons wurde bereits eine Woche gewählt.
+        </p>
       )}
     </section>
   );
@@ -489,7 +528,14 @@ async function loadProfileState(): Promise<ProfileState> {
 
     const supabase = createSupabaseServiceRoleClient();
     const userId = accessState.userId;
-    const [profileResult, connectionResult, activities, seasonsResult, windowsResult] = await Promise.all([
+    const azzurraEnabled = canAccessAzzurra(accessState.profile.role);
+    const [
+      profileResult,
+      connectionResult,
+      activities,
+      seasonsResult,
+      windowsResult,
+    ] = await Promise.all([
       supabase
         .from("profiles")
         .select("display_name, role")
@@ -501,8 +547,19 @@ async function loadProfileState(): Promise<ProfileState> {
         .eq("user_id", userId)
         .maybeSingle(),
       loadAllScoredActivities(supabase, userId),
-      supabase.from("seasons").select("id, name, starts_on, ends_on, is_active").order("starts_on", { ascending: false }),
-      supabase.from("azzurra_windows").select("*").eq("user_id", userId).order("starts_on", { ascending: false }),
+      azzurraEnabled
+        ? supabase
+            .from("seasons")
+            .select("id, name, starts_on, ends_on, is_active")
+            .order("starts_on", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      azzurraEnabled
+        ? supabase
+            .from("azzurra_windows")
+            .select("*")
+            .eq("user_id", userId)
+            .order("starts_on", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
     ]);
     const passkeysResult = await supabase
       .from("app_passkey_credentials")
@@ -513,8 +570,18 @@ async function loadProfileState(): Promise<ProfileState> {
       throw passkeysResult.error;
     }
 
-    if (profileResult.error || connectionResult.error || seasonsResult.error || windowsResult.error) {
-      throw profileResult.error ?? connectionResult.error ?? seasonsResult.error ?? windowsResult.error;
+    if (
+      profileResult.error ||
+      connectionResult.error ||
+      seasonsResult.error ||
+      windowsResult.error
+    ) {
+      throw (
+        profileResult.error ??
+        connectionResult.error ??
+        seasonsResult.error ??
+        windowsResult.error
+      );
     }
 
     const profile = profileResult.data as ProfileSummary | null;
@@ -607,9 +674,10 @@ function formatDate(value: string) {
 }
 
 function formatDateOnly(value: string) {
-  return new Intl.DateTimeFormat("de-CH", { dateStyle: "medium", timeZone: "UTC" }).format(
-    new Date(`${value}T12:00:00.000Z`),
-  );
+  return new Intl.DateTimeFormat("de-CH", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00.000Z`));
 }
 
 function addDays(value: string, days: number) {

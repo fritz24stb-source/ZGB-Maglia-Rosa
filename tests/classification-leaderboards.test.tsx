@@ -1,7 +1,10 @@
 import React, { type ImgHTMLAttributes } from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ClassificationLeaderboard } from "@/components/classification-leaderboards";
+import {
+  ClassificationLeaderboard,
+  ClassificationTabs,
+} from "@/components/classification-leaderboards";
 import type { ClassificationLeaderboardResponse } from "@/lib/classifications/types";
 
 vi.mock("next/image", () => ({
@@ -10,6 +13,21 @@ vi.mock("next/image", () => ({
 }));
 
 describe("ClassificationLeaderboard", () => {
+  it("can publish Ciclamino without showing Azzurra", () => {
+    render(
+      <ClassificationTabs
+        active="ciclamino"
+        azzurraEnabled={false}
+        ciclaminoEnabled
+      />,
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Maglia Ciclamino" }),
+    ).not.toBeNull();
+    expect(screen.queryByRole("link", { name: "Maglia Azzurra" })).toBeNull();
+  });
+
   it("marks the Ciclamino leader with the Ciclamino jersey", () => {
     render(
       <ClassificationLeaderboard
@@ -23,7 +41,11 @@ describe("ClassificationLeaderboard", () => {
     });
 
     expect(leaderJerseys).toHaveLength(2);
-    expect(leaderJerseys.every((jersey) => jersey.getAttribute("src") === "/maglia-ciclamino.png")).toBe(true);
+    expect(
+      leaderJerseys.every(
+        (jersey) => jersey.getAttribute("src") === "/maglia-ciclamino.png",
+      ),
+    ).toBe(true);
   });
 });
 

@@ -6,7 +6,7 @@ import { AccessBlocked } from "@/components/access-blocked";
 import { decideAdminAccess } from "@/lib/auth/admin-access";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { canManageCiclamino } from "@/lib/auth/roles";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import { canAccessCiclamino } from "@/lib/classifications/access";
 
 export async function requireActiveAppPage(nextPath: string) {
   const state = await loadCurrentAppAccessState();
@@ -60,7 +60,7 @@ export async function requireCiclaminoManagerPage(nextPath: string) {
 
   if (
     !canManageCiclamino(state.profile.role) ||
-    !canAccessClassifications(state.profile.role)
+    !canAccessCiclamino(state.profile.role)
   ) {
     return (
       <AccessDenied

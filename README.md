@@ -176,19 +176,21 @@ Details zu Strava App, Webhook, Supabase, Admin Workflow, Nutzer Workflow, Regel
 
 ## Environment Variables
 
-| Variable                        | Zweck                                      |
-| ------------------------------- | ------------------------------------------ |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase Projekt-URL                       |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key für Client/Auth          |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Server-only Key für privilegierte Aktionen |
-| `STRAVA_CLIENT_ID`              | Strava OAuth Client ID                     |
-| `STRAVA_CLIENT_SECRET`          | Strava OAuth Secret, nur serverseitig      |
-| `STRAVA_VERIFY_TOKEN`           | Verify Token für Strava Webhook Challenge  |
-| `STRAVA_WEBHOOK_CALLBACK_URL`   | Öffentliche Webhook-Callback-URL           |
-| `APP_BASE_URL`                  | Basis-URL der App                          |
-| `APP_AUTH_SECRET`               | Signatur-Secret für App-Session-Cookies    |
-| `CRON_SECRET`                   | Bearer Secret für Vercel Cron              |
-| `CLASSIFICATIONS_ENABLED`       | `false`: aus, `staff`: Admin/Scorekeeper, `true`: alle Mitglieder |
+| Variable                        | Zweck                                                                                                      |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase Projekt-URL                                                                                       |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key für Client/Auth                                                                          |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Server-only Key für privilegierte Aktionen                                                                 |
+| `STRAVA_CLIENT_ID`              | Strava OAuth Client ID                                                                                     |
+| `STRAVA_CLIENT_SECRET`          | Strava OAuth Secret, nur serverseitig                                                                      |
+| `STRAVA_VERIFY_TOKEN`           | Verify Token für Strava Webhook Challenge                                                                  |
+| `STRAVA_WEBHOOK_CALLBACK_URL`   | Öffentliche Webhook-Callback-URL                                                                           |
+| `APP_BASE_URL`                  | Basis-URL der App                                                                                          |
+| `APP_AUTH_SECRET`               | Signatur-Secret für App-Session-Cookies                                                                    |
+| `CRON_SECRET`                   | Bearer Secret für Vercel Cron                                                                              |
+| `CICLAMINO_ENABLED`             | Ciclamino: `false` aus, `staff` intern, `true` alle Mitglieder; fällt auf `CLASSIFICATIONS_ENABLED` zurück |
+| `AZZURRA_ENABLED`               | Azzurra: `false`/leer aus, `staff` intern, `true` alle Mitglieder                                          |
+| `CLASSIFICATIONS_ENABLED`       | Veralteter Fallback ausschließlich für Ciclamino                                                           |
 
 ## Qualitätsbefehle
 

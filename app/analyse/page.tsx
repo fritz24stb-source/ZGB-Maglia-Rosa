@@ -13,7 +13,7 @@ import {
   type WednesdayParticipationPoint,
 } from "@/lib/analysis/rides";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import { canAccessCiclamino } from "@/lib/classifications/access";
 import { loadClassificationLeaderboard } from "@/lib/classifications/server";
 import type { ClassificationLeaderboardResponse } from "@/lib/classifications/types";
 import { cn } from "@/lib/ui";
@@ -60,7 +60,7 @@ export default async function AnalysePage({ searchParams }: AnalysisPageProps) {
 
   const access = await loadCurrentAppAccessState();
   const classificationsEnabled =
-    access.kind === "active" && canAccessClassifications(access.profile.role);
+    access.kind === "active" && canAccessCiclamino(access.profile.role);
   const params = searchParams ? await searchParams : {};
   const state = await loadAnalysisState(params, classificationsEnabled);
 
@@ -97,68 +97,83 @@ function AnalysisContent({
 
   return (
     <>
-      <ClassificationTabs active={showCiclamino ? "ciclamino" : "rosa"} enabled={classificationsEnabled} includeAzzurra={false} pathname="/analyse" seasonId={showCiclamino ? ciclamino.selectedSeasonId : state.selectedSeasonId} />
-      {showCiclamino ? <CiclaminoAnalysis leaderboard={ciclamino.ciclamino} sprintDays={ciclamino.ciclaminoSprintDays} /> : <>
-      <section className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-asphalt-900">
-              Saisonauswahl
-            </h2>
-            <p className="mt-1 text-sm text-asphalt-600">
-              {selectedSeason
-                ? `${selectedSeason.name}: ${formatDateKey(
-                    selectedSeason.starts_on,
-                  )} bis ${formatDateKey(selectedSeason.ends_on)}`
-                : "Keine Saison vorhanden."}
-            </p>
-          </div>
-          <SeasonFilter
-            seasons={state.seasons}
-            selectedSeasonId={state.selectedSeasonId}
+      <ClassificationTabs
+        active={showCiclamino ? "ciclamino" : "rosa"}
+        ciclaminoEnabled={classificationsEnabled}
+        includeAzzurra={false}
+        pathname="/analyse"
+        seasonId={
+          showCiclamino ? ciclamino.selectedSeasonId : state.selectedSeasonId
+        }
+      />
+      {showCiclamino ? (
+        <CiclaminoAnalysis
+          leaderboard={ciclamino.ciclamino}
+          sprintDays={ciclamino.ciclaminoSprintDays}
+        />
+      ) : (
+        <>
+          <section className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-asphalt-900">
+                  Saisonauswahl
+                </h2>
+                <p className="mt-1 text-sm text-asphalt-600">
+                  {selectedSeason
+                    ? `${selectedSeason.name}: ${formatDateKey(
+                        selectedSeason.starts_on,
+                      )} bis ${formatDateKey(selectedSeason.ends_on)}`
+                    : "Keine Saison vorhanden."}
+                </p>
+              </div>
+              <SeasonFilter
+                seasons={state.seasons}
+                selectedSeasonId={state.selectedSeasonId}
+              />
+            </div>
+          </section>
+
+          <SummaryGrid analysis={analysis} />
+          <WednesdayParticipationChart points={analysis.wednesdayGraph} />
+
+          <RideTable
+            columns={[
+              { key: "date", label: "Datum" },
+              { key: "title", label: "Fahrt" },
+              { key: "participantCount", label: "Teilnehmer" },
+              { key: "scuderiaCount", label: "Scuderia" },
+              { key: "zugCount", label: "Zug" },
+              { key: "scuolaCount", label: "Scuola" },
+            ]}
+            emptyText="Keine gewerteten Mittwochsfahrten gefunden."
+            rows={analysis.wednesdayRides}
+            title="Mittwochsfahrten"
           />
-        </div>
-      </section>
 
-      <SummaryGrid analysis={analysis} />
-      <WednesdayParticipationChart points={analysis.wednesdayGraph} />
+          <RideTable
+            columns={[
+              { key: "date", label: "Datum" },
+              { key: "title", label: "Fahrt" },
+              { key: "participantCount", label: "Teilnehmer" },
+            ]}
+            emptyText="Keine gewerteten Samstags-Fondo-Fahrten gefunden."
+            rows={analysis.fondoRides}
+            title="Samstags-Fondo"
+          />
 
-      <RideTable
-        columns={[
-          { key: "date", label: "Datum" },
-          { key: "title", label: "Fahrt" },
-          { key: "participantCount", label: "Teilnehmer" },
-          { key: "scuderiaCount", label: "Scuderia" },
-          { key: "zugCount", label: "Zug" },
-          { key: "scuolaCount", label: "Scuola" },
-        ]}
-        emptyText="Keine gewerteten Mittwochsfahrten gefunden."
-        rows={analysis.wednesdayRides}
-        title="Mittwochsfahrten"
-      />
-
-      <RideTable
-        columns={[
-          { key: "date", label: "Datum" },
-          { key: "title", label: "Fahrt" },
-          { key: "participantCount", label: "Teilnehmer" },
-        ]}
-        emptyText="Keine gewerteten Samstags-Fondo-Fahrten gefunden."
-        rows={analysis.fondoRides}
-        title="Samstags-Fondo"
-      />
-
-      <RideTable
-        columns={[
-          { key: "date", label: "Datum" },
-          { key: "title", label: "Event" },
-          { key: "participantCount", label: "Teilnehmer" },
-        ]}
-        emptyText="Keine gewerteten Sonderevents gefunden."
-        rows={analysis.eventRides}
-        title="Events"
-      />
-      </>}
+          <RideTable
+            columns={[
+              { key: "date", label: "Datum" },
+              { key: "title", label: "Event" },
+              { key: "participantCount", label: "Teilnehmer" },
+            ]}
+            emptyText="Keine gewerteten Sonderevents gefunden."
+            rows={analysis.eventRides}
+            title="Events"
+          />
+        </>
+      )}
     </>
   );
 }
@@ -536,7 +551,9 @@ async function loadAnalysisState(
     const [rulesResult, profilesResult, activitiesResult] = await Promise.all([
       supabase
         .from("scoring_rules")
-        .select("id, name, category, is_active, rule_type, valid_from, valid_until")
+        .select(
+          "id, name, category, is_active, rule_type, valid_from, valid_until",
+        )
         .order("priority", { ascending: false }),
       supabase.from("profiles").select("id").eq("is_active", true),
       buildActivitiesQuery(supabase, selectedSeasonId),
@@ -559,9 +576,13 @@ async function loadAnalysisState(
       (rulesResult.data ?? []) as AnalysisScoringRule[],
     );
     const requestedClassification = getSingleParam(params.classification);
-    const ciclamino = classificationsEnabled && requestedClassification === "ciclamino"
-      ? await loadClassificationLeaderboard(selectedSeasonId)
-      : null;
+    const ciclamino =
+      classificationsEnabled && requestedClassification === "ciclamino"
+        ? await loadClassificationLeaderboard(selectedSeasonId, {
+            includeAzzurra: false,
+            includeCiclamino: true,
+          })
+        : null;
 
     return {
       analysis,

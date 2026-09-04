@@ -6,7 +6,7 @@ import {
   requireAdminSession,
   validateAdminOrigin,
 } from "@/lib/admin/http";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import { canAccessAzzurra } from "@/lib/classifications/access";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     validateAdminOrigin(request);
     const admin = await requireAdminSession(request);
-    if (!canAccessClassifications(admin.profile?.role)) {
+    if (!canAccessAzzurra(admin.profile?.role)) {
       throw new AdminHttpError(404, "Wertungen sind noch nicht aktiv.");
     }
     const formData = await request.formData();
@@ -61,7 +61,9 @@ export async function POST(request: NextRequest) {
       );
       if (error) throw error;
       await writeAdminAuditLog(supabase, {
-        action: before ? "azzurra.window.correct" : "azzurra.window.set_by_admin",
+        action: before
+          ? "azzurra.window.correct"
+          : "azzurra.window.set_by_admin",
         entityType: "azzurra_window",
         entityId: userId,
         before,
@@ -77,7 +79,8 @@ export async function POST(request: NextRequest) {
 
 function requiredText(formData: FormData, key: string) {
   const value = formData.get(key);
-  if (typeof value !== "string" || !value.trim()) throw new Error(`${key} fehlt.`);
+  if (typeof value !== "string" || !value.trim())
+    throw new Error(`${key} fehlt.`);
   return value.trim();
 }
 
@@ -87,7 +90,10 @@ function requiredDate(formData: FormData, key: string) {
   return value;
 }
 
-function redirect(request: NextRequest, flash: { error?: string; status?: string }) {
+function redirect(
+  request: NextRequest,
+  flash: { error?: string; status?: string },
+) {
   const url = new URL("/admin/members", request.url);
   if (flash.error) url.searchParams.set("adminError", flash.error);
   if (flash.status) url.searchParams.set("adminStatus", flash.status);

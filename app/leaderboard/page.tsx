@@ -7,7 +7,10 @@ import { PageHeader } from "@/components/page-header";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { loadLeaderboardResponse } from "@/lib/leaderboard/server";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import {
+  canAccessAzzurra,
+  canAccessCiclamino,
+} from "@/lib/classifications/access";
 import { loadClassificationLeaderboard } from "@/lib/classifications/server";
 import type { ClassificationKind } from "@/lib/classifications/types";
 
@@ -29,36 +32,63 @@ export default async function LeaderboardPage({
   const access = await loadCurrentAppAccessState();
   const resolvedParams = await searchParams;
   const urlParams = toUrlSearchParams(resolvedParams);
-  const enabled =
-    access.kind === "active" && canAccessClassifications(access.profile.role);
+  const ciclaminoEnabled =
+    access.kind === "active" && canAccessCiclamino(access.profile.role);
+  const azzurraEnabled =
+    access.kind === "active" && canAccessAzzurra(access.profile.role);
   const requestedClassification = single(resolvedParams.classification);
   const classification: ClassificationKind =
-    enabled && (requestedClassification === "ciclamino" || requestedClassification === "azzurra")
-      ? requestedClassification
-      : "rosa";
+    requestedClassification === "ciclamino" && ciclaminoEnabled
+      ? "ciclamino"
+      : requestedClassification === "azzurra" && azzurraEnabled
+        ? "azzurra"
+        : "rosa";
   const initialData = await loadLeaderboardResponse(urlParams);
-  const classificationData = enabled
-    ? await loadClassificationLeaderboard(single(resolvedParams.seasonId))
-    : null;
+  const classificationData =
+    classification !== "rosa"
+      ? await loadClassificationLeaderboard(single(resolvedParams.seasonId), {
+          includeAzzurra: classification === "azzurra",
+          includeCiclamino: classification === "ciclamino",
+        })
+      : null;
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Leaderboard"
-        description="Maglia Rosa, Ciclamino und Azzurra im Saisonvergleich."
+        description={leaderboardDescription(ciclaminoEnabled, azzurraEnabled)}
       />
       <ClassificationTabs
         active={classification}
-        enabled={enabled}
-        seasonId={classificationData?.selectedSeasonId ?? initialData.filters.seasonId}
+        azzurraEnabled={azzurraEnabled}
+        ciclaminoEnabled={ciclaminoEnabled}
+        seasonId={
+          classificationData?.selectedSeasonId ?? initialData.filters.seasonId
+        }
       />
       {classification === "rosa" || !classificationData ? (
         <LeaderboardPreview initialData={initialData} />
       ) : (
-        <ClassificationLeaderboard active={classification} data={classificationData} />
+        <ClassificationLeaderboard
+          active={classification}
+          data={classificationData}
+        />
       )}
     </main>
   );
+}
+
+function leaderboardDescription(
+  ciclaminoEnabled: boolean,
+  azzurraEnabled: boolean,
+) {
+  const classifications = [
+    "Maglia Rosa",
+    ...(ciclaminoEnabled ? ["Ciclamino"] : []),
+    ...(azzurraEnabled ? ["Azzurra"] : []),
+  ];
+
+  return `${classifications.join(", ").replace(/, ([^,]+)$/, " und $1")} im Saisonvergleich.`;
 }
 
 function single(value: string | string[] | undefined) {

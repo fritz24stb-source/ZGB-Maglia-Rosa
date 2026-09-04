@@ -1,6 +1,7 @@
 import type { UserRole } from "@/lib/auth/roles";
 
 export type ClassificationsAudience = "all" | "off" | "staff";
+export type GatedClassification = "azzurra" | "ciclamino";
 
 export function classificationsAudience(
   value = process.env.CLASSIFICATIONS_ENABLED,
@@ -29,4 +30,36 @@ export function canAccessClassifications(
   }
 
   return audience === "staff" && (role === "admin" || role === "scorekeeper");
+}
+
+export function canAccessClassification(
+  role: UserRole | null | undefined,
+  classification: GatedClassification,
+  value = configuredClassificationValue(classification),
+) {
+  return canAccessClassifications(role, value);
+}
+
+export function canAccessCiclamino(
+  role: UserRole | null | undefined,
+  value = configuredClassificationValue("ciclamino"),
+) {
+  return canAccessClassification(role, "ciclamino", value);
+}
+
+export function canAccessAzzurra(
+  role: UserRole | null | undefined,
+  value = configuredClassificationValue("azzurra"),
+) {
+  return canAccessClassification(role, "azzurra", value);
+}
+
+function configuredClassificationValue(classification: GatedClassification) {
+  if (classification === "ciclamino") {
+    return process.env.CICLAMINO_ENABLED ?? process.env.CLASSIFICATIONS_ENABLED;
+  }
+
+  // Azzurra stays closed until it is enabled explicitly. This prevents an
+  // existing shared switch from publishing it accidentally during rollout.
+  return process.env.AZZURRA_ENABLED;
 }

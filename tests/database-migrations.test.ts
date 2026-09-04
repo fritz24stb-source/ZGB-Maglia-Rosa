@@ -142,6 +142,13 @@ const restoredSprintLocationsSql = readFileSync(
   ),
   "utf8",
 ).replace(/\r\n/g, "\n");
+const restrictedClassificationRpcSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260904120000_route_classification_leaderboards_through_server.sql",
+  ),
+  "utf8",
+).replace(/\r\n/g, "\n");
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -330,6 +337,16 @@ describe("database migrations", () => {
     expect(classificationSql).not.toContain("azzurra_windows window");
     expect(classificationSql).toContain("public.get_ciclamino_leaderboard");
     expect(classificationSql).toContain("public.get_azzurra_leaderboard");
+  });
+
+  it("routes classification leaderboards through the feature-gated server", () => {
+    expect(restrictedClassificationRpcSql).toContain(
+      "revoke execute on function public.get_ciclamino_leaderboard(uuid)\nfrom anon, authenticated",
+    );
+    expect(restrictedClassificationRpcSql).toContain(
+      "revoke execute on function public.get_azzurra_leaderboard(uuid)\nfrom anon, authenticated",
+    );
+    expect(restrictedClassificationRpcSql).toContain("to service_role");
   });
 
   it("stores complete Ciclamino race days with three locations and five places", () => {

@@ -10,7 +10,7 @@ import { AdminFlash } from "@/components/admin-flash";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import { canAccessAzzurra } from "@/lib/classifications/access";
 import type { Database } from "@/types/database";
 
 type AdminMembersPageProps = {
@@ -59,7 +59,7 @@ export default async function AdminMembersPage({
 }: AdminMembersPageProps) {
   const params = searchParams ? await searchParams : {};
   const state = await loadMembersState();
-  const showClassifications = canAccessClassifications("admin");
+  const showClassifications = canAccessAzzurra("admin");
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -339,57 +339,75 @@ function MemberCard({
             </form>
 
             {showClassifications ? (
-            <section className="mt-4 border-t border-asphalt-100 pt-4">
-              <h3 className="text-sm font-semibold text-asphalt-900">Azzurra-Woche</h3>
-              <p className="mt-1 text-xs text-asphalt-500">Nach dem Zurücksetzen kann das Mitglied im Profil erneut eine Woche auswählen.</p>
-              <div className="mt-3 grid gap-3">
-                {seasons.map((season) => {
-                  const window = azzurraWindows.find((item) => item.season_id === season.id);
-                  return (
-                    <form
-                      action="/api/admin/azzurra-window"
-                      method="post"
-                      key={season.id}
-                      className="grid gap-3 rounded-md bg-sky-50 p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"
-                    >
-                      <input type="hidden" name="userId" value={profile.id} />
-                      <input type="hidden" name="seasonId" value={season.id} />
-                      <input type="hidden" name="action" value="save" />
-                      <div className="text-sm">
-                        <p className="font-semibold text-asphalt-900">{season.name}</p>
-                        <p className="text-xs text-asphalt-500">
-                          {window ? `Aktuell ab ${formatDateOnly(window.starts_on)}` : "Noch nicht gewählt"}
-                        </p>
-                      </div>
-                      <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
-                        Starttag
-                        <input
-                          className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm"
-                          defaultValue={window?.starts_on}
-                          max={subtractDays(season.ends_on, 6)}
-                          min={season.starts_on}
-                          name="startsOn"
-                          required
-                          type="date"
-                        />
-                      </label>
-                      <button type="submit" className="focus-ring min-h-10 rounded-md border border-sky-300 bg-white px-3 text-sm font-medium text-sky-900">
-                        Speichern
-                      </button>
-                      <button
-                        type="submit"
-                        name="action"
-                        value="reset"
-                        disabled={!window}
-                        className="focus-ring min-h-10 rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-800 disabled:opacity-40"
+              <section className="mt-4 border-t border-asphalt-100 pt-4">
+                <h3 className="text-sm font-semibold text-asphalt-900">
+                  Azzurra-Woche
+                </h3>
+                <p className="mt-1 text-xs text-asphalt-500">
+                  Nach dem Zurücksetzen kann das Mitglied im Profil erneut eine
+                  Woche auswählen.
+                </p>
+                <div className="mt-3 grid gap-3">
+                  {seasons.map((season) => {
+                    const window = azzurraWindows.find(
+                      (item) => item.season_id === season.id,
+                    );
+                    return (
+                      <form
+                        action="/api/admin/azzurra-window"
+                        method="post"
+                        key={season.id}
+                        className="grid gap-3 rounded-md bg-sky-50 p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"
                       >
-                        Zurücksetzen
-                      </button>
-                    </form>
-                  );
-                })}
-              </div>
-            </section>
+                        <input type="hidden" name="userId" value={profile.id} />
+                        <input
+                          type="hidden"
+                          name="seasonId"
+                          value={season.id}
+                        />
+                        <input type="hidden" name="action" value="save" />
+                        <div className="text-sm">
+                          <p className="font-semibold text-asphalt-900">
+                            {season.name}
+                          </p>
+                          <p className="text-xs text-asphalt-500">
+                            {window
+                              ? `Aktuell ab ${formatDateOnly(window.starts_on)}`
+                              : "Noch nicht gewählt"}
+                          </p>
+                        </div>
+                        <label className="flex flex-col gap-1 text-sm font-medium text-asphalt-800">
+                          Starttag
+                          <input
+                            className="focus-ring min-h-10 rounded-md border border-asphalt-300 bg-white px-3 text-sm"
+                            defaultValue={window?.starts_on}
+                            max={subtractDays(season.ends_on, 6)}
+                            min={season.starts_on}
+                            name="startsOn"
+                            required
+                            type="date"
+                          />
+                        </label>
+                        <button
+                          type="submit"
+                          className="focus-ring min-h-10 rounded-md border border-sky-300 bg-white px-3 text-sm font-medium text-sky-900"
+                        >
+                          Speichern
+                        </button>
+                        <button
+                          type="submit"
+                          name="action"
+                          value="reset"
+                          disabled={!window}
+                          className="focus-ring min-h-10 rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-800 disabled:opacity-40"
+                        >
+                          Zurücksetzen
+                        </button>
+                      </form>
+                    );
+                  })}
+                </div>
+              </section>
             ) : null}
             {connection ? (
               <dl className="mt-4 grid gap-2 border-t border-asphalt-100 pt-4 text-xs text-asphalt-500 md:grid-cols-3">
@@ -600,9 +618,10 @@ function formatDateTime(value: string) {
 }
 
 function formatDateOnly(value: string) {
-  return new Intl.DateTimeFormat("de-CH", { dateStyle: "medium", timeZone: "UTC" }).format(
-    new Date(`${value}T12:00:00.000Z`),
-  );
+  return new Intl.DateTimeFormat("de-CH", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00.000Z`));
 }
 
 function subtractDays(value: string, days: number) {

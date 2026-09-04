@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  canAccessAzzurra,
+  canAccessCiclamino,
   canAccessClassifications,
   classificationsAudience,
 } from "@/lib/classifications/access";
@@ -30,5 +32,11 @@ describe("classification access", () => {
       expect(canAccessClassifications(role, "false")).toBe(false);
       expect(canAccessClassifications(role, "0")).toBe(false);
     }
+  });
+
+  it("allows Ciclamino and Azzurra to use separate audiences", () => {
+    expect(canAccessCiclamino("member", "true")).toBe(true);
+    expect(canAccessAzzurra("member", "staff")).toBe(false);
+    expect(canAccessAzzurra("admin", "staff")).toBe(true);
   });
 });

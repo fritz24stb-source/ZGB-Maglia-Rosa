@@ -15,8 +15,17 @@ type CiclaminoRpcRow =
 type AzzurraRpcRow =
   Database["public"]["Functions"]["get_azzurra_leaderboard"]["Returns"][number];
 
+type ClassificationLoadOptions = {
+  includeAzzurra?: boolean;
+  includeCiclamino?: boolean;
+};
+
 export async function loadClassificationLeaderboard(
   requestedSeasonId?: string | null,
+  {
+    includeAzzurra = true,
+    includeCiclamino = true,
+  }: ClassificationLoadOptions = {},
 ): Promise<ClassificationLeaderboardResponse> {
   const supabase = createSupabaseServiceRoleClient();
   const { data: seasonData, error: seasonError } = await supabase
@@ -36,33 +45,79 @@ export async function loadClassificationLeaderboard(
     endsOn: season.ends_on,
   }));
   const selectedSeasonId = resolveSeasonId(requestedSeasonId, seasons);
-  const [ciclaminoResult, azzurraResult, sprintsResult, placementsResult, awardsResult, windowsResult, votesResult, overridesResult, profilesResult] = await Promise.all([
-    supabase.rpc("get_ciclamino_leaderboard", {
-      p_season_id: selectedSeasonId,
-    }),
-    supabase.rpc("get_azzurra_leaderboard", {
-      p_season_id: selectedSeasonId,
-    }),
-    selectedSeasonId
-      ? supabase.from("ciclamino_sprints").select("*").eq("season_id", selectedSeasonId).order("sprint_date", { ascending: false })
+  const [
+    ciclaminoResult,
+    azzurraResult,
+    sprintsResult,
+    placementsResult,
+    awardsResult,
+    windowsResult,
+    votesResult,
+    overridesResult,
+    profilesResult,
+  ] = await Promise.all([
+    includeCiclamino
+      ? supabase.rpc("get_ciclamino_leaderboard", {
+          p_season_id: selectedSeasonId,
+        })
       : Promise.resolve({ data: [], error: null }),
-    supabase.from("ciclamino_placements").select("*"),
-    selectedSeasonId
-      ? supabase.from("ciclamino_combative_awards").select("*").eq("season_id", selectedSeasonId)
+    includeAzzurra
+      ? supabase.rpc("get_azzurra_leaderboard", {
+          p_season_id: selectedSeasonId,
+        })
       : Promise.resolve({ data: [], error: null }),
-    selectedSeasonId
-      ? supabase.from("ciclamino_combative_voting_windows").select("*").eq("season_id", selectedSeasonId)
+    includeCiclamino && selectedSeasonId
+      ? supabase
+          .from("ciclamino_sprints")
+          .select("*")
+          .eq("season_id", selectedSeasonId)
+          .order("sprint_date", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
-    selectedSeasonId
-      ? supabase.from("ciclamino_combative_votes").select("*").eq("season_id", selectedSeasonId)
+    includeCiclamino
+      ? supabase.from("ciclamino_placements").select("*")
       : Promise.resolve({ data: [], error: null }),
-    selectedSeasonId
-      ? supabase.from("ciclamino_placement_overrides").select("*").eq("season_id", selectedSeasonId)
+    includeCiclamino && selectedSeasonId
+      ? supabase
+          .from("ciclamino_combative_awards")
+          .select("*")
+          .eq("season_id", selectedSeasonId)
       : Promise.resolve({ data: [], error: null }),
-    supabase.from("profiles").select("id, display_name").eq("is_active", true),
+    includeCiclamino && selectedSeasonId
+      ? supabase
+          .from("ciclamino_combative_voting_windows")
+          .select("*")
+          .eq("season_id", selectedSeasonId)
+      : Promise.resolve({ data: [], error: null }),
+    includeCiclamino && selectedSeasonId
+      ? supabase
+          .from("ciclamino_combative_votes")
+          .select("*")
+          .eq("season_id", selectedSeasonId)
+      : Promise.resolve({ data: [], error: null }),
+    includeCiclamino && selectedSeasonId
+      ? supabase
+          .from("ciclamino_placement_overrides")
+          .select("*")
+          .eq("season_id", selectedSeasonId)
+      : Promise.resolve({ data: [], error: null }),
+    includeCiclamino
+      ? supabase
+          .from("profiles")
+          .select("id, display_name")
+          .eq("is_active", true)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const error = ciclaminoResult.error ?? azzurraResult.error ?? sprintsResult.error ?? placementsResult.error ?? awardsResult.error ?? windowsResult.error ?? votesResult.error ?? overridesResult.error ?? profilesResult.error;
+  const error =
+    ciclaminoResult.error ??
+    azzurraResult.error ??
+    sprintsResult.error ??
+    placementsResult.error ??
+    awardsResult.error ??
+    windowsResult.error ??
+    votesResult.error ??
+    overridesResult.error ??
+    profilesResult.error;
   if (error) {
     throw error;
   }
@@ -102,7 +157,9 @@ function resolveSeasonId(
     return requestedSeasonId;
   }
 
-  return seasons.find((season) => season.isActive)?.id ?? seasons[0]?.id ?? null;
+  return (
+    seasons.find((season) => season.isActive)?.id ?? seasons[0]?.id ?? null
+  );
 }
 
 function normalizeCiclaminoRow(row: CiclaminoRpcRow): CiclaminoLeaderboardRow {

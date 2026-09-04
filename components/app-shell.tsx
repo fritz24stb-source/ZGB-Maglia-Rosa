@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MainNav } from "@/components/main-nav";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import { canAccessCiclamino } from "@/lib/classifications/access";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ export async function AppShell({ children }: AppShellProps) {
     <div className="zgb-app flex min-h-screen flex-col">
       <header className="zgb-app-header sticky top-0 z-20 backdrop-blur-md">
         <MainNav
-          classificationsEnabled={canAccessClassifications(role)}
+          classificationsEnabled={canAccessCiclamino(role)}
           role={role}
         />
       </header>

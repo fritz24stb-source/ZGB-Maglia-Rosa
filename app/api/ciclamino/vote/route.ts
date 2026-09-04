@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { writeAdminAuditLog } from "@/lib/admin/audit";
 import { requireActiveAppUser } from "@/lib/auth/guards";
-import { canAccessClassifications } from "@/lib/classifications/access";
+import { canAccessCiclamino } from "@/lib/classifications/access";
 import { CICLAMINO_LOCATIONS } from "@/lib/classifications/ciclamino";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     validateOrigin(request);
     const access = await requireActiveAppUser();
-    if (!canAccessClassifications(access.profile.role)) {
+    if (!canAccessCiclamino(access.profile.role)) {
       throw new Error("Wertungen sind für dieses Profil noch nicht aktiv.");
     }
     const formData = await request.formData();
@@ -28,7 +28,10 @@ export async function POST(request: NextRequest) {
     }));
     const supabase = createSupabaseServiceRoleClient();
 
-    const [{ data: beforeVote, error: voteError }, { data: beforeResults, error: resultsError }] = await Promise.all([
+    const [
+      { data: beforeVote, error: voteError },
+      { data: beforeResults, error: resultsError },
+    ] = await Promise.all([
       supabase
         .from("ciclamino_combative_votes")
         .select("*")
@@ -55,9 +58,10 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
 
     await writeAdminAuditLog(supabase, {
-      action: beforeVote || beforeResults?.length
-        ? "ciclamino.vote.update"
-        : "ciclamino.vote.create",
+      action:
+        beforeVote || beforeResults?.length
+          ? "ciclamino.vote.update"
+          : "ciclamino.vote.create",
       entityType: "ciclamino_vote",
       entityId: access.userId,
       before: { combativeVote: beforeVote, results: beforeResults },
@@ -71,9 +75,10 @@ export async function POST(request: NextRequest) {
     });
 
     return redirect(request, sprintDate, {
-      voteStatus: beforeVote || beforeResults?.length
-        ? "Abstimmung geändert."
-        : "Abstimmung gespeichert.",
+      voteStatus:
+        beforeVote || beforeResults?.length
+          ? "Abstimmung geändert."
+          : "Abstimmung gespeichert.",
     });
   } catch (error) {
     return redirect(request, sprintDate, { voteError: errorMessage(error) });
@@ -83,12 +88,14 @@ export async function POST(request: NextRequest) {
 function validateOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   const expected = new URL(process.env.APP_BASE_URL ?? request.url).origin;
-  if (origin && origin !== expected) throw new Error("Ungültiger Request-Origin.");
+  if (origin && origin !== expected)
+    throw new Error("Ungültiger Request-Origin.");
 }
 
 function requiredText(formData: FormData, key: string) {
   const value = formData.get(key);
-  if (typeof value !== "string" || !value.trim()) throw new Error(`${key} fehlt.`);
+  if (typeof value !== "string" || !value.trim())
+    throw new Error(`${key} fehlt.`);
   return value.trim();
 }
 
@@ -106,10 +113,17 @@ function optionalPlace(formData: FormData, key: string) {
 }
 
 function errorMessage(error: unknown) {
-  if (error && typeof error === "object" && "code" in error && error.code === "23505") {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "23505"
+  ) {
     return "Mindestens einer der gewählten Plätze wurde inzwischen von einem anderen Mitglied belegt. Bitte Auswahl aktualisieren.";
   }
-  return error instanceof Error ? error.message : "Abstimmung konnte nicht gespeichert werden.";
+  return error instanceof Error
+    ? error.message
+    : "Abstimmung konnte nicht gespeichert werden.";
 }
 
 function redirect(

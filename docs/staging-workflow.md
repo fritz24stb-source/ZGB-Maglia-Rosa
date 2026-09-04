@@ -46,7 +46,7 @@ Für einen echten Integrationstest eine separate Strava-Test-App und einen eigen
 - Production-Variablen: echte Supabase-Werte, `STRAVA_RUNTIME_MODE=production`.
 - Branch-spezifische Preview-Variablen: Test-Supabase, `STRAVA_RUNTIME_MODE=simulated`.
 - Für `staging/maglia-wertungen` in Vercel eine feste Branch-Domain bzw. ein eigenes Staging-Projekt nutzen; so bleiben Preview-Variablen und Strava-Callback stabil.
-- `CLASSIFICATIONS_ENABLED` steuert die Zielgruppe: `false` sperrt die neuen Wertungen, `staff` erlaubt nur Admin und Scorekeeper, `true` erlaubt alle aktiven Mitglieder. Fehlende oder ungültige Werte sperren die Funktion ebenfalls.
+- `CICLAMINO_ENABLED` und `AZZURRA_ENABLED` steuern die Zielgruppe getrennt: `false` sperrt die Wertung, `staff` erlaubt nur Admin und Scorekeeper, `true` erlaubt alle aktiven Mitglieder. `CLASSIFICATIONS_ENABLED` bleibt nur als Fallback für Ciclamino bestehen; Azzurra muss immer explizit freigegeben werden.
 - Kein Vercel-Build darf `supabase db push` ausführen.
 
 ## Hotfix parallel zur Feature-Entwicklung
@@ -68,4 +68,4 @@ Die Produktions-URL wird nur für den jeweiligen Terminalprozess gesetzt. Zusät
 4. `npm run db:production:push`
 5. Erst danach den kompatiblen Code nach `main` übernehmen.
 6. Höhenmeter-Backfill durchführen und Vollständigkeit prüfen.
-7. Für die interne Freigabe `CLASSIFICATIONS_ENABLED=staff`, für die allgemeine Freigabe `CLASSIFICATIONS_ENABLED=true` setzen und jeweils neu deployen.
+7. Für die gestaffelte Freigabe `CICLAMINO_ENABLED=true` und `AZZURRA_ENABLED=staff` setzen und neu deployen. Azzurra wird später mit `AZZURRA_ENABLED=true` allgemein freigegeben.
