@@ -128,6 +128,20 @@ const scheduledSprintDaysSql = readFileSync(
   ),
   "utf8",
 );
+const liveCiclaminoSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260825110000_ciclamino_voting_defaults_and_live_placements.sql",
+  ),
+  "utf8",
+);
+const restoredSprintLocationsSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260828110000_restore_scheduled_ciclamino_locations.sql",
+  ),
+  "utf8",
+);
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {
@@ -296,14 +310,22 @@ describe("database migrations", () => {
   });
   it("adds isolated Ciclamino and Azzurra classifications", () => {
     expect(classificationSql).toContain("'admin', 'member', 'scorekeeper'");
-    expect(classificationSql).toContain("create table public.ciclamino_sprints");
-    expect(classificationSql).toContain("create table public.ciclamino_placements");
+    expect(classificationSql).toContain(
+      "create table public.ciclamino_sprints",
+    );
+    expect(classificationSql).toContain(
+      "create table public.ciclamino_placements",
+    );
     expect(classificationSql).toContain("create table public.azzurra_windows");
-    expect(classificationSql).toContain("add column if not exists total_elevation_gain_m numeric");
+    expect(classificationSql).toContain(
+      "add column if not exists total_elevation_gain_m numeric",
+    );
     expect(classificationSql).toContain("when 1 then 5");
     expect(classificationSql).toContain("when 2 then 3");
     expect(classificationSql).toContain("when 3 then 1");
-    expect(classificationSql).toContain("activity.sport_type in ('Ride', 'GravelRide', 'MountainBikeRide')");
+    expect(classificationSql).toContain(
+      "activity.sport_type in ('Ride', 'GravelRide', 'MountainBikeRide')",
+    );
     expect(classificationSql).toContain("azzurra_window.starts_on + 6");
     expect(classificationSql).not.toContain("azzurra_windows window");
     expect(classificationSql).toContain("public.get_ciclamino_leaderboard");
@@ -312,10 +334,18 @@ describe("database migrations", () => {
 
   it("stores complete Ciclamino race days with three locations and five places", () => {
     expect(expandedCiclaminoSql).toContain("public.save_ciclamino_race_day");
-    expect(expandedCiclaminoSql).toContain("jsonb_array_length(p_sprints) <> 3");
-    expect(expandedCiclaminoSql).toContain("jsonb_array_length(sprint_input -> 'userIds') <> 5");
-    expect(expandedCiclaminoSql).toContain("'Okel', 'Heiligenfelde I', 'Heiligenfelde II'");
-    expect(expandedCiclaminoSql).toContain("extract(isodow from new.sprint_date) <> 3");
+    expect(expandedCiclaminoSql).toContain(
+      "jsonb_array_length(p_sprints) <> 3",
+    );
+    expect(expandedCiclaminoSql).toContain(
+      "jsonb_array_length(sprint_input -> 'userIds') <> 5",
+    );
+    expect(expandedCiclaminoSql).toContain(
+      "'Okel', 'Heiligenfelde I', 'Heiligenfelde II'",
+    );
+    expect(expandedCiclaminoSql).toContain(
+      "extract(isodow from new.sprint_date) <> 3",
+    );
     expect(expandedCiclaminoSql).toContain("when 2 then 4");
     expect(expandedCiclaminoSql).toContain("when 4 then 2");
     expect(expandedCiclaminoSql).toContain("when 5 then 1");
@@ -324,39 +354,89 @@ describe("database migrations", () => {
   });
 
   it("awards five extra Ciclamino points to one Most Combative Rider per race day", () => {
-    expect(combativeAwardsSql).toContain("create table public.ciclamino_combative_awards");
-    expect(combativeAwardsSql).toContain("primary key (season_id, sprint_date)");
-    expect(combativeAwardsSql).toContain("points smallint not null default 5 check (points = 5)");
+    expect(combativeAwardsSql).toContain(
+      "create table public.ciclamino_combative_awards",
+    );
+    expect(combativeAwardsSql).toContain(
+      "primary key (season_id, sprint_date)",
+    );
+    expect(combativeAwardsSql).toContain(
+      "points smallint not null default 5 check (points = 5)",
+    );
     expect(combativeAwardsSql).toContain("p_combative_user_id uuid");
     expect(combativeAwardsSql).toContain("combative_awards bigint");
     expect(combativeAwardsSql).toContain("coalesce(award.award_points, 0)");
   });
 
   it("stores changeable votes and resolves ties using sprint points", () => {
-    expect(combativeVotingSql).toContain("create table public.ciclamino_combative_voting_windows");
-    expect(combativeVotingSql).toContain("create table public.ciclamino_combative_votes");
-    expect(combativeVotingSql).toContain("primary key (season_id, sprint_date, voter_user_id)");
-    expect(combativeVotingSql).toContain("candidate.vote_count desc, candidate.sprint_points desc");
+    expect(combativeVotingSql).toContain(
+      "create table public.ciclamino_combative_voting_windows",
+    );
+    expect(combativeVotingSql).toContain(
+      "create table public.ciclamino_combative_votes",
+    );
+    expect(combativeVotingSql).toContain(
+      "primary key (season_id, sprint_date, voter_user_id)",
+    );
+    expect(combativeVotingSql).toContain(
+      "candidate.vote_count desc, candidate.sprint_points desc",
+    );
     expect(combativeVotingSql).toContain("having count(*) = 1");
     expect(combativeVotingSql).toContain("Europe/Berlin");
   });
 
   it("stores self-reported sprint results and applies position-specific admin overrides", () => {
-    expect(memberResultsSql).toContain("create table public.ciclamino_result_submissions");
+    expect(memberResultsSql).toContain(
+      "create table public.ciclamino_result_submissions",
+    );
     expect(memberResultsSql).toContain("where place is not null");
-    expect(memberResultsSql).toContain("create table public.ciclamino_placement_overrides");
+    expect(memberResultsSql).toContain(
+      "create table public.ciclamino_placement_overrides",
+    );
     expect(memberResultsSql).toContain("public.save_ciclamino_member_vote");
-    expect(memberResultsSql).toContain("public.refresh_ciclamino_effective_placements");
-    expect(memberResultsSql).toContain("rider_override.user_id = submission.user_id");
+    expect(memberResultsSql).toContain(
+      "public.refresh_ciclamino_effective_placements",
+    );
+    expect(memberResultsSql).toContain(
+      "rider_override.user_id = submission.user_id",
+    );
   });
 
-  it("creates every season Wednesday and publishes results only after voting closes", () => {
-    expect(scheduledSprintDaysSql).toContain("public.ensure_ciclamino_sprint_days_for_season");
-    expect(scheduledSprintDaysSql).toContain("extract(isodow from generated_day) = 3");
-    expect(scheduledSprintDaysSql).toContain("create_ciclamino_sprint_days_after_season_insert");
+  it("creates every season Wednesday", () => {
+    expect(scheduledSprintDaysSql).toContain(
+      "public.ensure_ciclamino_sprint_days_for_season",
+    );
+    expect(scheduledSprintDaysSql).toContain(
+      "extract(isodow from generated_day) = 3",
+    );
+    expect(scheduledSprintDaysSql).toContain(
+      "create_ciclamino_sprint_days_after_season_insert",
+    );
     expect(scheduledSprintDaysSql).toContain("'Okel'");
     expect(scheduledSprintDaysSql).toContain("'Heiligenfelde I'");
     expect(scheduledSprintDaysSql).toContain("'Heiligenfelde II'");
-    expect(scheduledSprintDaysSql).toContain("where voting_window.closes_at <= now()");
+    expect(scheduledSprintDaysSql).toContain(
+      "where voting_window.closes_at <= now()",
+    );
+  });
+
+  it("uses the Friday voting deadline and keeps sprint placements live", () => {
+    expect(liveCiclaminoSql).toContain("sprint_date + 2");
+    expect(liveCiclaminoSql).toContain("w.closes_at<=now()");
+    expect(liveCiclaminoSql).toContain("coalesce(pl.placement_points,0)");
+    expect(liveCiclaminoSql).toContain("::integer as place");
+    expect(liveCiclaminoSql).not.toContain("order by season_name,place");
+  });
+
+  it("creates all three sprint locations for existing and new season Wednesdays", () => {
+    expect(restoredSprintLocationsSql).toContain(
+      "insert into public.ciclamino_sprints",
+    );
+    expect(restoredSprintLocationsSql).toContain(
+      "'Okel',\n    'Heiligenfelde I',\n    'Heiligenfelde II'",
+    );
+    expect(restoredSprintLocationsSql).toContain(
+      "public.ensure_ciclamino_sprint_days_for_season(selected_season.id)",
+    );
   });
 });

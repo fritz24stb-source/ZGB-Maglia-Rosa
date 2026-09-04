@@ -9,6 +9,7 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:db:staging": "node --env-file=.env.local scripts/test-staging-classifications.mjs",
     "format": "prettier --write .",
     "db:staging:status": "node --env-file=.env.local scripts/db-target.mjs staging status",
     "db:staging:dry-run": "node --env-file=.env.local scripts/db-target.mjs staging dry-run",
