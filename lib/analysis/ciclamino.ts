@@ -38,7 +38,14 @@ export function buildCiclaminoAnalysis(
     if (day.votingWindow?.status === "closed" && day.combativeRider) totals.set(day.combativeRider.userId, (totals.get(day.combativeRider.userId) ?? 0) + day.combativeRider.points);
     return { date: day.sprintDate, values: [...totals.entries()].map(([userId, totalPoints]) => ({ displayName: names.get(userId) ?? "Unbekannt", totalPoints, userId })) };
   });
-  const cutoff = sortedDays.at(-1)?.sprintDate ? new Date(`${sortedDays.at(-1)?.sprintDate}T12:00:00Z`) : null;
+  // Sprint days are scheduled for the complete season in advance. Anchor the
+  // recent window at the latest day with awarded points so future empty days
+  // cannot move already recorded results out of the three-week comparison.
+  const latestScoredDay = sortedDays.findLast((day) =>
+    day.sprints.some((sprint) => sprint.placements.length > 0)
+      || (day.votingWindow?.status === "closed" && day.combativeRider !== null),
+  );
+  const cutoff = latestScoredDay ? new Date(`${latestScoredDay.sprintDate}T12:00:00Z`) : null;
   if (cutoff) cutoff.setUTCDate(cutoff.getUTCDate() - 20);
   const recentTotals = new Map<string, number>();
   for (const day of sortedDays) {
