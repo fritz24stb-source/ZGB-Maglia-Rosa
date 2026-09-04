@@ -141,7 +141,7 @@ const restoredSprintLocationsSql = readFileSync(
     "supabase/migrations/20260828110000_restore_scheduled_ciclamino_locations.sql",
   ),
   "utf8",
-);
+).replace(/\r\n/g, "\n");
 
 describe("database migrations", () => {
   it("enables RLS on all application tables", () => {

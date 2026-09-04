@@ -6,19 +6,33 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { mainNavItems } from "@/lib/navigation";
+import type { UserRole } from "@/lib/auth/roles";
 import { cn } from "@/lib/ui";
 
 function isActivePath(pathname: string, href: string) {
   return href === "/admin" ? pathname.startsWith("/admin") : pathname === href;
 }
 
-export function MainNav() {
+export function MainNav({
+  classificationsEnabled,
+  role,
+}: {
+  classificationsEnabled: boolean;
+  role: UserRole | null;
+}) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     setMobileNavOpen(false);
   }, [pathname]);
+
+  const visibleNavItems = mainNavItems.filter(
+    (item) =>
+      role !== null &&
+      item.roles.includes(role) &&
+      (!item.classificationOnly || classificationsEnabled),
+  );
 
   return (
     <nav className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6 lg:px-8">
@@ -47,7 +61,7 @@ export function MainNav() {
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
-          {mainNavItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = isActivePath(pathname, item.href);
 
             return (
@@ -89,7 +103,7 @@ export function MainNav() {
         )}
       >
         <div className="flex flex-col gap-1">
-          {mainNavItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = isActivePath(pathname, item.href);
 
             return (

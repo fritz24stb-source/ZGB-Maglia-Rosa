@@ -5,11 +5,10 @@ import {
 } from "@/components/classification-leaderboards";
 import { PageHeader } from "@/components/page-header";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
+import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { loadLeaderboardResponse } from "@/lib/leaderboard/server";
-import {
-  classificationsEnabled,
-  loadClassificationLeaderboard,
-} from "@/lib/classifications/server";
+import { canAccessClassifications } from "@/lib/classifications/access";
+import { loadClassificationLeaderboard } from "@/lib/classifications/server";
 import type { ClassificationKind } from "@/lib/classifications/types";
 
 export const dynamic = "force-dynamic";
@@ -27,9 +26,11 @@ export default async function LeaderboardPage({
     return accessBlocked;
   }
 
+  const access = await loadCurrentAppAccessState();
   const resolvedParams = await searchParams;
   const urlParams = toUrlSearchParams(resolvedParams);
-  const enabled = classificationsEnabled();
+  const enabled =
+    access.kind === "active" && canAccessClassifications(access.profile.role);
   const requestedClassification = single(resolvedParams.classification);
   const classification: ClassificationKind =
     enabled && (requestedClassification === "ciclamino" || requestedClassification === "azzurra")

@@ -188,6 +188,7 @@ Details zu Strava App, Webhook, Supabase, Admin Workflow, Nutzer Workflow, Regel
 | `APP_BASE_URL`                  | Basis-URL der App                          |
 | `APP_AUTH_SECRET`               | Signatur-Secret für App-Session-Cookies    |
 | `CRON_SECRET`                   | Bearer Secret für Vercel Cron              |
+| `CLASSIFICATIONS_ENABLED`       | `false`: aus, `staff`: Admin/Scorekeeper, `true`: alle Mitglieder |
 
 ## Qualitätsbefehle
 

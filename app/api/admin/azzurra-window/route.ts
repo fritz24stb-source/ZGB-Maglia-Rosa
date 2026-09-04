@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { writeAdminAuditLog } from "@/lib/admin/audit";
 import {
+  AdminHttpError,
   formatAdminError,
   requireAdminSession,
   validateAdminOrigin,
 } from "@/lib/admin/http";
+import { canAccessClassifications } from "@/lib/classifications/access";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -14,6 +16,9 @@ export async function POST(request: NextRequest) {
   try {
     validateAdminOrigin(request);
     const admin = await requireAdminSession(request);
+    if (!canAccessClassifications(admin.profile?.role)) {
+      throw new AdminHttpError(404, "Wertungen sind noch nicht aktiv.");
+    }
     const formData = await request.formData();
     const userId = requiredText(formData, "userId");
     const seasonId = requiredText(formData, "seasonId");

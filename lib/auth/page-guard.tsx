@@ -6,6 +6,7 @@ import { AccessBlocked } from "@/components/access-blocked";
 import { decideAdminAccess } from "@/lib/auth/admin-access";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { canManageCiclamino } from "@/lib/auth/roles";
+import { canAccessClassifications } from "@/lib/classifications/access";
 
 export async function requireActiveAppPage(nextPath: string) {
   const state = await loadCurrentAppAccessState();
@@ -57,7 +58,10 @@ export async function requireCiclaminoManagerPage(nextPath: string) {
     return <AccessBlocked />;
   }
 
-  if (!canManageCiclamino(state.profile.role)) {
+  if (
+    !canManageCiclamino(state.profile.role) ||
+    !canAccessClassifications(state.profile.role)
+  ) {
     return (
       <AccessDenied
         title="Zugriff auf Sprintleitung gesperrt"

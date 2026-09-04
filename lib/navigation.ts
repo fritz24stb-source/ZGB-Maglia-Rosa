@@ -1,6 +1,7 @@
 import type { UserRole } from "@/lib/auth/roles";
 
 export type NavItem = {
+  classificationOnly?: boolean;
   href: string;
   label: string;
   roles: UserRole[];
@@ -12,7 +13,7 @@ export const mainNavItems: NavItem[] = [
   { href: "/manual", label: "Manuell", roles: ["admin", "member", "scorekeeper"] },
   { href: "/profile", label: "Profil", roles: ["admin", "member", "scorekeeper"] },
   { href: "/faq", label: "FAQ", roles: ["admin", "member", "scorekeeper"] },
-  { href: "/sprints", label: "Sprintleitung", roles: ["admin", "scorekeeper"] },
+  { href: "/sprints", label: "Sprintleitung", roles: ["admin", "scorekeeper"], classificationOnly: true },
   { href: "/admin", label: "Rennleitung", roles: ["admin"] },
 ];
 

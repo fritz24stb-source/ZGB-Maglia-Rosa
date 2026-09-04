@@ -10,6 +10,7 @@ import { AdminFlash } from "@/components/admin-flash";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { canAccessClassifications } from "@/lib/classifications/access";
 import type { Database } from "@/types/database";
 
 type AdminMembersPageProps = {
@@ -58,6 +59,7 @@ export default async function AdminMembersPage({
 }: AdminMembersPageProps) {
   const params = searchParams ? await searchParams : {};
   const state = await loadMembersState();
+  const showClassifications = canAccessClassifications("admin");
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -89,6 +91,7 @@ export default async function AdminMembersPage({
               }
               profile={profile}
               seasons={state.seasons}
+              showClassifications={showClassifications}
               stats={state.activityStats.get(profile.id) ?? emptyStats}
             />
           ))}
@@ -105,6 +108,7 @@ function MemberCard({
   isLastActiveAdmin,
   profile,
   seasons,
+  showClassifications,
   stats,
 }: {
   adjustments: PointAdjustmentRow[];
@@ -113,6 +117,7 @@ function MemberCard({
   isLastActiveAdmin: boolean;
   profile: ProfileRow;
   seasons: SeasonRow[];
+  showClassifications: boolean;
   stats: MemberStats;
 }) {
   const adjustmentPoints = adjustments.reduce(
@@ -333,6 +338,7 @@ function MemberCard({
               </button>
             </form>
 
+            {showClassifications ? (
             <section className="mt-4 border-t border-asphalt-100 pt-4">
               <h3 className="text-sm font-semibold text-asphalt-900">Azzurra-Woche</h3>
               <p className="mt-1 text-xs text-asphalt-500">Nach dem Zurücksetzen kann das Mitglied im Profil erneut eine Woche auswählen.</p>
@@ -384,6 +390,7 @@ function MemberCard({
                 })}
               </div>
             </section>
+            ) : null}
             {connection ? (
               <dl className="mt-4 grid gap-2 border-t border-asphalt-100 pt-4 text-xs text-asphalt-500 md:grid-cols-3">
                 <div>

@@ -19,7 +19,12 @@ vi.mock("next/image", () => ({
 
 describe("MainNav", () => {
   it("uses the PWA icon in the header brand", () => {
-    render(React.createElement(MainNav));
+    render(
+      React.createElement(MainNav, {
+        classificationsEnabled: false,
+        role: null,
+      }),
+    );
 
     expect(document.querySelector('img[src="/pwa-icon.svg"]')).not.toBeNull();
     expect(screen.getByText("ZGB-Maglia-Rosa")).not.toBeNull();
@@ -27,7 +32,12 @@ describe("MainNav", () => {
   });
 
   it("toggles the mobile navigation from the menu button", () => {
-    render(React.createElement(MainNav));
+    render(
+      React.createElement(MainNav, {
+        classificationsEnabled: false,
+        role: "member",
+      }),
+    );
 
     const button = screen.getByRole("button", {
       name: "Navigation öffnen",
@@ -46,5 +56,26 @@ describe("MainNav", () => {
     expect(button.getAttribute("aria-expanded")).toBe("true");
     expect(mobileNavigation?.className).toContain("block");
     expect(mobileNavigation?.textContent).toContain("Manuell");
+    expect(mobileNavigation?.textContent).not.toContain("Sprintleitung");
+  });
+
+  it("shows classification management only to enabled staff", () => {
+    const { rerender } = render(
+      React.createElement(MainNav, {
+        classificationsEnabled: true,
+        role: "scorekeeper",
+      }),
+    );
+
+    expect(screen.getAllByText("Sprintleitung")).toHaveLength(2);
+
+    rerender(
+      React.createElement(MainNav, {
+        classificationsEnabled: false,
+        role: "scorekeeper",
+      }),
+    );
+
+    expect(screen.queryByText("Sprintleitung")).toBeNull();
   });
 });

@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { AppAccessError, requireActiveAppUser } from "@/lib/auth/guards";
-import {
-  classificationsEnabled,
-  loadClassificationLeaderboard,
-} from "@/lib/classifications/server";
+import { canAccessClassifications } from "@/lib/classifications/access";
+import { loadClassificationLeaderboard } from "@/lib/classifications/server";
 import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -11,9 +9,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    await requireActiveAppUser();
+    const access = await requireActiveAppUser();
 
-    if (!classificationsEnabled()) {
+    if (!canAccessClassifications(access.profile.role)) {
       return NextResponse.json({ error: "Wertungen sind noch nicht aktiv." }, { status: 404 });
     }
 

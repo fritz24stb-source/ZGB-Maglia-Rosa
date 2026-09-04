@@ -15,6 +15,7 @@ import { PasskeyPanel } from "@/components/passkey-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
+import { canAccessClassifications } from "@/lib/classifications/access";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/auth/roles";
 import type { Database } from "@/types/database";
@@ -227,10 +228,12 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
             <ActivityList activities={state.activities} />
           </article>
         </section>
-        <AzzurraWindowCard
-          seasons={state.seasons}
-          windows={state.azzurraWindows}
-        />
+        {canAccessClassifications(state.role) ? (
+          <AzzurraWindowCard
+            seasons={state.seasons}
+            windows={state.azzurraWindows}
+          />
+        ) : null}
         </>
       ) : null}
     </main>

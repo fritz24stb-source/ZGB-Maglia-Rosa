@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { CheckCircle2, Clock3, Flag, Swords } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
+import { canAccessClassifications } from "@/lib/classifications/access";
 import {
   CICLAMINO_LOCATIONS,
   defaultSeasonWednesday,
@@ -24,6 +26,7 @@ export default async function CiclaminoVotePage({
 
   const access = await loadCurrentAppAccessState();
   if (access.kind !== "active") return null;
+  if (!canAccessClassifications(access.profile.role)) notFound();
 
   const params = searchParams ? await searchParams : {};
   const supabase = createSupabaseServiceRoleClient();

@@ -15,10 +15,6 @@ type CiclaminoRpcRow =
 type AzzurraRpcRow =
   Database["public"]["Functions"]["get_azzurra_leaderboard"]["Returns"][number];
 
-export function classificationsEnabled() {
-  return process.env.CLASSIFICATIONS_ENABLED !== "false";
-}
-
 export async function loadClassificationLeaderboard(
   requestedSeasonId?: string | null,
 ): Promise<ClassificationLeaderboardResponse> {

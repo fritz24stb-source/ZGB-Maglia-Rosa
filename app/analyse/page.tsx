@@ -3,6 +3,7 @@ import { CiclaminoAnalysis } from "@/components/ciclamino-analysis";
 import { ClassificationTabs } from "@/components/classification-leaderboards";
 import { PageHeader } from "@/components/page-header";
 import { requireActiveAppPage } from "@/lib/auth/page-guard";
+import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import {
   buildRideAnalysis,
   type AnalysisActivity,
@@ -12,7 +13,8 @@ import {
   type WednesdayParticipationPoint,
 } from "@/lib/analysis/rides";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import { classificationsEnabled, loadClassificationLeaderboard } from "@/lib/classifications/server";
+import { canAccessClassifications } from "@/lib/classifications/access";
+import { loadClassificationLeaderboard } from "@/lib/classifications/server";
 import type { ClassificationLeaderboardResponse } from "@/lib/classifications/types";
 import { cn } from "@/lib/ui";
 import type { Database } from "@/types/database";
@@ -56,8 +58,11 @@ export default async function AnalysePage({ searchParams }: AnalysisPageProps) {
     return accessBlocked;
   }
 
+  const access = await loadCurrentAppAccessState();
+  const classificationsEnabled =
+    access.kind === "active" && canAccessClassifications(access.profile.role);
   const params = searchParams ? await searchParams : {};
-  const state = await loadAnalysisState(params);
+  const state = await loadAnalysisState(params, classificationsEnabled);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -71,15 +76,20 @@ export default async function AnalysePage({ searchParams }: AnalysisPageProps) {
           {state.message}
         </section>
       ) : (
-        <AnalysisContent state={state} />
+        <AnalysisContent
+          classificationsEnabled={classificationsEnabled}
+          state={state}
+        />
       )}
     </main>
   );
 }
 
 function AnalysisContent({
+  classificationsEnabled,
   state,
 }: {
+  classificationsEnabled: boolean;
   state: Extract<AnalysisState, { kind: "ready" }>;
 }) {
   const { analysis, ciclamino, selectedSeason } = state;
@@ -87,7 +97,7 @@ function AnalysisContent({
 
   return (
     <>
-      <ClassificationTabs active={showCiclamino ? "ciclamino" : "rosa"} enabled={classificationsEnabled()} includeAzzurra={false} pathname="/analyse" seasonId={showCiclamino ? ciclamino.selectedSeasonId : state.selectedSeasonId} />
+      <ClassificationTabs active={showCiclamino ? "ciclamino" : "rosa"} enabled={classificationsEnabled} includeAzzurra={false} pathname="/analyse" seasonId={showCiclamino ? ciclamino.selectedSeasonId : state.selectedSeasonId} />
       {showCiclamino ? <CiclaminoAnalysis leaderboard={ciclamino.ciclamino} sprintDays={ciclamino.ciclaminoSprintDays} /> : <>
       <section className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -503,6 +513,7 @@ function isRideTableCountColumn(
 
 async function loadAnalysisState(
   params: Record<string, string | string[] | undefined>,
+  classificationsEnabled: boolean,
 ): Promise<AnalysisState> {
   try {
     const supabase = createSupabaseServiceRoleClient();
@@ -548,7 +559,7 @@ async function loadAnalysisState(
       (rulesResult.data ?? []) as AnalysisScoringRule[],
     );
     const requestedClassification = getSingleParam(params.classification);
-    const ciclamino = classificationsEnabled() && requestedClassification === "ciclamino"
+    const ciclamino = classificationsEnabled && requestedClassification === "ciclamino"
       ? await loadClassificationLeaderboard(selectedSeasonId)
       : null;
 

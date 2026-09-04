@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { writeAdminAuditLog } from "@/lib/admin/audit";
 import { loadCurrentAppAccessState } from "@/lib/auth/guards";
 import { canManageCiclamino } from "@/lib/auth/roles";
+import { canAccessClassifications } from "@/lib/classifications/access";
 import { CICLAMINO_LOCATIONS } from "@/lib/classifications/ciclamino";
 import { berlinLocalDateTimeToIso } from "@/lib/date-time";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
@@ -14,7 +15,11 @@ export async function POST(request: NextRequest) {
   try {
     validateOrigin(request);
     const access = await loadCurrentAppAccessState();
-    if (access.kind !== "active" || !canManageCiclamino(access.profile.role)) {
+    if (
+      access.kind !== "active" ||
+      !canManageCiclamino(access.profile.role) ||
+      !canAccessClassifications(access.profile.role)
+    ) {
       throw new Error("Keine Berechtigung für die Sprintleitung.");
     }
 

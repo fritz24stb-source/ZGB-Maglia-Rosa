@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { writeAdminAuditLog } from "@/lib/admin/audit";
 import { requireActiveAppUser } from "@/lib/auth/guards";
+import { canAccessClassifications } from "@/lib/classifications/access";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -10,6 +11,9 @@ export async function POST(request: NextRequest) {
   try {
     validateOrigin(request);
     const access = await requireActiveAppUser();
+    if (!canAccessClassifications(access.profile.role)) {
+      throw new Error("Wertungen sind für dieses Profil noch nicht aktiv.");
+    }
     const formData = await request.formData();
     const seasonId = requiredText(formData, "seasonId");
     const startsOn = requiredDate(formData, "startsOn");

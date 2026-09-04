@@ -1,15 +1,23 @@
 import Link from "next/link";
 import { MainNav } from "@/components/main-nav";
+import { loadCurrentAppAccessState } from "@/lib/auth/guards";
+import { canAccessClassifications } from "@/lib/classifications/access";
 
 type AppShellProps = {
   children: React.ReactNode;
 };
 
-export function AppShell({ children }: AppShellProps) {
+export async function AppShell({ children }: AppShellProps) {
+  const access = await loadCurrentAppAccessState();
+  const role = access.kind === "active" ? access.profile.role : null;
+
   return (
     <div className="zgb-app flex min-h-screen flex-col">
       <header className="zgb-app-header sticky top-0 z-20 backdrop-blur-md">
-        <MainNav />
+        <MainNav
+          classificationsEnabled={canAccessClassifications(role)}
+          role={role}
+        />
       </header>
       {children}
       <footer className="mt-auto border-t border-asphalt-200">

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { cookies } from "next/headers";
 import {
   APP_SESSION_COOKIE,
@@ -28,7 +29,7 @@ export class AppAccessError extends Error {
   }
 }
 
-export async function loadCurrentAppAccessState(): Promise<AppAccessState> {
+export const loadCurrentAppAccessState = cache(async (): Promise<AppAccessState> => {
   const cookieStore = await cookies();
   const appSession = await readAppSessionToken(
     cookieStore.get(APP_SESSION_COOKIE)?.value,
@@ -60,7 +61,7 @@ export async function loadCurrentAppAccessState(): Promise<AppAccessState> {
   }
 
   return { kind: "active", profile, userId: appSession.userId };
-}
+});
 
 export async function requireActiveAppUser() {
   const state = await loadCurrentAppAccessState();
