@@ -39,3 +39,4 @@ supabase/snippets
 /data.sql
 /roles.sql
 /schema.sql
+/backups/*.sql
