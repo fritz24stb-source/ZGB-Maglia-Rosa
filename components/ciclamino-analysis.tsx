@@ -19,10 +19,54 @@ function Trend({ trend }: { trend: ReturnType<typeof buildCiclaminoAnalysis>["tr
   const riders = [...(trend.at(-1)?.values ?? [])].sort((left, right) => right.totalPoints - left.totalPoints).slice(0, 5).map((value) => [value.userId, value.displayName] as const);
   const max = Math.max(1, ...trend.flatMap((day) => day.values.map((value) => value.totalPoints)));
   if (!trend.length || !riders.length) return <section className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line"><h2 className="text-base font-semibold text-asphalt-900">Punkteverlauf je Fahrer</h2><Empty /></section>;
-  const width = 640, height = 250, left = 36, right = 16, top = 18, bottom = 38;
+  const width = 720, height = 300, left = 64, right = 20, top = 18, bottom = 62;
+  const yStep = niceTickStep(max / 4);
+  const yMax = Math.ceil(max / yStep) * yStep;
+  const yTicks = Array.from({ length: Math.round(yMax / yStep) + 1 }, (_, index) => index * yStep);
+  const xTickCount = Math.min(7, trend.length);
+  const xTickIndexes = [...new Set(Array.from({ length: xTickCount }, (_, index) => (
+    xTickCount === 1 ? 0 : Math.round(index * (trend.length - 1) / (xTickCount - 1))
+  )))];
   const x = (index: number) => trend.length === 1 ? (width + left - right) / 2 : left + index * ((width - left - right) / (trend.length - 1));
-  const y = (value: number) => top + (max - value) * ((height - top - bottom) / max);
-  return <section className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line"><h2 className="text-base font-semibold text-asphalt-900">Punkteverlauf je Fahrer</h2><p className="mt-1 text-sm text-asphalt-600">Kumulierte Sprintpunkte zeigen die Tendenz über die Saison.</p><svg role="img" aria-label="Kumulierter Punkteverlauf der führenden Fahrer" className="mt-4 h-auto w-full" viewBox={`0 0 ${width} ${height}`}>{riders.map(([userId], index) => { const points = trend.map((day, dayIndex) => { const value = day.values.find((candidate) => candidate.userId === userId)?.totalPoints ?? (dayIndex ? trend[dayIndex - 1].values.find((candidate) => candidate.userId === userId)?.totalPoints ?? 0 : 0); return `${x(dayIndex)},${y(value)}`; }).join(" "); return <polyline key={userId} fill="none" points={points} stroke={COLORS[index]} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />; })}{trend.map((day, index) => <text key={day.date} x={x(index)} y={height - 10} textAnchor="middle" fontSize="11" fill="#756856">{day.date.slice(5).replace("-", ".")}</text>)}</svg><div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm">{riders.map(([userId, name], index) => <span key={userId} className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[index] }} />{name}</span>)}</div></section>;
+  const y = (value: number) => top + (yMax - value) * ((height - top - bottom) / yMax);
+  return <section className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line">
+    <h2 className="text-base font-semibold text-asphalt-900">Punkteverlauf je Fahrer</h2>
+    <p className="mt-1 text-sm text-asphalt-600">Kumulierte Sprintpunkte zeigen die Tendenz über die Saison.</p>
+    <svg role="img" aria-label="Kumulierter Punkteverlauf der führenden Fahrer" className="mt-4 h-auto w-full" viewBox={`0 0 ${width} ${height}`}>
+      <title>Kumulierter Punkteverlauf mit Sprintdatum und Punkteskala</title>
+      {yTicks.map((tick) => <g key={tick}>
+        <line x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} stroke="#ded8d0" strokeWidth="1" />
+        <text x={left - 10} y={y(tick)} textAnchor="end" dominantBaseline="middle" fontSize="11" fill="#756856">{tick}</text>
+      </g>)}
+      {xTickIndexes.map((index) => <line key={trend[index].date} x1={x(index)} x2={x(index)} y1={top} y2={height - bottom} stroke="#eeeae5" strokeWidth="1" />)}
+      <line x1={left} x2={left} y1={top} y2={height - bottom} stroke="#b9afa3" strokeWidth="1" />
+      <line x1={left} x2={width - right} y1={height - bottom} y2={height - bottom} stroke="#b9afa3" strokeWidth="1" />
+      <text x="16" y={(top + height - bottom) / 2} textAnchor="middle" fontSize="12" fontWeight="600" fill="#4d443a" transform={`rotate(-90 16 ${(top + height - bottom) / 2})`}>Punkte</text>
+      {riders.map(([userId], index) => {
+        const points = trend.map((day, dayIndex) => {
+          const value = day.values.find((candidate) => candidate.userId === userId)?.totalPoints ?? (dayIndex ? trend[dayIndex - 1].values.find((candidate) => candidate.userId === userId)?.totalPoints ?? 0 : 0);
+          return `${x(dayIndex)},${y(value)}`;
+        }).join(" ");
+        return <polyline key={userId} fill="none" points={points} stroke={COLORS[index]} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />;
+      })}
+      {xTickIndexes.map((index) => <text key={trend[index].date} x={x(index)} y={height - bottom + 20} textAnchor="middle" fontSize="11" fill="#756856">{formatShortDate(trend[index].date)}</text>)}
+      <text x={(left + width - right) / 2} y={height - 8} textAnchor="middle" fontSize="12" fontWeight="600" fill="#4d443a">Sprintdatum</text>
+    </svg>
+    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm">{riders.map(([userId, name], index) => <span key={userId} className="inline-flex items-center gap-2"><i className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[index] }} />{name}</span>)}</div>
+  </section>;
 }
+
+function niceTickStep(value: number) {
+  const magnitude = 10 ** Math.floor(Math.log10(value));
+  const normalized = value / magnitude;
+  const factor = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return Math.max(1, factor * magnitude);
+}
+
+function formatShortDate(date: string) {
+  const [, month, day] = date.split("-");
+  return day && month ? `${day}.${month}.` : date;
+}
+
 function Metric({ icon: Icon, label, value }: { icon: typeof Flag; label: string; value: number }) { return <article className="rounded-lg border border-asphalt-200 bg-white p-4 shadow-line"><Icon className="h-5 w-5 text-fuchsia-700" aria-hidden /><p className="mt-3 text-xs font-semibold uppercase text-asphalt-500">{label}</p><p className="mt-1 text-2xl font-semibold text-asphalt-900">{value}</p></article>; }
 function Empty() { return <p className="mt-4 text-sm text-asphalt-600">Noch keine eingetragenen Sprintplatzierungen für diese Saison.</p>; }

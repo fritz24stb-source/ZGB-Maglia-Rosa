@@ -1,5 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
-import { AlertTriangle, ChevronDown, Flag, Mountain, Trophy, Vote } from "lucide-react";
+import { AlertTriangle, ChevronDown, Mountain, Trophy, Vote } from "lucide-react";
 import { CiclaminoSprintDays } from "@/components/ciclamino-sprint-days";
 import type {
   AzzurraLeaderboardRow,
@@ -128,8 +129,19 @@ function AzzurraTable({ rows }: { rows: AzzurraLeaderboardRow[] }) {
 
 function RankCell({ place, tone }: { place: number; tone: "ciclamino" | "azzurra" }) { return <td className="px-4 py-4 font-semibold"><RankMarker place={place} tone={tone} /></td>; }
 function RankMarker({ place, tone }: { place: number; tone: "ciclamino" | "azzurra" }) {
-  const Icon = tone === "ciclamino" ? Flag : Mountain;
-  return <span className="inline-flex items-center gap-1.5 font-semibold text-asphalt-900"><span className="flex h-6 w-6 shrink-0 items-center justify-center">{place === 1 ? <Icon className={cn("h-5 w-5", tone === "ciclamino" ? "text-fuchsia-700" : "text-sky-700")} aria-hidden /> : place <= 3 ? <Trophy className={cn("h-4 w-4", place === 2 ? "text-slate-400" : "text-amber-700")} aria-hidden /> : null}</span>{place}</span>;
+  const leaderIcon = tone === "ciclamino" ? (
+    <Image
+      src="/maglia-ciclamino.png"
+      alt="Maglia Ciclamino"
+      width={24}
+      height={24}
+      className="h-6 w-6 rounded-sm object-contain"
+    />
+  ) : (
+    <Mountain className="h-5 w-5 text-sky-700" aria-hidden />
+  );
+
+  return <span className="inline-flex items-center gap-1.5 font-semibold text-asphalt-900"><span className="flex h-6 w-6 shrink-0 items-center justify-center">{place === 1 ? leaderIcon : place <= 3 ? <Trophy className={cn("h-4 w-4", place === 2 ? "text-slate-400" : "text-amber-700")} aria-hidden /> : null}</span>{place}</span>;
 }
 function Detail({ label, value }: { label: string; value: number | string }) { return <div className="rounded-md bg-asphalt-50 p-2"><dt className="text-xs text-asphalt-500">{label}</dt><dd className="mt-1 font-semibold text-asphalt-900">{value}</dd></div>; }
 const formatter = new Intl.NumberFormat("de-CH", { maximumFractionDigits: 1 });
