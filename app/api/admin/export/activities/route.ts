@@ -22,6 +22,8 @@ type SeasonRow = Pick<
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const EXPORT_PAGE_SIZE = 500;
+
 export async function GET(request: NextRequest) {
   try {
     await requireAdminSession(request);
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
       .from("activities")
       .select("*")
       .order("activity_started_at", { ascending: false })
-      .limit(10000);
+      .order("id", { ascending: false });
 
     query = applyEqFilter(
       query,
@@ -66,13 +68,26 @@ export async function GET(request: NextRequest) {
       query = query.lte("activity_started_at", `${to}T23:59:59.999Z`);
     }
 
-    const { data, error } = await query;
+    const activities: ActivityRow[] = [];
 
-    if (error) {
-      throw error;
+    // Fetch separate pages to respect the database's response row limit.
+    // Continue until empty so even a lower server-side cap cannot truncate the export.
+    while (true) {
+      const { data, error } = await query.range(
+        activities.length,
+        activities.length + EXPORT_PAGE_SIZE - 1,
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data?.length) {
+        break;
+      }
+
+      activities.push(...(data as ActivityRow[]));
     }
-
-    const activities = (data ?? []) as ActivityRow[];
     const [profiles, seasons] = await Promise.all([
       loadProfiles(
         supabase,
